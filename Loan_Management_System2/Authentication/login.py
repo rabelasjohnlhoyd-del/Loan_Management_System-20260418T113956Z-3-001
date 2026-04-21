@@ -29,7 +29,10 @@ UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'gif'}
 
 # Gemini AI model
-GEMINI_MODEL = 'gemini-2.5-flash'
+GEMINI_MODELS = [
+    'gemini-2.5-flash',      # 10 RPM, 250 RPD (post-Dec 2025 limits) — primary
+    'gemini-2.5-flash-lite', # 15 RPM, 1000 RPD — stable GA since Feb 2026
+]
 
 
 # ================================================================
@@ -67,21 +70,6 @@ def role_required(*roles):
     return decorator
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ================================================================
 # SECTION 3: AUTH CORE — LOGIN / LOGOUT
 # ================================================================
@@ -106,38 +94,45 @@ def login():
             cursor.close()
             conn.close()
 
-            if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+            if user:
+                # ✅ FIX #1: Check lockout BEFORE bcrypt to prevent bypass
                 if user.get('failed_attempts', 0) >= 5:
                     flash('Account locked due to too many failed attempts. Contact support.', 'danger')
                     return render_template('login.html')
 
-                conn = get_db()
-                cursor = conn.cursor()
-                cursor.execute("UPDATE users SET failed_attempts = 0, last_login = %s WHERE id = %s",
-                               (datetime.datetime.now(), user['id']))
-                conn.commit()
-                cursor.close()
-                conn.close()
+                if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+                    conn = get_db()
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE users SET failed_attempts = 0, last_login = %s WHERE id = %s",
+                                   (datetime.datetime.now(), user['id']))
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
 
-                session['logged_in'] = True
-                session['user_id'] = user['id']
-                session['user_name'] = user['full_name']
-                session['user_email'] = user['email']
-                session['role'] = user['role']
-                session['verified'] = user['id_verification_status']
-                session['remember_me'] = 'remember' in request.form
+                    # ✅ FIX #2: Clear session before setting new data (prevents session fixation)
+                    session.clear()
+                    session['logged_in'] = True
+                    session['user_id'] = user['id']
+                    session['user_name'] = user['full_name']
+                    session['user_email'] = user['email']
+                    session['role'] = user['role']
+                    session['verified'] = user['id_verification_status']
+                    session['remember_me'] = 'remember' in request.form
 
-                flash(f'Welcome back, {user["full_name"]}!', 'success')
-                return redirect(url_for('auth.dashboard'))
-            else:
-                if user:
+                    flash(f'Welcome back, {user["full_name"]}!', 'success')
+                    return redirect(url_for('auth.dashboard'))
+                else:
+                    # Wrong password — increment failed attempts
                     conn = get_db()
                     cursor = conn.cursor()
                     cursor.execute("UPDATE users SET failed_attempts = failed_attempts + 1 WHERE id = %s", (user['id'],))
                     conn.commit()
                     cursor.close()
                     conn.close()
+                    flash('Invalid email or password.', 'danger')
+            else:
                 flash('Invalid email or password.', 'danger')
+
         except Exception as e:
             flash(f'Database error: {str(e)}', 'danger')
 
@@ -311,126 +306,221 @@ def resend_otp():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Failed: {str(e)}. Dev OTP: {otp}'})
 
-
-# 4.4 GEMINI ID VALIDATION API
+    
 @auth.route('/validate-id-api', methods=['POST'])
 def validate_id_api():
+    import time
+    import random
+
+    # ── AUTH GUARD ───────────────────────────────────────────────
     if 'reg_data' not in session or not session.get('otp_verified'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    data = request.json
-    id_b64 = data.get('id_image')
-    selfie_b64 = data.get('selfie_image')
-    id_mime = data.get('id_mime', 'image/jpeg')
+    # ── API KEY CHECK ────────────────────────────────────────────
+    gemini_key = os.environ.get('GEMINI_API_KEY')
+    if not gemini_key:
+        session['gemini_approved'] = False
+        session['gemini_result']   = 'review'
+        return jsonify({
+            'action':           'review',
+            'overall_reason':   'Verification service not configured. Manual review will be done.',
+            'valid_id':         True,  'id_reason':         'Not evaluated.',
+            'clear_selfie':     True,  'selfie_reason':     'Not evaluated.',
+            'face_match':       True,  'face_match_reason': 'Not evaluated.',
+            'liveness':         True,  'liveness_reason':   'Not evaluated.',
+            'id_type_match':    True,  'confidence':        'medium',
+        })
+
+    # ── PARSE REQUEST ────────────────────────────────────────────
+    data        = request.json or {}
+    id_b64      = data.get('id_image')
+    selfie_b64  = data.get('selfie_image')
+    id_mime     = data.get('id_mime',     'image/jpeg')
     selfie_mime = data.get('selfie_mime', 'image/jpeg')
-    id_type = data.get('id_type', 'Unknown')
+    id_type     = data.get('id_type',     'Unknown')
 
     if not id_b64 or not selfie_b64:
         return jsonify({'error': 'Missing images'}), 400
 
     session['gemini_approved'] = False
-    session['gemini_result'] = 'rejected'
+    session['gemini_result']   = 'reject'
 
+    # ── PDF GUARD ────────────────────────────────────────────────
     if id_mime == 'application/pdf':
         return jsonify({
-            'valid_id': False,
-            'id_reason': 'PDF format is not supported. Please upload JPG or PNG.',
-            'clear_selfie': False,
-            'selfie_reason': 'Not evaluated due to PDF ID.',
-            'id_type_match': False,
-            'confidence': 'low',
-            'action': 'reject',
-            'overall_reason': 'Please re-upload your ID as a JPG or PNG image.'
+            'valid_id':      False, 'id_reason':     'PDF not supported. Upload JPG or PNG.',
+            'clear_selfie':  False, 'selfie_reason':  'Not evaluated.',
+            'face_match':    False, 'liveness':       False,
+            'id_type_match': False, 'confidence':    'low',
+            'action':        'reject',
+            'overall_reason': 'Please re-upload your ID as JPG or PNG.',
         })
 
-    try:
-        client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
+    # ── PROMPT ───────────────────────────────────────────────────
+    prompt = f"""You are a STRICT identity verification officer for a Philippine loan system.
+Analyze TWO images: IMAGE 1 = Philippine government-issued physical ID, IMAGE 2 = live selfie.
+Applicant declared ID type: {id_type}
 
-        prompt = f"""You are a STRICT identity verification officer for a Philippine loan application system.
-You will be shown TWO images. Analyze them both VERY carefully.
-
-IMAGE 1: Should be a Philippine government-issued PHYSICAL ID card
-IMAGE 2: Should be a selfie photo of the applicant
-
-The applicant declared their ID type as: {id_type}
-
-Respond ONLY with this exact JSON — no markdown fences, no extra text:
+Respond ONLY with this exact JSON, no markdown:
 {{
-  "valid_id": true or false,
-  "id_reason": "brief specific reason",
-  "clear_selfie": true or false,
-  "selfie_reason": "brief specific reason",
+  "valid_id": true or false, "id_reason": "reason",
+  "clear_selfie": true or false, "selfie_reason": "reason",
+  "face_match": true or false, "face_match_reason": "reason",
+  "liveness": true or false, "liveness_reason": "reason",
   "id_type_match": true or false,
   "confidence": "high" or "medium" or "low",
   "action": "approve" or "review" or "reject",
-  "overall_reason": "one sentence summary"
+  "overall_reason": "one sentence"
 }}
 
-AUTOMATIC REJECT — set valid_id=false for ANY of these:
-• Screenshot, digital screen, spreadsheet, source code, or IDE visible
-• No human portrait on the card
-• Full name not readable
-• No ID/serial number visible
-• Card is expired, photocopied, or printed paper
-• Image is too blurry or dark to read
+REJECT valid_id if: screenshot/photocopy, no portrait, name unreadable, no ID number, blurry.
+ACCEPT valid_id only if: physical card, portrait visible, full name clear, ID number visible,
+  and type is one of: SSS, PhilHealth, Passport, Driver's License, Voter ID, PhilSys,
+  UMID, PRC, Postal, Senior Citizen, PWD, TIN, OFW, Firearms License, NBI Clearance.
+face_match=false if uncertain. liveness=false if photo-of-photo or screen.
+approve = all checks true + confidence high. review = valid+clear+confidence medium.
+reject = any check false or confidence low."""
 
-VALID ID — set valid_id=true ONLY when ALL of these are true:
-✔ Physical plastic or laminated card
-✔ Human portrait printed directly on the card
-✔ Full name clearly readable
-✔ ID/serial number visible
-✔ One of: SSS, PhilHealth, Passport, Driver's License, Voter ID,
-  PhilSys/National ID, UMID, PRC ID, Postal ID, Senior Citizen ID,
-  PWD ID, TIN ID, OFW ID, Firearms License
+    MODELS = [
+        'gemini-2.5-flash',      # 10 RPM, 250 RPD (post-Dec 2025 limits) — primary
+        'gemini-2.5-flash-lite', # 15 RPM, 1000 RPD — stable GA since Feb 2026
+    ]
 
-ACTION RULES:
-  approve → valid_id=true AND clear_selfie=true AND id_type_match=true AND confidence=high
-  review  → valid_id=true AND clear_selfie=true AND confidence=medium
-  reject  → valid_id=false OR clear_selfie=false OR confidence=low"""
+    # ── MANUAL REVIEW FALLBACK ───────────────────────────────────
+    def _manual_review():
+        session['gemini_approved'] = False
+        session['gemini_result']   = 'review'
+        return jsonify({
+            'valid_id':         True,  'id_reason':         'Auto-validation unavailable.',
+            'clear_selfie':     True,  'selfie_reason':     'Auto-validation unavailable.',
+            'face_match':       True,  'face_match_reason': 'Could not verify automatically.',
+            'liveness':         True,  'liveness_reason':   'Could not verify automatically.',
+            'id_type_match':    True,  'confidence':        'medium',
+            'action':           'review',
+            'overall_reason': (
+                'Automatic verification is temporarily unavailable. '
+                'Your documents will be reviewed manually within 1–2 business days.'
+            ),
+        })
 
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[
+    # ── GEMINI CALL WITH RETRY + JITTER ─────────────────────────
+    MAX_RETRIES = 3
+
+    try:
+        client   = genai.Client(api_key=gemini_key)
+        response = None
+
+        def _build_contents():
+            return [
                 types.Part.from_text(text=prompt),
-                types.Part.from_bytes(data=_base64.b64decode(id_b64), mime_type=id_mime),
-                types.Part.from_bytes(data=_base64.b64decode(selfie_b64), mime_type=selfie_mime),
+                types.Part.from_bytes(
+                    data=_base64.b64decode(id_b64),
+                    mime_type=id_mime
+                ),
+                types.Part.from_bytes(
+                    data=_base64.b64decode(selfie_b64),
+                    mime_type=selfie_mime
+                ),
             ]
-        )
 
+        for model in MODELS:
+            for attempt in range(1, MAX_RETRIES + 1):
+                try:
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=_build_contents(),
+                    )
+                    print(f"[GEMINI] ✅ OK: {model} (attempt {attempt})")
+                    break
+
+                except Exception as e:
+                    err = str(e)
+                    print(f"[GEMINI] ❌ {model} attempt {attempt}/{MAX_RETRIES}: {err[:140]}")
+
+                    if '404' in err or 'NOT_FOUND' in err:
+                        print(f"[GEMINI] ⛔ {model} not found, skipping")
+                        break
+
+                    if '429' in err or 'RESOURCE_EXHAUSTED' in err:
+                        print(f"[GEMINI] 🚫 {model} quota exhausted, trying next model")
+                        break
+
+                    if '503' in err or '502' in err or 'UNAVAILABLE' in err:
+                        if attempt >= MAX_RETRIES:
+                            print(f"[GEMINI] ⛔ {model} still unavailable after {MAX_RETRIES} attempts, trying next")
+                            break
+                        base_wait = 2 ** attempt
+                        jitter    = random.uniform(0, 1)
+                        wait      = base_wait + jitter
+                        print(f"[GEMINI] ⏳ {model} overloaded, retrying in {wait:.1f}s... ({attempt}/{MAX_RETRIES})")
+                        time.sleep(wait)
+                        continue
+
+                    if attempt < MAX_RETRIES:
+                        time.sleep(1)
+                        continue
+                    break
+
+            if response is not None:
+                break
+
+        if response is None:
+            print("[GEMINI] ⚠️  All models exhausted — manual review fallback")
+            return _manual_review()
+
+        # ── PARSE RESPONSE ───────────────────────────────────────
         result_text = response.text.strip()
-        if result_text.startswith('```'):
-            parts = result_text.split('```')
-            result_text = parts[1]
-            if result_text.startswith('json'):
-                result_text = result_text[4:]
-        result_text = result_text.strip()
-        result = json.loads(result_text)
 
+        if result_text.startswith('```'):
+            parts       = result_text.split('```')
+            result_text = parts[1].lstrip('json').strip()
+
+        try:
+            result = json.loads(result_text)
+        except json.JSONDecodeError:
+            print(f"[GEMINI] ⚠️  JSON parse error. Raw:\n{result_text[:300]}")
+            return _manual_review()
+
+        # ── STRICT OVERRIDE RULES ────────────────────────────────
         if not result.get('valid_id') or not result.get('clear_selfie'):
-            result['action'] = 'reject'
-            result['confidence'] = 'low'
+            result.update({'action': 'reject', 'confidence': 'low'})
+
+        if not result.get('face_match'):
+            result.update({
+                'action':         'reject',
+                'confidence':     'low',
+                'overall_reason': 'Face on ID does not match selfie.',
+            })
+
+        if not result.get('liveness'):
+            result.update({
+                'action':         'reject',
+                'confidence':     'low',
+                'overall_reason': 'Selfie appears to be a photo of a photo or screen.',
+            })
 
         if result.get('id_type_match') is False:
-            result['action'] = 'reject'
-            result['confidence'] = 'low'
-            result['overall_reason'] = (
-                f'ID type mismatch. You selected "{id_type}" but the uploaded document appears different.'
-            )
+            result.update({
+                'action':         'reject',
+                'confidence':     'low',
+                'overall_reason': f'ID type mismatch. You selected "{id_type}" but uploaded a different document.',
+            })
 
         action = result['action']
-        session['gemini_result'] = action
+        session['gemini_result']   = action
         session['gemini_approved'] = (action == 'approve')
 
+        print(
+            f"[GEMINI RESULT] action={action} | "
+            f"face={result.get('face_match')} | "
+            f"liveness={result.get('liveness')} | "
+            f"confidence={result.get('confidence')}"
+        )
         return jsonify(result)
 
-    except json.JSONDecodeError as e:
-        session['gemini_approved'] = False
-        session['gemini_result'] = 'reject'
-        return jsonify({'error': 'Failed to parse validation response'}), 500
     except Exception as e:
-        session['gemini_approved'] = False
-        session['gemini_result'] = 'reject'
-        return jsonify({'error': str(e)}), 500
+        print(f"[GEMINI FATAL] {type(e).__name__}: {e}")
+        return _manual_review()
 
 
 # 4.5 UPLOAD ID
@@ -630,7 +720,6 @@ def dashboard():
 
 
 # 6.2 BORROWER DASHBOARD
-# 6.2 BORROWER DASHBOARD
 @auth.route('/dashboard/borrower')
 @login_required
 @role_required('borrower')
@@ -645,7 +734,6 @@ def borrower_dashboard():
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ── Recent loans (last 5) ──────────────────────────────
         cursor.execute("""
             SELECT l.*, lt.name AS type_name, lp.plan_name
             FROM loans l
@@ -657,7 +745,6 @@ def borrower_dashboard():
         """, (session['user_id'],))
         recent_loans = cursor.fetchall()
 
-        # ── Stats: active count + outstanding balance ──────────
         cursor.execute("""
             SELECT COUNT(*) AS active_count,
                    COALESCE(SUM(outstanding_balance), 0) AS total_outstanding
@@ -666,7 +753,6 @@ def borrower_dashboard():
         """, (session['user_id'],))
         stats = cursor.fetchone() or {'active_count': 0, 'total_outstanding': 0}
 
-        # ── Next payment due ───────────────────────────────────
         cursor.execute("""
             SELECT MIN(a.due_date) AS next_due,
                    SUM(a.total_due) AS next_amount
@@ -679,8 +765,6 @@ def borrower_dashboard():
         """, (session['user_id'],))
         next_payment = cursor.fetchone() or {'next_due': None, 'next_amount': 0}
 
-        # ── Total paid (via payments joined to loans) ──────────
-        # Uses loan join to avoid borrower_id column issues in payments table
         cursor.execute("""
             SELECT COALESCE(SUM(p.amount_paid), 0) AS total_paid
             FROM payments p
@@ -695,7 +779,6 @@ def borrower_dashboard():
         conn.close()
 
     except Exception as e:
-        # Log the actual error so you can debug it
         print(f"[borrower_dashboard ERROR] {e}")
 
     return render_template('dashboard_borrower.html',
