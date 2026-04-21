@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — Loan Management System</title>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
+  <style>
+    /* ── User dropdown ── */
+    .sidebar-user {
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s;
+    }
+    .sidebar-user:hover {
+      background: rgba(255,255,255,0.12);
+    }
+    .sidebar-user.open {
+      background: rgba(255,255,255,0.12);
+      border-radius: var(--r-md) var(--r-md) 0 0;
+    }
+
+    .s-chevron {
+      margin-left: auto;
+      width: 14px; height: 14px; flex-shrink: 0;
+      background: rgba(255,255,255,0.50);
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+      transition: transform 0.2s ease;
+    }
+    .sidebar-user.open .s-chevron {
+      transform: rotate(180deg);
+      background: rgba(255,255,255,0.9);
+    }
+
+    .user-dropdown {
+      display: none;
+      flex-direction: column;
+      background: rgba(0,0,0,0.20);
+      margin: 0 10px;
+      border-radius: 0 0 var(--r-md) var(--r-md);
+      overflow: hidden;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .user-dropdown.open { display: flex; }
+
+    .user-dropdown a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; font-size: 13px; font-weight: 500;
+      color: rgba(255,255,255,0.78); text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+    .user-dropdown a:hover {
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+    }
+
+    .dd-icon {
+      width: 15px; height: 15px; flex-shrink: 0;
+      background: currentColor;
+      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+      opacity: 0.75;
+    }
+    .dd-icon--profile {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
+    }
+    .dd-icon--manage-users {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+    }
+    .dd-icon--reports {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+    }
+    .dd-icon--activity {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E");
+    }
+
+    /* ── Warning nav icon ── */
+    .nav-icon--warning {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'/%3E%3C/svg%3E");
+    }
+
+    /* qb-icon--purple */
+    .qb-icon--purple { background: #ede9fe; color: #7c3aed; }
+    .qb-icon--borrowers {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+    }
+  </style>
+</head>
+<body>
+<div class="app-wrap">
+
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Brand -->
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- USER BOX — dropdown trigger -->
+    <div class="sidebar-user" id="userDropdownToggle">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
+      </div>
+      <span class="s-chevron"></span>
+    </div>
+
+    <!-- USER DROPDOWN -->
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('auth.profile') }}">
+        <span class="dd-icon dd-icon--profile"></span>My Profile
+      </a>
+      {% if session.role == 'super_admin' %}
+      <a href="{{ url_for('super_admin.manage_users') }}">
+        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+      </a>
+      {% endif %}
+      <a href="{{ url_for('super_admin.reports_page') }}">
+        <span class="dd-icon dd-icon--reports"></span>Reports
+      </a>
+      <a href="{{ url_for('super_admin.activity_logs') }}">
+        <span class="dd-icon dd-icon--activity"></span>Activity Logs
+      </a>
+    </div>
+
+    <!-- MAIN NAV — no section labels -->
+    <nav class="sidebar-nav">
+
+      <a href="{{ url_for('auth.dashboard') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+
+      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
+      </a>
+
+      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--clock"></span>Applications
+        {% if stats and stats.get('pending_applications', 0) > 0 %}
+        <span class="nav-badge">{{ stats.pending_applications }}</span>
+        {% endif %}
+      </a>
+
+      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--applications"></span>All Loans
+      </a>
+
+      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+      </a>
+
+      <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Payment Verification
+        {% if stats and stats.get('pending_payments', 0) > 0 %}
+        <span class="nav-badge">{{ stats.pending_payments }}</span>
+        {% endif %}
+      </a>
+
+      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
+      </a>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+
+  </aside>
+  <!-- /SIDEBAR -->
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content" id="mainContent">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn">&#9776;</button>
+        <div>
+          <div class="topbar-heading">Dashboard</div>
+          <div class="topbar-sub">Welcome back, {{ session.user_name if session.user_name else 'Administrator' }}</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn" id="notifBtn" aria-label="Notifications">
+          <span class="topbar-icon topbar-icon--bell"></span>
+          <span class="notif-dot" id="notifDot"></span>
+        </button>
+        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+        </a>
+
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span>Notifications</span>
+            <button class="notif-clear" id="notifClear">Mark all read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            {% if stats is defined and stats.pending_applications > 0 %}
+            <li class="notif-item unread">{{ stats.pending_applications }} application(s) pending review.</li>
+            {% endif %}
+            {% if stats is defined and stats.pending_payments > 0 %}
+            <li class="notif-item unread">{{ stats.pending_payments }} payment(s) awaiting verification.</li>
+            {% endif %}
+            {% if stats is defined and stats.pending_verifications > 0 %}
+            <li class="notif-item unread">{{ stats.pending_verifications }} ID verification(s) pending.</li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash-msg {{ category }}">
+                <span>{{ message }}</span>
+                <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% if stats is defined and stats.pending_applications > 0 %}
+      <div class="alert-banner alert-warning" id="pendingAlert">
+        <span class="alert-icon alert-icon--warning"></span>
+        <span>
+          You have <strong>{{ stats.pending_applications }} pending application(s)</strong> awaiting review.
+          <a href="{{ url_for('super_admin.admin_applications') }}" class="alert-link">Review now →</a>
+        </span>
+        <button class="alert-close" id="closeAlert" aria-label="Dismiss">&#215;</button>
+      </div>
+      {% endif %}
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">&#8369;{{ "{:,.0f}".format(stats.total_disbursed) if stats is defined else '0' }}</div>
+            <div class="stat-label">Total Disbursed</div>
+            <div class="stat-change positive">Current portfolio</div>
+          </div>
+          <div class="stat-icon blue">
+            <span class="stat-icon-img stat-icon--wallet"></span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.active_loans if stats is defined else 0 }}</div>
+            <div class="stat-label">Active Loans</div>
+            <div class="stat-change positive">Current portfolio</div>
+          </div>
+          <div class="stat-icon green">
+            <span class="stat-icon-img stat-icon--loans"></span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.pending_applications if stats is defined else 0 }}</div>
+            <div class="stat-label">Pending Applications</div>
+            <div class="stat-change warning">Needs review</div>
+          </div>
+          <div class="stat-icon yellow">
+            <span class="stat-icon-img stat-icon--calendar"></span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.total_borrowers if stats is defined else 0 }}</div>
+            <div class="stat-label">Total Borrowers</div>
+            <div class="stat-change positive">Registered</div>
+          </div>
+          <div class="stat-icon purple">
+            <span class="stat-icon-img stat-icon--borrowers"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+
+        <div class="card card--wide">
+          <div class="card-header">
+            <div>
+              <h3>Recent Applications</h3>
+              <p>Latest loan applications submitted</p>
+            </div>
+            <div class="card-header-actions">
+              <input type="text" class="search-input" id="appSearch" placeholder="Search applicant…"/>
+              <a href="{{ url_for('super_admin.admin_applications') }}" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="applicationsTable">
+              <thead>
+                <tr>
+                  <th>Reference No.</th>
+                  <th>Applicant</th>
+                  <th>Loan Type</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for app in recent_applications %}
+                <tr>
+                  <td>{{ app.reference_no }}</td>
+                  <td class="borrower-name">{{ app.borrower_name }}</td>
+                  <td>{{ app.type_name }}</td>
+                  <td>&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</td>
+                  <td><span class="badge badge--{{ app.status }}">{{ app.status | replace('_',' ') | title }}</span></td>
+                  <td>{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '—' }}</td>
+                  <td>
+                    <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}"
+                       class="tbl-btn tbl-btn--view">View</a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">
+                    No recent applications.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="dash-col-right">
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Quick Actions</h3>
+                <p>Common tasks at a glance</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="quick-actions">
+                <a href="{{ url_for('loans.loan_types') }}" class="quick-btn">
+                  <div class="qb-icon qb-icon--blue">
+                    <span class="qb-icon-img qb-icon--apply"></span>
+                  </div>
+                  <div class="qb-text">
+                    <h4>Loan Types</h4>
+                    <p>Add a loan type or plan</p>
+                  </div>
+                </a>
+                <a href="{{ url_for('super_admin.all_payments') }}" class="quick-btn">
+                  <div class="qb-icon qb-icon--green">
+                    <span class="qb-icon-img qb-icon--payment"></span>
+                  </div>
+                  <div class="qb-text">
+                    <h4>Verify Payments</h4>
+                    <p>
+                      Review pending payments
+                      {% if stats and stats.get('pending_payments', 0) > 0 %}
+                      <span style="color:var(--warning); font-weight:600;">({{ stats.pending_payments }})</span>
+                      {% endif %}
+                    </p>
+                  </div>
+                </a>
+                <a href="{{ url_for('super_admin.reports_page') }}" class="quick-btn">
+                  <div class="qb-icon qb-icon--yellow">
+                    <span class="qb-icon-img qb-icon--statement"></span>
+                  </div>
+                  <div class="qb-text">
+                    <h4>Reports</h4>
+                    <p>Generate loan reports</p>
+                  </div>
+                </a>
+                <a href="{{ url_for('super_admin.borrowers') }}" class="quick-btn">
+                  <div class="qb-icon qb-icon--purple">
+                    <span class="qb-icon-img qb-icon--borrowers"></span>
+                  </div>
+                  <div class="qb-text">
+                    <h4>Borrowers</h4>
+                    <p>
+                      Pending ID verifications
+                      {% if stats and stats.get('pending_verifications', 0) > 0 %}
+                      <span style="color:var(--warning); font-weight:600;">({{ stats.pending_verifications }})</span>
+                      {% endif %}
+                    </p>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Recent Activity</h3>
+                <p>Latest system events</p>
+              </div>
+              <a href="{{ url_for('super_admin.activity_logs') }}" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="card-body">
+              <div class="activity-list" id="activityList">
+                {% for log in activity_logs %}
+                <div class="activity-item">
+                  <span class="activity-dot activity-dot--blue"></span>
+                  <div class="activity-content">
+                    <p>{{ log.action | replace('_',' ') | title }}
+                      {% if log.actor_name %}<span style="color:var(--text-muted); font-size:11px;">by {{ log.actor_name }}</span>{% endif %}
+                    </p>
+                    {% if log.details %}
+                    <p style="font-size:11px; color:var(--text-muted);">{{ log.details }}</p>
+                    {% endif %}
+                    <span class="activity-time">
+                      {{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '—' }}
+                    </span>
+                  </div>
+                </div>
+                {% else %}
+                <div class="activity-empty">
+                  <span class="activity-empty-icon"></span>
+                  <p>No recent activity</p>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+</div>
+
+<script src="{{ url_for('super_admin.static', filename='dashboard_super_admin.js') }}"></script>
+<script>
+  // ── User dropdown toggle ──
+  (function () {
+    var toggle   = document.getElementById('userDropdownToggle');
+    var dropdown = document.getElementById('userDropdown');
+    if (!toggle || !dropdown) return;
+
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+      toggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+        toggle.classList.remove('open');
+      }
+    });
+  })();
+
+  // ── Alert dismiss ──
+  const closeBtn = document.getElementById('closeAlert');
+  if (closeBtn) closeBtn.addEventListener('click', () => {
+    document.getElementById('pendingAlert').style.display = 'none';
+  });
+
+  // ── Notification dropdown ──
+  const notifBtn      = document.getElementById('notifBtn');
+  const notifDropdown = document.getElementById('notifDropdown');
+  if (notifBtn) {
+    notifBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      notifDropdown.classList.toggle('open');
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (notifDropdown && !notifDropdown.contains(e.target) && e.target !== notifBtn) {
+      notifDropdown.classList.remove('open');
+    }
+  });
+
+  // ── Table search ──
+  const appSearch = document.getElementById('appSearch');
+  if (appSearch) {
+    appSearch.addEventListener('input', function() {
+      const val = this.value.toLowerCase();
+      document.querySelectorAll('#applicationsTable tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
+      });
+    });
+  }
+
+  // ── Auto-dismiss flash messages ──
+  setTimeout(() => {
+    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
+  }, 5000);
+</script>
+</body>
+</html>

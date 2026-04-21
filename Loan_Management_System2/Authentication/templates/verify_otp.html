@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Email — Hiraya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('auth.static', filename='verify_otp.css') }}" />
+</head>
+<body>
+
+  <div class="page">
+
+    <div class="card">
+
+      <!-- LOGO -->
+      <div class="logo-wrap">
+        <div class="logo-icon">
+          <span class="logo-col logo-col--l"></span>
+          <span class="logo-col logo-col--m"></span>
+          <span class="logo-col logo-col--r"></span>
+          <span class="logo-dome"></span>
+          <span class="logo-dollar">$</span>
+        </div>
+      </div>
+
+      <h1 class="site-title">Loan Management<br />System</h1>
+
+      <!-- FLASK FLASH MESSAGES -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash-msg {{ category }}">
+                <span>{{ message }}</span>
+                <button class="f-close" aria-label="Close">&times;</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- STEP INDICATOR -->
+      <div class="steps">
+        <div class="step done">
+          <div class="step-num">&#10003;</div>
+          <div class="step-name">Details</div>
+        </div>
+        <div class="step-connector done"></div>
+        <div class="step active">
+          <div class="step-num">2</div>
+          <div class="step-name">Verify Email</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-name">Upload ID</div>
+        </div>
+      </div>
+
+      <p class="form-heading">Verify Your Email</p>
+
+      <p class="otp-info">
+        A 6-digit code was sent to<br />
+        <strong class="otp-email-tag">{{ email }}</strong>
+      </p>
+
+      <form method="POST" action="{{ url_for('auth.verify_otp') }}" novalidate>
+
+        <!-- Hidden fields populated by JS before submit -->
+        <input type="hidden" name="otp1" id="h1" />
+        <input type="hidden" name="otp2" id="h2" />
+        <input type="hidden" name="otp3" id="h3" />
+        <input type="hidden" name="otp4" id="h4" />
+        <input type="hidden" name="otp5" id="h5" />
+        <input type="hidden" name="otp6" id="h6" />
+
+        <div class="otp-row">
+          <input class="otp-box" type="text" maxlength="1" inputmode="numeric" autocomplete="one-time-code" id="otp-1" />
+          <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-2" />
+          <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-3" />
+          <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-4" />
+          <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-5" />
+          <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-6" />
+        </div>
+
+        <span class="inline-error" id="otp-error"></span>
+
+        <button type="submit" class="btn-login" id="verify-btn">VERIFY &amp; CONTINUE</button>
+
+      </form>
+
+      <div class="resend-row">
+        <span>Code expires in <span id="timer-display" class="timer-countdown">2:00</span></span>
+        <span>Didn't receive it?
+          <button class="resend-btn" id="resend-btn" disabled>Resend OTP</button>
+        </span>
+      </div>
+
+      <div class="auth-foot">
+        <a href="{{ url_for('auth.register') }}">&#8592; Back to Registration</a>
+      </div>
+
+    </div>
+
+    <p class="copyright">&copy; 2024 Loan Management System. All rights reserved.</p>
+
+  </div>
+
+  <script src="{{ url_for('auth.static', filename='verify_otp.js') }}"></script>
+</body>
+</html>

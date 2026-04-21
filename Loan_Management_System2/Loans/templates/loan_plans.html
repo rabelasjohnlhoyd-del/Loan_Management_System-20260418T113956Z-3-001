@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ loan_type.name }} Plans — Hiraya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('loans.static', filename='loan_plans.css') }}"/>
+</head>
+<body>
+<div class="app-wrap">
+
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo">
+        </div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-user" id="userDropdownToggle">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
+      </div>
+      <span class="s-chevron"></span>
+    </div>
+
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('auth.profile') }}">
+        <span class="dd-icon dd-icon--profile"></span>My Profile
+      </a>
+      {% if session.role == 'borrower' %}
+      <a href="{{ url_for('loans.my_loans') }}">
+        <span class="dd-icon dd-icon--reports"></span>My Loans
+      </a>
+      <a href="{{ url_for('loans.my_applications') }}">
+        <span class="dd-icon dd-icon--activity"></span>My Applications
+      </a>
+      <a href="{{ url_for('loans.loan_types') }}">
+        <span class="dd-icon dd-icon--manage-users"></span>Loan Types &amp; Plans
+      </a>
+      {% else %}
+      {% if session.role == 'super_admin' %}
+      <a href="{{ url_for('super_admin.manage_users') }}">
+        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+      </a>
+      {% endif %}
+      <a href="{{ url_for('super_admin.reports_page') }}">
+        <span class="dd-icon dd-icon--reports"></span>Reports
+      </a>
+      <a href="{{ url_for('super_admin.activity_logs') }}">
+        <span class="dd-icon dd-icon--activity"></span>Activity Logs
+      </a>
+      {% endif %}
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+
+      {% if session.role == 'borrower' %}
+      <a href="#" class="nav-item">
+        <span class="nav-icon nav-icon--payment"></span>Make a Payment
+      </a>
+      <a href="{{ url_for('loans.my_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--history"></span>Payment History
+      </a>
+      <a href="{{ url_for('loans.my_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--docs"></span>Documents
+      </a>
+
+      {% else %}
+      <a href="{{ url_for('loans.loan_types') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
+      </a>
+      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--clock"></span>Applications
+        {% if stats and stats.get('pending_applications', 0) > 0 %}
+        <span class="nav-badge">{{ stats.pending_applications }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--applications"></span>All Loans
+      </a>
+      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+      </a>
+      <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Payment Verification
+        {% if stats and stats.get('pending_payments', 0) > 0 %}
+        <span class="nav-badge">{{ stats.pending_payments }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
+      </a>
+      {% endif %}
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+
+  </aside>
+  <!-- /SIDEBAR -->
+
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn">&#9776;</button>
+        <div>
+          <div class="topbar-heading">{{ loan_type.name }}</div>
+          <div class="topbar-sub">{{ loan_type.description }}</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <a href="{{ url_for('loans.loan_types') }}" class="btn btn-ghost btn-sm">&#8592; All Types</a>
+        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'U' }}
+        </a>
+      </div>
+    </header>
+    <main class="page-body">
+      <div class="plan-grid">
+        {% for plan in plans %}
+        <div class="plan-card">
+          <div class="plan-card-header">
+            <div class="plan-name">{{ plan.plan_name }}</div>
+            <div class="plan-rate">{{ plan.interest_rate }}<span>% / yr</span></div>
+          </div>
+          <div class="plan-details">
+            <div class="plan-detail-row"><span class="pd-label">Interest Type</span><span class="pd-value">{{ plan.interest_type | title }}</span></div>
+            <div class="plan-detail-row"><span class="pd-label">Minimum Amount</span><span class="pd-value">&#8369;{{ "{:,.2f}".format(plan.min_amount) }}</span></div>
+            <div class="plan-detail-row"><span class="pd-label">Maximum Amount</span><span class="pd-value">&#8369;{{ "{:,.2f}".format(plan.max_amount) }}</span></div>
+            <div class="plan-detail-row"><span class="pd-label">Term</span><span class="pd-value">{{ plan.term_months_min }}–{{ plan.term_months_max }} months</span></div>
+            <div class="plan-detail-row"><span class="pd-label">Processing Fee</span><span class="pd-value">{{ plan.processing_fee }}%</span></div>
+            <div class="plan-detail-row"><span class="pd-label">Collateral</span><span class="pd-value">{{ 'Required' if plan.collateral_required else 'Not Required' }}</span></div>
+          </div>
+          {% if plan.collateral_required and plan.collateral_notes %}
+          <div class="collateral-notes">
+            &#128203; {{ plan.collateral_notes }}
+          </div>
+          {% endif %}
+          {% if session.role == 'borrower' %}
+          <a href="{{ url_for('loans.apply') }}?plan={{ plan.id }}" class="btn btn-primary btn-block btn-sm">Apply with this Plan</a>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="plans-empty">No plans available for this loan type.</div>
+        {% endfor %}
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="{{ url_for('loans.static', filename='loan_plans.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Penalties — Loan Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='penalties.css') }}"/>
+</head>
+<body>
+<div class="app-wrap">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name }}</h4>
+        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else '' }}</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <div class="nav-section-label nav-section--spaced">Loan Management</div>
+      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
+      </a>
+      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--clock"></span>Applications
+      </a>
+      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--applications"></span>All Loans
+      </a>
+      <div class="nav-section-label nav-section--spaced">Borrowers</div>
+      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+      </a>
+      <div class="nav-section-label nav-section--spaced">Payments</div>
+      <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Payment Verification
+      </a>
+      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
+      </a>
+      <div class="nav-section-label nav-section--spaced">Reports</div>
+      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item">
+        <span class="nav-icon nav-icon--reports"></span>Reports
+      </a>
+      {% if session.role == 'super_admin' %}
+      <div class="nav-section-label nav-section--spaced">Admin</div>
+      <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Manage Users
+      </a>
+      {% endif %}
+      <div class="nav-section-label nav-section--spaced">Account</div>
+      <a href="{{ url_for('auth.profile') }}" class="nav-item">
+        <span class="nav-icon nav-icon--profile"></span>My Profile
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Penalties &amp; Overdue</h1>
+        <p>Manage overdue loans and computed penalties</p>
+      </div>
+      <div class="topbar-right">
+        {% if session.role in ['admin','super_admin','loan_officer'] %}
+        <form method="POST" action="{{ url_for('super_admin.compute_penalties') }}"
+              onsubmit="return confirm('Run penalty computation for all overdue loans?')">
+          <button type="submit" class="btn btn-warning btn-sm">Run Penalty Computation</button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+        </a>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash-msg {{ category }}">
+                <span>{{ message }}</span>
+                <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Info box -->
+      <div class="info-banner">
+        <div class="info-banner-icon">ℹ</div>
+        <div>
+          <strong>Penalty Policy:</strong> Grace period of 5 days. After grace period, 2% of monthly payment
+          is charged per month overdue. Penalty amounts are added to the outstanding loan balance.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Penalty Records</h3>
+          <span style="font-size:12px; color:var(--gray-400);">{{ penalties|length }} record(s)</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          {% if penalties %}
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Loan No.</th>
+                <th>Borrower</th>
+                <th>Days Overdue</th>
+                <th>Penalty Amount</th>
+                <th>Outstanding Balance</th>
+                <th>Due Date</th>
+                <th>Computed At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pen in penalties %}
+              <tr>
+                <td><span class="td-name">{{ pen.loan_no }}</span></td>
+                <td>
+                  <div class="td-name">{{ pen.borrower_name }}</div>
+                  <div class="td-sub">{{ pen.borrower_email }}</div>
+                </td>
+                <td>
+                  <span class="overdue-days {% if pen.days_overdue > 60 %}critical{% elif pen.days_overdue > 30 %}warning{% else %}mild{% endif %}">
+                    {{ pen.days_overdue }} days
+                  </span>
+                </td>
+                <td><strong style="color:var(--danger);">&#8369;{{ "{:,.2f}".format(pen.amount) }}</strong></td>
+                <td>&#8369;{{ "{:,.2f}".format(pen.outstanding_balance) }}</td>
+                <td>{{ pen.due_date.strftime('%b %d, %Y') if pen.due_date else '—' }}</td>
+                <td>{{ pen.created_at.strftime('%b %d, %Y') if pen.created_at else '—' }}</td>
+                <td>
+                  <a href="{{ url_for('super_admin.loan_detail', loan_id=pen.loan_id) }}"
+                     class="btn btn-outline btn-sm">View Loan</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">
+            <p>No penalties recorded</p>
+            <p class="empty-sub">Run penalty computation to check for overdue loans.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  setTimeout(() => { document.querySelectorAll('.flash-msg').forEach(el => el.remove()); }, 5000);
+</script>
+</body>
+</html>

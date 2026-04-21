@@ -1,0 +1,13 @@
+/* ============================================
+   LOAN OFFICER DASHBOARD — Stylesheet
+   dashboard_officer.css
+   ============================================ */
+
+/* ── Sidebar logout button ── */
+.sidebar-logout-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.75);
+}

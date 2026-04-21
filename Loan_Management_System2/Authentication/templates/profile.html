@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile — Hiraya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('auth.static', filename='profile.css') }}"/>
+  <style>
+    /* ── User dropdown ── */
+    .sidebar-user {
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+    }
+
+    .sidebar-user .s-chevron {
+      margin-left: auto;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.55);
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      transition: transform 0.2s ease;
+    }
+
+    .sidebar-user.open .s-chevron {
+      transform: rotate(180deg);
+      background: rgba(255,255,255,0.9);
+    }
+
+    .sidebar-user:hover {
+      background: rgba(255,255,255,0.13);
+    }
+
+    .sidebar-user.open {
+      background: rgba(255,255,255,0.13);
+      border-radius: 10px 10px 0 0;
+    }
+
+    .user-dropdown {
+      display: none;
+      flex-direction: column;
+      background: rgba(0,0,0,0.18);
+      margin: 0 10px;
+      border-radius: 0 0 10px 10px;
+      overflow: hidden;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .user-dropdown.open {
+      display: flex;
+    }
+
+    .user-dropdown a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.80);
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .user-dropdown a:hover {
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+    }
+
+    .user-dropdown .dd-icon {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      background: currentColor;
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      opacity: 0.75;
+    }
+
+    .dd-icon--profile {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
+    }
+
+    .dd-icon--loans {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'/%3E%3C/svg%3E");
+    }
+
+    .dd-icon--applications {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+    }
+
+    .dd-icon--loan-types {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'/%3E%3C/svg%3E");
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-wrap">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- USER BOX — clickable dropdown trigger -->
+    <div class="sidebar-user" id="userDropdownToggle">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name }}</h4>
+        <div class="s-role-badge">Borrower</div>
+      </div>
+      <span class="s-chevron"></span>
+    </div>
+
+    <!-- USER DROPDOWN -->
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('auth.profile') }}">
+        <span class="dd-icon dd-icon--profile"></span>My Profile
+      </a>
+      <a href="{{ url_for('loans.my_loans') }}">
+        <span class="dd-icon dd-icon--loans"></span>My Loans
+      </a>
+      <a href="{{ url_for('loans.my_applications') }}">
+        <span class="dd-icon dd-icon--applications"></span>My Applications
+      </a>
+      <a href="{{ url_for('loans.loan_types') }}">
+        <span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <a href="#" class="nav-item">
+        <span class="nav-icon nav-icon--payment"></span>Make a Payment
+      </a>
+      <a href="{{ url_for('loans.my_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--history"></span>Payment History
+      </a>
+      <a href="{{ url_for('loans.my_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--docs"></span>Documents
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>My Profile</h1>
+        <p>Account details and settings</p>
+      </div>
+      <div class="topbar-right">
+        <a href="{{ url_for('auth.dashboard') }}" class="btn-back">
+          <span class="btn-back-icon"></span>
+          Back to Dashboard
+        </a>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <div class="profile-content">
+        <div class="card profile-card">
+
+          <div class="card-header">
+            <div>
+              <h3>Personal Information</h3>
+              <p>Your registered account details</p>
+            </div>
+            {% set status = user.get('id_verification_status', 'pending') if user else 'pending' %}
+            <span class="badge
+              {% if status == 'verified' %}badge-success
+              {% elif status == 'rejected' %}badge-danger
+              {% else %}badge-warning{% endif %}">
+              ID: {{ status | title }}
+            </span>
+          </div>
+
+          <div class="card-body">
+
+            <div class="profile-header-section">
+              <div class="profile-avatar">
+                {{ user.get('full_name', '?')[0]|upper if user else '?' }}
+              </div>
+              <div class="profile-id">
+                <h3 class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</h3>
+                <p class="profile-email">{{ user.get('email', '') if user else '' }}</p>
+                <span class="badge badge-info">{{ session.role | replace('_', ' ') | title }}</span>
+              </div>
+            </div>
+
+            <div class="profile-info-grid">
+
+              <div class="profile-field">
+                <div class="profile-field-label">Full Name</div>
+                <div class="profile-field-value">{{ user.get('full_name', '—') if user else '—' }}</div>
+              </div>
+
+              <div class="profile-field">
+                <div class="profile-field-label">Email Address</div>
+                <div class="profile-field-value">{{ user.get('email', '—') if user else '—' }}</div>
+              </div>
+
+              <div class="profile-field">
+                <div class="profile-field-label">Date of Birth</div>
+                <div class="profile-field-value">{{ user.get('date_of_birth', '—') if user else '—' }}</div>
+              </div>
+
+              <div class="profile-field">
+                <div class="profile-field-label">Age</div>
+                <div class="profile-field-value">{{ user.get('age', '—') if user else '—' }}</div>
+              </div>
+
+              <div class="profile-field">
+                <div class="profile-field-label">Contact Number</div>
+                <div class="profile-field-value">{{ user.get('contact_number', '—') if user else '—' }}</div>
+              </div>
+
+              <div class="profile-field">
+                <div class="profile-field-label">Member Since</div>
+                <div class="profile-field-value">{{ user.get('created_at', '—') if user else '—' }}</div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+</div>
+
+<script>
+  // User dropdown toggle
+  (function () {
+    var toggle = document.getElementById('userDropdownToggle');
+    var dropdown = document.getElementById('userDropdown');
+    if (!toggle || !dropdown) return;
+
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+      toggle.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+        toggle.classList.remove('open');
+      }
+    });
+  })();
+</script>
+</body>
+</html>

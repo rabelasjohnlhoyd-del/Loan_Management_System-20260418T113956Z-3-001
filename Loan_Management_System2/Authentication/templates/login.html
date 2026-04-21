@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Hiraya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('auth.static', filename='login.css') }}"/>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="card">
+
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <span class="logo-col logo-col--l"></span>
+        <span class="logo-col logo-col--m"></span>
+        <span class="logo-col logo-col--r"></span>
+        <span class="logo-dome"></span>
+        <span class="logo-dollar">$</span>
+      </div>
+    </div>
+
+    <h1 class="site-title">Loan Management<br />System</h1>
+
+    <!-- FLASK FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+            <div class="flash-msg {{ category }}">
+              <span>{{ message }}</span>
+              <button class="f-close" aria-label="Close">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+
+      <p class="form-heading">Login</p>
+
+      <div class="field">
+        <span class="field-icon field-icon--email"></span>
+        <input
+          class="field-input"
+          type="email"
+          id="email"
+          name="email"
+          placeholder="Email Address"
+          autocomplete="email"
+          required
+        />
+        <span class="inline-error" id="email-error"></span>
+      </div>
+
+      <div class="field">
+        <span class="field-icon field-icon--lock"></span>
+        <input
+          class="field-input"
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Password"
+          autocomplete="current-password"
+          required
+        />
+        <button type="button" class="pw-toggle" aria-label="Toggle password"></button>
+        <span class="inline-error" id="password-error"></span>
+      </div>
+
+      <button type="submit" class="btn-login">LOGIN</button>
+
+      <div class="form-bottom">
+        <label class="check-group">
+          <input type="checkbox" name="remember" />
+          <span>Remember Me</span>
+        </label>
+        <a class="forgot-link" href="{{ url_for('auth.forgot_password') }}">Forgot Password?</a>
+      </div>
+
+    </form>
+
+    <div class="auth-foot">
+      Don't have an account? <a href="{{ url_for('auth.register') }}">Create one now</a>
+    </div>
+
+  </div>
+
+  <p class="copyright">&copy; 2026 Loan Management System. All rights reserved.</p>
+
+</div>
+
+<script src="{{ url_for('auth.static', filename='login.js') }}"></script>
+</body>
+</html>

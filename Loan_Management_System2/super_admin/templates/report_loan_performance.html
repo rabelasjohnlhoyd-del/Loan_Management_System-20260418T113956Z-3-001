@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Loan Performance Report — Loan Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='reports.css') }}"/>
+</head>
+<body>
+<div class="app-wrap">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name }}</h4>
+        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else '' }}</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <div class="nav-section-label nav-section--spaced">Reports</div>
+      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--reports"></span>Reports
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="{{ url_for('super_admin.reports_page') }}" class="back-link">← Reports</a>
+        <div>
+          <h1>Loan Performance Report</h1>
+          <p>
+            {% if date_from or date_to %}
+              {{ date_from or 'All time' }} — {{ date_to or 'Present' }}
+            {% else %}
+              All time
+            {% endif %}
+          </p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Print</button>
+        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+        </a>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- Filter -->
+      <form method="GET" action="{{ url_for('super_admin.report_loan_performance') }}" class="filter-bar">
+        <select name="type">
+          <option value="all" {{ 'selected' if type_filter=='all' }}>All Types</option>
+          {% for t in types %}
+          <option value="{{ t.id }}" {{ 'selected' if type_filter|string == t.id|string }}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        <input type="date" name="date_from" class="form-input-sm" value="{{ date_from }}"/>
+        <input type="date" name="date_to" class="form-input-sm" value="{{ date_to }}"/>
+        <button type="submit" class="btn btn-primary btn-sm">Generate</button>
+        {% if date_from or date_to or type_filter != 'all' %}
+        <a href="{{ url_for('super_admin.report_loan_performance') }}" class="btn btn-ghost btn-sm">Clear</a>
+        {% endif %}
+      </form>
+
+      <!-- Summary stats -->
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">&#8369;{{ "{:,.0f}".format(total_disbursed) }}</div>
+            <div class="stat-label">Total Disbursed</div>
+          </div>
+          <div class="stat-icon blue"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">&#8369;{{ "{:,.0f}".format(total_balance) }}</div>
+            <div class="stat-label">Outstanding Balance</div>
+          </div>
+          <div class="stat-icon yellow"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ active_count }}</div>
+            <div class="stat-label">Active Loans</div>
+          </div>
+          <div class="stat-icon green"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ paid_count }}</div>
+            <div class="stat-label">Paid Loans</div>
+          </div>
+          <div class="stat-icon purple"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ defaulted_count }}</div>
+            <div class="stat-label">Defaulted</div>
+          </div>
+          <div class="stat-icon red"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">
+              {% if loans|length > 0 %}
+              {{ "%.1f"|format(defaulted_count / loans|length * 100) }}%
+              {% else %}0%{% endif %}
+            </div>
+            <div class="stat-label">Default Rate</div>
+          </div>
+          <div class="stat-icon red"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Loan Records</h3>
+          <span style="font-size:12px; color:var(--gray-400);">{{ loans|length }} loan(s)</span>
+        </div>
+        <div class="card-body" style="padding:0; overflow-x:auto;">
+          {% if loans %}
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Loan No.</th>
+                <th>Borrower</th>
+                <th>Type / Plan</th>
+                <th>Principal</th>
+                <th>Rate</th>
+                <th>Disbursed</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for loan in loans %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('super_admin.loan_detail', loan_id=loan.id) }}"
+                     class="td-name link">{{ loan.loan_no }}</a>
+                </td>
+                <td><div class="td-name">{{ loan.borrower_name }}</div></td>
+                <td>
+                  <div>{{ loan.type_name }}</div>
+                  <div class="td-sub">{{ loan.plan_name }}</div>
+                </td>
+                <td>&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</td>
+                <td>{{ loan.interest_rate }}%</td>
+                <td>&#8369;{{ "{:,.2f}".format(loan.disbursed_amount) }}</td>
+                <td>&#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
+                <td><span class="loan-status {{ loan.status }}">{{ loan.status | title }}</span></td>
+                <td style="font-size:12px;">{{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty"><p>No loans found for the selected filters.</p></div>
+          {% endif %}
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

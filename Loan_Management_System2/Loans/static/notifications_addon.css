@@ -1,0 +1,405 @@
+/* ================================================================
+   NOTIFICATIONS_ADDON.CSS — Notification Dropdown
+   (append sa dulo ng dashboard_borrower.css)
+   ================================================================ */
+
+/* ================================================================
+   UTILITY CLASSES
+   ================================================================ */
+.hidden {
+  display: none !important;
+}
+
+/* ================================================================
+   VERIFY ALERT CLOSE BUTTON
+   ================================================================ */
+.verify-alert {
+  display: flex;
+  align-items: center;
+}
+
+.verify-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: currentColor;
+  opacity: 0.5;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.verify-close:hover {
+  opacity: 1;
+}
+
+/* ================================================================
+   BELL WRAPPER
+   ================================================================ */
+.notif-wrap {
+  position: relative;
+}
+
+/* ================================================================
+   NOTIF DOT — NOW SHOWS COUNT
+   ================================================================ */
+.notif-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  background: var(--danger);
+  border: 2px solid var(--white);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+/* ================================================================
+   DROPDOWN PANEL
+   ================================================================ */
+.notif-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 360px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(42, 144, 128, 0.08);
+  z-index: 300;
+  overflow: hidden;
+  animation: notifSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notif-dropdown.open {
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes notifSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Arrow pointer */
+.notif-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 14px;
+  width: 12px;
+  height: 12px;
+  background: var(--white);
+  border-left: 1px solid var(--gray-200);
+  border-top: 1px solid var(--gray-200);
+  transform: rotate(45deg);
+  z-index: 1;
+}
+
+/* ================================================================
+   HEADER
+   ================================================================ */
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--gray-200);
+  background: linear-gradient(to bottom, #fafffe, var(--white));
+}
+
+.notif-header-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+
+.notif-mark-all {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mint-dark);
+  background: var(--mint-light);
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.notif-mark-all:hover {
+  background: var(--mint-mid);
+}
+
+/* ================================================================
+   SCROLLABLE LIST
+   ================================================================ */
+.notif-list {
+  max-height: 340px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notif-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.notif-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notif-list::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 99px;
+}
+
+/* ================================================================
+   LOADING STATE
+   ================================================================ */
+.notif-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  font-size: 13px;
+  color: var(--gray-400);
+}
+
+.notif-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--gray-200);
+  border-top-color: var(--mint);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ================================================================
+   EMPTY STATE
+   ================================================================ */
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 36px 16px;
+  text-align: center;
+}
+
+.notif-empty-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--mint-light);
+  border-radius: 50%;
+  margin-bottom: 4px;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233ab5a0'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233ab5a0'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E");
+  mask-size: 22px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: 22px;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+.notif-empty p {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.notif-empty small {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+/* ================================================================
+   NOTIFICATION ITEM
+   ================================================================ */
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid #f4f8f7;
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item:hover {
+  background: #f8fffe;
+}
+
+.notif-item.unread {
+  background: #f0fdf9;
+}
+
+.notif-item.unread:hover {
+  background: #e6f7f4;
+}
+
+/* Icon bubble */
+.notif-item-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-item-icon span {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+/* Icon color variants */
+.notif-icon--loan_approved {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.notif-icon--loan_rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.notif-icon--loan_disbursed {
+  background: var(--mint-light);
+  color: var(--mint-dark);
+}
+
+.notif-icon--payment_due {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.notif-icon--payment_received {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.notif-icon--id_verified {
+  background: var(--mint-light);
+  color: var(--mint-dark);
+}
+
+.notif-icon--id_rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.notif-icon--general {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+/* Text */
+.notif-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-item-msg {
+  font-size: 12px;
+  color: var(--gray-600);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.notif-item-time {
+  font-size: 11px;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+
+/* Unread indicator dot */
+.notif-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mint);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+/* ================================================================
+   FOOTER
+   ================================================================ */
+.notif-footer {
+  padding: 11px 18px;
+  border-top: 1px solid var(--gray-200);
+  background: #fafffe;
+  text-align: center;
+}
+
+.notif-see-all {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mint-dark);
+  text-decoration: none;
+  transition: color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notif-see-all:hover {
+  color: var(--mint);
+}

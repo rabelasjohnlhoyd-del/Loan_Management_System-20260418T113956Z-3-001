@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Staff User — Loan Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='manage_users.css') }}"/>
+</head>
+<body>
+<div class="app-wrap">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name }}</h4>
+        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else '' }}</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <div class="nav-section-label nav-section--spaced">Loan Management</div>
+      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
+      </a>
+      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--clock"></span>Applications
+      </a>
+      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--applications"></span>All Loans
+      </a>
+      <div class="nav-section-label nav-section--spaced">Borrowers</div>
+      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+      </a>
+      <div class="nav-section-label nav-section--spaced">Payments</div>
+      <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Payment Verification
+      </a>
+      <div class="nav-section-label nav-section--spaced">Reports</div>
+      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item">
+        <span class="nav-icon nav-icon--reports"></span>Reports
+      </a>
+      <div class="nav-section-label nav-section--spaced">Admin</div>
+      <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--borrowers"></span>Manage Users
+      </a>
+      <div class="nav-section-label nav-section--spaced">Account</div>
+      <a href="{{ url_for('auth.profile') }}" class="nav-item">
+        <span class="nav-icon nav-icon--profile"></span>My Profile
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="{{ url_for('super_admin.manage_users') }}" class="back-link">← Manage Users</a>
+        <div>
+          <h1>Create Staff Account</h1>
+          <p>Add a new admin, loan officer, or auditor</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+        </a>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash-msg {{ category }}">
+                <span>{{ message }}</span>
+                <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="form-wrap">
+        <div class="card">
+          <div class="card-header"><h3>Account Information</h3></div>
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('super_admin.create_user') }}" class="create-form">
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Full Name <span class="req">*</span></label>
+                  <input type="text" name="full_name" class="form-input"
+                         placeholder="e.g. Juan dela Cruz" required/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email Address <span class="req">*</span></label>
+                  <input type="email" name="email" class="form-input"
+                         placeholder="e.g. juan@example.com" required/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Contact Number</label>
+                  <input type="text" name="contact_number" class="form-input"
+                         placeholder="e.g. 09XX-XXX-XXXX"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Role <span class="req">*</span></label>
+                  <select name="role" class="form-input" required>
+                    <option value="">-- Select Role --</option>
+                    <option value="admin">Admin</option>
+                    <option value="loan_officer">Loan Officer</option>
+                    <option value="auditor">Auditor</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Password <span class="req">*</span></label>
+                  <div class="pw-wrap">
+                    <input type="password" name="password" id="pw" class="form-input"
+                           placeholder="Minimum 8 characters" required minlength="8"/>
+                    <button type="button" class="pw-toggle" onclick="togglePw('pw', this)">Show</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Confirm Password <span class="req">*</span></label>
+                  <div class="pw-wrap">
+                    <input type="password" id="pw2" class="form-input"
+                           placeholder="Re-enter password" required/>
+                    <button type="button" class="pw-toggle" onclick="togglePw('pw2', this)">Show</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="role-info-box" id="roleInfo" style="display:none;">
+                <div class="role-info-icon"></div>
+                <div id="roleInfoText"></div>
+              </div>
+
+              <div class="form-actions">
+                <a href="{{ url_for('super_admin.manage_users') }}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">Create Account</button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  const roleDescriptions = {
+    admin:        'Can approve loans, verify payments, and manage borrowers.',
+    loan_officer: 'Can process applications and communicate with borrowers.',
+    auditor:      'View-only access to reports and activity logs.',
+    super_admin:  'Full system access including user management.'
+  };
+
+  document.querySelector('select[name="role"]').addEventListener('change', function() {
+    const box  = document.getElementById('roleInfo');
+    const text = document.getElementById('roleInfoText');
+    if (this.value && roleDescriptions[this.value]) {
+      text.textContent = roleDescriptions[this.value];
+      box.style.display = 'flex';
+    } else {
+      box.style.display = 'none';
+    }
+  });
+
+  function togglePw(id, btn) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = 'Hide';
+    } else {
+      input.type = 'password';
+      btn.textContent = 'Show';
+    }
+  }
+
+  document.querySelector('.create-form').addEventListener('submit', function(e) {
+    const pw  = document.getElementById('pw').value;
+    const pw2 = document.getElementById('pw2').value;
+    if (pw !== pw2) {
+      e.preventDefault();
+      alert('Passwords do not match.');
+    }
+  });
+
+  setTimeout(() => { document.querySelectorAll('.flash-msg').forEach(el => el.remove()); }, 5000);
+</script>
+</body>
+</html>

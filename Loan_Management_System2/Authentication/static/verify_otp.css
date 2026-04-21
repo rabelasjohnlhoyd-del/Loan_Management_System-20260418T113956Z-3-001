@@ -1,0 +1,537 @@
+/* ================================================================
+   VERIFY_OTP.CSS — Loan Management System Email Verification
+   Color scheme: Mint + White (matches login.css)
+   ================================================================ */
+
+/* ================================================================
+   IMPORTS & GLOBAL RESET
+   ================================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ================================================================
+   ROOT VARIABLES
+   ================================================================ */
+:root {
+  --mint: #3ab5a0;
+  --mint-dark: #2a9080;
+  --mint-light: #e6f7f4;
+  --mint-mid: #b2e4db;
+  --white: #ffffff;
+  --gray-100: #f4f8f7;
+  --gray-200: #e2eeec;
+  --gray-400: #9bbcb7;
+  --gray-600: #5a7a76;
+  --gray-800: #2c4a47;
+  --shadow-lg: 0 20px 60px rgba(42, 144, 128, 0.22);
+  --radius-sm: 8px;
+}
+
+/* ================================================================
+   PAGE
+   ================================================================ */
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: linear-gradient(145deg, #d4f0eb 0%, #edfaf7 40%, #f0faf8 70%, #c8ece5 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ================================================================
+   CARD
+   ================================================================ */
+.card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 40px 36px 36px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: var(--shadow-lg);
+  border: 1.5px solid var(--mint-mid);
+  animation: fadeUp 0.5s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================================================================
+   LOGO
+   ================================================================ */
+.logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.logo-icon {
+  position: relative;
+  width: 64px;
+  height: 58px;
+}
+
+.logo-col {
+  position: absolute;
+  bottom: 0;
+  background: var(--mint);
+  border-radius: 2px 2px 0 0;
+}
+
+.logo-col--l {
+  left: 6px;
+  width: 12px;
+  height: 30px;
+}
+
+.logo-col--m {
+  left: 26px;
+  width: 12px;
+  height: 30px;
+}
+
+.logo-col--r {
+  left: 46px;
+  width: 12px;
+  height: 30px;
+}
+
+.logo-dome {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background: var(--mint);
+  border-radius: 40px 40px 0 0;
+}
+
+.logo-dome::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: -4px;
+  right: -4px;
+  height: 6px;
+  background: var(--mint-dark);
+  border-radius: 2px;
+}
+
+.logo-dollar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--white);
+  z-index: 1;
+}
+
+/* ================================================================
+   TITLE
+   ================================================================ */
+.site-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-800);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+  margin-bottom: 24px;
+}
+
+/* ================================================================
+   STEP INDICATOR
+   ================================================================ */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 24px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--gray-200);
+  color: var(--gray-400);
+  border: 2px solid var(--gray-200);
+  transition: all 0.3s;
+}
+
+.step-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gray-400);
+  white-space: nowrap;
+}
+
+.step.done .step-num {
+  background: var(--mint);
+  border-color: var(--mint);
+  color: var(--white);
+}
+
+.step.done .step-name {
+  color: var(--mint-dark);
+}
+
+.step.active .step-num {
+  background: var(--white);
+  border-color: var(--mint);
+  color: var(--mint-dark);
+  box-shadow: 0 0 0 3px rgba(58, 181, 160, 0.18);
+}
+
+.step.active .step-name {
+  color: var(--mint-dark);
+  font-weight: 700;
+}
+
+.step-connector {
+  width: 40px;
+  height: 2px;
+  background: var(--gray-200);
+  margin: 0 4px;
+  margin-bottom: 18px;
+  transition: background 0.3s;
+}
+
+.step-connector.done {
+  background: var(--mint);
+}
+
+/* ================================================================
+   FORM HEADING
+   ================================================================ */
+.form-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 10px;
+}
+
+.form-heading::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background: var(--mint);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z'/%3E%3C/svg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+}
+
+/* ================================================================
+   OTP INFO TEXT
+   ================================================================ */
+.otp-info {
+  font-size: 13px;
+  color: var(--gray-600);
+  text-align: center;
+  margin-bottom: 22px;
+  line-height: 1.6;
+}
+
+.otp-email-tag {
+  display: inline-block;
+  margin-top: 4px;
+  background: var(--mint-light);
+  color: var(--mint-dark);
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--mint-mid);
+}
+
+/* ================================================================
+   OTP BOXES
+   ================================================================ */
+.otp-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.otp-box {
+  width: 48px;
+  height: 56px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  background: var(--gray-100);
+  font-family: 'Sora', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gray-800);
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.15s;
+  caret-color: var(--mint);
+}
+
+.otp-box:focus {
+  border-color: var(--mint);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(58, 181, 160, 0.12);
+  transform: translateY(-2px);
+}
+
+.otp-box.is-filled {
+  border-color: var(--mint);
+  background: var(--mint-light);
+  color: var(--mint-dark);
+}
+
+.otp-box.is-error {
+  border-color: #e05252;
+  background: #fdf0f0;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* ================================================================
+   INLINE ERROR
+   ================================================================ */
+.inline-error {
+  display: none;
+  font-size: 11px;
+  color: #e05252;
+  margin-bottom: 10px;
+  padding-left: 2px;
+  font-weight: 500;
+  text-align: center;
+  width: 100%;
+}
+
+/* ================================================================
+   SUBMIT BUTTON
+   ================================================================ */
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  background: linear-gradient(135deg, var(--mint) 0%, var(--mint-dark) 100%);
+  color: var(--white);
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(58, 181, 160, 0.35);
+}
+
+.btn-login:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(58, 181, 160, 0.45);
+}
+
+.btn-login:active {
+  transform: translateY(0);
+}
+
+.btn-login:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ================================================================
+   RESEND ROW
+   ================================================================ */
+.resend-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--gray-600);
+  text-align: center;
+}
+
+.timer-countdown {
+  font-weight: 700;
+  color: var(--mint-dark);
+  font-family: 'Sora', sans-serif;
+}
+
+.timer-countdown.expired {
+  color: #e05252;
+}
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: var(--mint-dark);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'DM Sans', sans-serif;
+  transition: color 0.2s;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.resend-btn:hover:not(:disabled) {
+  color: var(--mint);
+}
+
+.resend-btn:disabled {
+  color: var(--gray-400);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* ================================================================
+   FLASH STACK
+   ================================================================ */
+.flash-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.flash-msg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: fadeUp 0.3s ease both;
+}
+
+.flash-msg.success {
+  background: #e6f7f4;
+  color: #2a9080;
+  border: 1px solid #b2e4db;
+}
+
+.flash-msg.danger {
+  background: #fdf0f0;
+  color: #c0392b;
+  border: 1px solid #f5c6c6;
+}
+
+.flash-msg.warning {
+  background: #fffbea;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.flash-msg.info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.f-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.f-close:hover {
+  opacity: 1;
+}
+
+/* ================================================================
+   AUTH FOOT & COPYRIGHT
+   ================================================================ */
+.auth-foot {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--gray-600);
+}
+
+.auth-foot a {
+  color: var(--mint-dark);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-foot a:hover {
+  color: var(--mint);
+}
+
+.copyright {
+  font-size: 12px;
+  color: var(--gray-600);
+  opacity: 0.8;
+}

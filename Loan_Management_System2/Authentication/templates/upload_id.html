@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload ID — Hiraya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('auth.static', filename='upload_id.css') }}" />
+</head>
+<body>
+
+  <div class="page">
+    <div class="card card--wide">
+
+      <!-- LOGO -->
+      <div class="logo-wrap">
+        <div class="logo-icon">
+          <span class="logo-col logo-col--l"></span>
+          <span class="logo-col logo-col--m"></span>
+          <span class="logo-col logo-col--r"></span>
+          <span class="logo-dome"></span>
+          <span class="logo-dollar">$</span>
+        </div>
+      </div>
+
+      <h1 class="site-title">Loan Management<br />System</h1>
+
+      <!-- FLASK FLASH MESSAGES -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash-msg {{ category }}">
+                <span>{{ message }}</span>
+                <button class="f-close" aria-label="Close">&times;</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- STEP INDICATOR -->
+      <div class="steps">
+        <div class="step done">
+          <div class="step-num">&#10003;</div>
+          <div class="step-name">Details</div>
+        </div>
+        <div class="step-connector done"></div>
+        <div class="step done">
+          <div class="step-num">&#10003;</div>
+          <div class="step-name">Verify Email</div>
+        </div>
+        <div class="step-connector done"></div>
+        <div class="step active">
+          <div class="step-num">3</div>
+          <div class="step-name">Upload ID</div>
+        </div>
+      </div>
+
+      <p class="form-heading">Identity Verification</p>
+
+      <!-- INFO BOX -->
+      <div class="info-box">
+        <span class="info-icon">&#128203;</span>
+        <div>
+          <strong>Requirements:</strong> Select your ID type, upload a clear photo of your
+          physical government-issued ID, then take a <strong>live selfie</strong> using your camera.
+          Screenshots or photos of screens are <strong>not accepted</strong>.
+        </div>
+      </div>
+
+      <!-- VALIDATION RESULT BOX -->
+      <div id="validation-result" style="display:none;" class="validation-box">
+        <span class="val-icon" id="val-icon"></span>
+        <div style="flex:1;">
+          <strong id="val-title"></strong>
+          <p id="val-message" style="margin-top:4px;"></p>
+          <ul id="val-details" style="font-size:12px;margin-top:6px;padding-left:16px;line-height:1.8;"></ul>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('auth.upload_id') }}" enctype="multipart/form-data" novalidate>
+
+        <!-- Hidden: verification result from Gemini -->
+        <input type="hidden" name="verification_status" id="verification_status" value="pending" />
+        <!-- Hidden: selfie captured from camera (base64 → converted to file on submit) -->
+        <input type="hidden" name="selfie_base64" id="selfie_base64" value="" />
+
+        <!-- ── ID TYPE SELECTOR ── -->
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="upload-label" for="id_type">
+            ID Type <span class="req">*</span>
+          </label>
+          <select name="id_type" id="id_type" class="id-type-select" required>
+            <option value="" disabled selected>— Select your ID type —</option>
+            <optgroup label="Primary IDs">
+              <option value="Philippine Passport">🛂 Philippine Passport</option>
+              <option value="PhilSys / National ID">🪪 PhilSys / National ID</option>
+              <option value="Driver's License (LTO)">🚗 Driver's License (LTO)</option>
+              <option value="UMID (SSS/GSIS)">🏦 UMID (SSS / GSIS)</option>
+            </optgroup>
+            <optgroup label="Government IDs">
+              <option value="SSS Card">📋 SSS Card</option>
+              <option value="GSIS Card">📋 GSIS Card</option>
+              <option value="PhilHealth Card">🏥 PhilHealth Card</option>
+              <option value="Voter's ID (COMELEC)">🗳️ Voter's ID (COMELEC)</option>
+              <option value="PRC ID">🎓 PRC ID</option>
+              <option value="TIN ID (BIR)">💼 TIN ID (BIR)</option>
+              <option value="Postal ID">📮 Postal ID</option>
+              <option value="OFW ID / e-Card">✈️ OFW ID / e-Card</option>
+            </optgroup>
+            <optgroup label="Special IDs">
+              <option value="Senior Citizen ID">👴 Senior Citizen ID</option>
+              <option value="PWD ID">♿ PWD ID</option>
+              <option value="Firearms License (PNP)">🔫 Firearms License (PNP)</option>
+              <option value="NBI Clearance">📝 NBI Clearance</option>
+            </optgroup>
+          </select>
+          <span class="inline-error" id="id-type-error"></span>
+        </div>
+
+        <div class="upload-row">
+
+          <!-- VALID ID UPLOAD -->
+          <div class="upload-group">
+            <label class="upload-label">Government-Issued ID Photo <span class="req">*</span></label>
+            <div class="upload-zone" id="id-zone">
+              <input type="file" name="valid_id" id="valid_id" accept=".jpg,.jpeg,.png" required />
+              <span class="up-icon up-icon--id"></span>
+              <h4 class="up-title">Upload Physical ID</h4>
+              <p class="up-hint">JPG or PNG &middot; Max 5MB</p>
+              <p class="up-hint" style="color:#ef4444;font-size:11px;margin-top:4px;">
+                ⚠️ Must be the actual card — no screenshots
+              </p>
+              <div class="upload-preview" id="id-preview">
+                <span class="up-check"></span>
+                <span class="preview-name"></span>
+              </div>
+            </div>
+            <span class="inline-error" id="id-error"></span>
+          </div>
+
+          <!-- LIVE SELFIE CAPTURE -->
+          <div class="upload-group">
+            <label class="upload-label">Live Selfie <span class="req">*</span></label>
+            <div class="upload-zone selfie-zone" id="selfie-zone" onclick="openCameraModal()">
+              <!-- Hidden file input kept for form compatibility -->
+              <input type="file" name="selfie" id="selfie" accept=".jpg,.jpeg,.png" style="display:none;" />
+
+              <!-- Default state: prompt to open camera -->
+              <div id="selfie-prompt">
+                <span class="up-icon up-icon--camera"></span>
+                <h4 class="up-title">Take Live Selfie</h4>
+                <p class="up-hint">Click to open camera</p>
+                <p class="up-hint up-hint--accent">📷 Live photo required</p>
+              </div>
+
+              <!-- Captured preview state -->
+              <div id="selfie-captured" style="display:none;">
+                <div class="selfie-circle-wrap">
+                  <img id="selfie-preview-img" src="" alt="Selfie preview" class="selfie-circle-img" />
+                </div>
+                <div class="upload-preview visible" id="selfie-preview">
+                  <span class="up-check"></span>
+                  <span class="preview-name">Live selfie captured ✓</span>
+                </div>
+                <button type="button" class="retake-btn" onclick="openCameraModal(); event.stopPropagation();">
+                  🔄 Retake
+                </button>
+              </div>
+            </div>
+            <span class="inline-error" id="selfie-error"></span>
+          </div>
+
+        </div>
+
+        <button type="button" class="btn-login" id="submit-btn">
+          <span class="btn-icon-complete"></span>
+          VALIDATE &amp; COMPLETE REGISTRATION
+        </button>
+
+      </form>
+
+    </div>
+
+    <p class="copyright">&copy; 2024 Loan Management System. All rights reserved.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       CAMERA MODAL
+  ══════════════════════════════════════════ -->
+  <div id="camera-modal" class="camera-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="Take Selfie">
+    <div class="camera-modal-backdrop" onclick="closeCameraModal()"></div>
+    <div class="camera-modal-box">
+
+      <div class="camera-modal-header">
+        <h3>📷 Take Your Selfie</h3>
+        <button class="camera-close-btn" onclick="closeCameraModal()" aria-label="Close">&times;</button>
+      </div>
+
+      <!-- Instructions -->
+      <div class="camera-instructions">
+        <span>👤 Face the camera directly</span>
+        <span>💡 Good lighting</span>
+        <span>😶 No mask/sunglasses</span>
+      </div>
+
+      <!-- Video feed -->
+      <div class="camera-video-wrap">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <div class="camera-overlay-frame"></div>
+        <canvas id="camera-canvas" style="display:none;"></canvas>
+
+        <!-- Countdown overlay -->
+        <div id="camera-countdown" class="camera-countdown" style="display:none;"></div>
+      </div>
+
+      <!-- Camera error state -->
+      <div id="camera-error" class="camera-error" style="display:none;">
+        <span>⚠️</span>
+        <p id="camera-error-msg">Camera not available.</p>
+        <small>Please allow camera access in your browser, or use a device with a camera.</small>
+      </div>
+
+      <!-- Controls -->
+      <div class="camera-controls">
+        <button type="button" class="camera-btn camera-btn--secondary" onclick="closeCameraModal()">
+          Cancel
+        </button>
+        <button type="button" class="camera-btn camera-btn--capture" id="capture-btn" onclick="capturePhoto()">
+          📸 Capture
+        </button>
+        <button type="button" class="camera-btn camera-btn--secondary" id="switch-camera-btn" onclick="switchCamera()" title="Switch camera">
+          🔄
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ANALYZING OVERLAY -->
+  <div id="analyzing-overlay" style="display:none;">
+    <div class="analyzing-spinner"></div>
+    <p>Analyzing your documents...</p>
+    <small>Please wait, this may take a few seconds</small>
+  </div>
+
+  <script src="{{ url_for('auth.static', filename='upload_id.js') }}"></script>
+</body>
+</html>
