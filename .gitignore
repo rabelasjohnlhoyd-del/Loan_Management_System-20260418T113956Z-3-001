@@ -1,6 +1,19 @@
-__pycache__/app.cpython-313.pyc
-__pycache__/app.cpython-313.pyc
-__pycache__/app.cpython-313.pyc
-Loan_Management_System2/__pycache__/__init__.cpython-313.pyc
-Loan_Management_System2/Authentication/__pycache__/login.cpython-313.pyc
-Loan_Management_System2/Authentication/__pycache__/login.cpython-314.pyc
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+
+# User uploads (sensitive)
+Loan_Management_System2/Authentication/static/uploads/
+
+# VS Code
+.vscode/
+
+# pyenv
+pyvenv.cfg
