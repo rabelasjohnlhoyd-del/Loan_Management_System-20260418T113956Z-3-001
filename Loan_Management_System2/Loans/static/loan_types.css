@@ -52,7 +52,7 @@ body {
    SIDEBAR
    ================================================================ */
 .sidebar {
-  width: 240px;
+  width: 250px;
   min-height: 100vh;
   background: linear-gradient(175deg, #2a9080 0%, #1e6e60 100%);
   display: flex;

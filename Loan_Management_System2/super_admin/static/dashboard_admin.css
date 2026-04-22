@@ -58,7 +58,7 @@ html, body {
    SIDEBAR
    ================================================================ */
 .sidebar {
-  width: var(--sidebar-w);
+  width: 250px;
   min-height: 100vh;
   background: linear-gradient(175deg, var(--primary-dark) 0%, var(--primary-darker) 100%);
   display: flex; flex-direction: column;
