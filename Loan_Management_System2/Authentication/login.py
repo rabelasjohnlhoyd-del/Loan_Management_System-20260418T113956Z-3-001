@@ -760,7 +760,7 @@ def borrower_dashboard():
             JOIN loans l ON a.loan_id = l.id
             WHERE l.borrower_id = %s
               AND l.status = 'active'
-              AND a.status = 'pending'
+              AND a.is_paid = 0
               AND a.due_date >= CURDATE()
         """, (session['user_id'],))
         next_payment = cursor.fetchone() or {'next_due': None, 'next_amount': 0}
@@ -822,3 +822,288 @@ def check_email():
         return jsonify({'exists': exists})
     except:
         return jsonify({'exists': False})
+    
+# ================================================================
+# SECTION 8.5: PAYMENT — SELECT LOAN (sidebar entry point)
+# ================================================================
+@auth.route('/payments/select')
+@login_required
+@role_required('borrower')
+def select_loan_to_pay():
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+    SELECT l.*, lt.name AS type_name, lp.plan_name,
+           (SELECT MIN(a.due_date)
+            FROM amortization_schedule a
+            WHERE a.loan_id = l.id AND a.is_paid = 0) AS next_due,
+           (SELECT SUM(a.total_due)
+            FROM amortization_schedule a
+            WHERE a.loan_id = l.id
+              AND a.is_paid = 0
+              AND a.due_date = (
+                  SELECT MIN(a2.due_date)
+                  FROM amortization_schedule a2
+                  WHERE a2.loan_id = l.id AND a2.is_paid = 0
+              )) AS next_amount
+            FROM loans l
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            JOIN loan_plans lp ON l.loan_plan_id = lp.id
+            WHERE l.borrower_id = %s
+              AND l.status IN ('active', 'disbursed')
+            ORDER BY l.created_at DESC
+        """, (session['user_id'],))
+        active_loans = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        active_loans = []
+
+    # 1 active loan lang → diretso na sa payment page
+    if len(active_loans) == 1:
+        return redirect(url_for('auth.make_payment', loan_id=active_loans[0]['id']))
+
+    return render_template('select_loan_to_pay.html', active_loans=active_loans)
+
+# ================================================================
+# SECTION 9: PAYMENTS
+# ================================================================
+@auth.route('/payments/make/<int:loan_id>', methods=['GET', 'POST'])
+@login_required
+@role_required('borrower')
+def make_payment(loan_id):
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT l.*, lt.name AS type_name, lp.plan_name, lp.interest_rate
+            FROM loans l
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            JOIN loan_plans lp ON l.loan_plan_id = lp.id
+            WHERE l.id = %s AND l.borrower_id = %s
+        """, (loan_id, session['user_id']))
+        loan = cursor.fetchone()
+
+        if not loan:
+            flash('Loan not found.', 'danger')
+            return redirect(url_for('auth.borrower_dashboard'))
+
+        cursor.execute("""
+            SELECT * FROM amortization_schedule
+            WHERE loan_id = %s AND is_paid = 0
+            ORDER BY due_date ASC
+        """, (loan_id,))
+        schedules = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT l.*, lt.name AS type_name, lp.plan_name,
+                   (SELECT MIN(a.due_date)
+                    FROM amortization_schedule a
+                    WHERE a.loan_id = l.id AND a.is_paid = 0) AS next_due,
+                   (SELECT SUM(a.total_due)
+                    FROM amortization_schedule a
+                    WHERE a.loan_id = l.id AND a.is_paid = 0
+                      AND a.due_date = (
+                          SELECT MIN(a2.due_date)
+                          FROM amortization_schedule a2
+                          WHERE a2.loan_id = l.id AND a2.is_paid = 0
+                      )) AS next_amount
+            FROM loans l
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            JOIN loan_plans lp ON l.loan_plan_id = lp.id
+            WHERE l.borrower_id = %s AND l.status IN ('active', 'disbursed')
+            ORDER BY l.created_at DESC
+        """, (session['user_id'],))
+        active_loans = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('auth.borrower_dashboard'))
+
+    if request.method == 'POST':
+        amount_paid      = request.form.get('amount_paid', '').strip()
+        payment_method   = request.form.get('payment_method', '').strip()
+        reference_number = request.form.get('reference_number', '').strip()
+        payment_date     = request.form.get('payment_date', '').strip()
+        notes            = request.form.get('notes', '').strip()
+        proof_file       = request.files.get('payment_screenshot')
+
+        errors = []
+        if not amount_paid or not payment_method:
+            errors.append('Amount and payment method are required.')
+        if not reference_number:
+            errors.append('Reference number is required.')
+        if not payment_date:
+            errors.append('Payment date is required.')
+
+        try:
+            amount_paid = float(amount_paid)
+            if amount_paid <= 0:
+                errors.append('Amount must be greater than zero.')
+        except (ValueError, TypeError):
+            errors.append('Invalid amount.')
+
+        if errors:
+            for e in errors:
+                flash(e, 'danger')
+            return render_template('make_payment.html',
+                                   loan=loan, schedules=schedules,
+                                   active_loans=active_loans,
+                                   today=datetime.date.today())
+
+        # Handle screenshot upload
+        screenshot_path = None
+        if proof_file and proof_file.filename:
+            from werkzeug.utils import secure_filename
+            PROOF_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'proofs')
+            os.makedirs(PROOF_FOLDER, exist_ok=True)
+            fname = secure_filename(
+                f"proof_{session['user_id']}_{datetime.datetime.now().timestamp()}_{proof_file.filename}"
+            )
+            proof_file.save(os.path.join(PROOF_FOLDER, fname))
+            screenshot_path = fname
+
+        try:
+            conn   = get_db()
+            cursor = conn.cursor()
+
+            year  = datetime.datetime.now().year
+            cursor.execute("SELECT COUNT(*) FROM payments WHERE YEAR(created_at) = %s", (year,))
+            count  = cursor.fetchone()[0] + 1
+            pay_no = f"PAY-{year}-{str(count).zfill(6)}"
+
+            cursor.execute("""
+                INSERT INTO payments
+                    (payment_no, loan_id, borrower_id,
+                     amount_paid, payment_method, reference_number,
+                     payment_date, screenshot_path, notes,
+                     status, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', NOW())
+            """, (
+                pay_no, loan_id, session['user_id'],
+                amount_paid, payment_method, reference_number,
+                payment_date, screenshot_path, notes
+            ))
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            flash(f'Payment submitted! Ref: {pay_no}. Awaiting verification.', 'success')
+            return redirect(url_for('auth.borrower_dashboard'))
+
+        except Exception as e:
+            flash(f'Error processing payment: {str(e)}', 'danger')
+
+    return render_template('make_payment.html',
+                           loan=loan, schedules=schedules,
+                           active_loans=active_loans,
+                           today=datetime.date.today())
+
+@auth.route('/payments/history')
+@login_required
+@role_required('borrower')
+def payment_history():
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT p.*, l.reference_no AS loan_ref, lt.name AS type_name
+            FROM payments p
+            JOIN loans l  ON p.loan_id = l.id
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            WHERE p.borrower_id = %s
+            ORDER BY p.created_at DESC
+        """, (session['user_id'],))
+        payments = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        payments = []
+    return render_template('make_payment.html', payments=payments, view='history')
+
+
+# ================================================================
+# SECTION 10: DOCUMENTS
+# ================================================================
+@auth.route('/documents')
+@login_required
+@role_required('borrower')
+def my_documents():
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # ID & selfie from user record
+        cursor.execute("""
+            SELECT id_document_path, selfie_path, id_verification_status
+            FROM users WHERE id = %s
+        """, (session['user_id'],))
+        user_docs = cursor.fetchone()
+
+        # Documents tied to loan applications
+        cursor.execute("""
+            SELECT ad.*, la.reference_no AS app_ref, la.status AS app_status
+            FROM application_documents ad
+            JOIN loan_applications la ON ad.application_id = la.id
+            WHERE la.borrower_id = %s
+            ORDER BY ad.id DESC
+        """, (session['user_id'],))
+        app_docs = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        user_docs = {}
+        app_docs  = []
+
+    return render_template('documents.html',
+                           user_docs=user_docs,
+                           app_docs=app_docs)
+
+
+@auth.route('/documents/upload', methods=['POST'])
+@login_required
+@role_required('borrower')
+def upload_document():
+    """Upload an additional supporting document linked to a loan application."""
+    app_id = request.form.get('application_id')
+    doc_type = request.form.get('document_type', 'requirement')
+    file = request.files.get('document')
+
+    UPLOAD_FOLDER_DOCS = os.path.join(
+        os.path.dirname(__file__), 'static', 'uploads', 'documents'
+    )
+
+    if not file or not allowed_file(file.filename):
+        flash('Invalid file. Allowed: PNG, JPG, JPEG, PDF.', 'danger')
+        return redirect(url_for('auth.my_documents'))
+
+    try:
+        os.makedirs(UPLOAD_FOLDER_DOCS, exist_ok=True)
+        fname = secure_filename(
+            f"doc_{session['user_id']}_{datetime.datetime.now().timestamp()}_{file.filename}"
+        )
+        file.save(os.path.join(UPLOAD_FOLDER_DOCS, fname))
+
+        conn   = get_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO application_documents (application_id, document_type, file_path)
+            VALUES (%s, %s, %s)
+        """, (app_id, doc_type, fname))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash('Document uploaded successfully.', 'success')
+    except Exception as e:
+        flash(f'Upload error: {str(e)}', 'danger')
+
+    return redirect(url_for('auth.my_documents'))

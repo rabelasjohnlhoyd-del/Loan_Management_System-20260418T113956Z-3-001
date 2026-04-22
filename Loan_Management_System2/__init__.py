@@ -28,15 +28,12 @@ def reg_app():
 
     mail.init_app(app)
 
-    # Authentication Blueprint — login, register, OTP, upload ID, profile
     from Loan_Management_System2.Authentication.login import auth
     app.register_blueprint(auth, url_prefix='/auth')
 
-    # Admin Blueprint — dashboards, borrower management, loan management
     from Loan_Management_System2.super_admin.super_admin import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    # Loans Blueprint — borrower-facing: apply, my loans, loan types
     from Loan_Management_System2.Loans.routes import loans_bp
     app.register_blueprint(loans_bp, url_prefix='/loans')
 

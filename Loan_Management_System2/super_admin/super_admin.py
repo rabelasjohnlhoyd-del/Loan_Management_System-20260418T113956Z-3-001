@@ -738,7 +738,7 @@ def all_payments():
             params.append(status_filter)
 
         if search:
-            query += " AND (u.full_name LIKE %s OR l.loan_no LIKE %s OR p.reference_no LIKE %s)"
+            query += " AND (u.full_name LIKE %s OR l.loan_no LIKE %s OR p.reference_number LIKE %s)"
             params += [f'%{search}%', f'%{search}%', f'%{search}%']
 
         query += " ORDER BY p.payment_date DESC"
@@ -806,21 +806,22 @@ def verify_payment(payment_id):
         """, (action, session['user_id'], now, notes, payment_id))
 
         if action == 'approved':
-            new_balance = max(0, float(payment['outstanding_balance']) - float(payment['amount']))
+            new_balance = max(0, float(payment['outstanding_balance']) - float(payment['amount_paid']))
 
             # Mark the corresponding amortization period as paid
+            # Mark the corresponding amortization period as paid
             cursor.execute("""
-                UPDATE amortization_schedule
-                SET status = 'paid', paid_at = %s
-                WHERE loan_id = %s AND status = 'pending'
-                ORDER BY period_no ASC LIMIT 1
+            UPDATE amortization_schedule
+            SET is_paid = 1, paid_at = %s
+            WHERE loan_id = %s AND is_paid = 0
+            ORDER BY period_no ASC LIMIT 1
             """, (now, payment['loan_id']))
 
-            # Update next due date (move to next period)
+# Update next due date (move to next period)
             cursor.execute("""
-                SELECT due_date FROM amortization_schedule
-                WHERE loan_id = %s AND status = 'pending'
-                ORDER BY period_no ASC LIMIT 1
+            SELECT due_date FROM amortization_schedule
+            WHERE loan_id = %s AND is_paid = 0
+            ORDER BY period_no ASC LIMIT 1
             """, (payment['loan_id'],))
             next_row = cursor.fetchone()
             next_due = next_row['due_date'] if next_row else None
@@ -842,7 +843,7 @@ def verify_payment(payment_id):
                         paid_loans = paid_loans + 1,
                         total_paid = total_paid + %s
                     WHERE user_id = %s
-                """, (float(payment['amount']), payment['borrower_id']))
+                """, (float(payment['amount_paid']), payment['borrower_id']))
 
             conn.commit()
             log_activity('verify_payment', f'Payment {payment_id} approved for Loan {payment["loan_no"]}')
@@ -855,8 +856,7 @@ def verify_payment(payment_id):
                 <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;
                             background:#0f172a;color:#e2e8f0;padding:40px;border-radius:12px;">
                   <h2 style="color:#22c55e;">Payment Confirmed</h2>
-                  <p>Hello <strong>{payment['borrower_name']}</strong>,</p>
-                  <p>Your payment of <strong>₱{float(payment['amount']):,.2f}</strong>
+                  <p>Hello <strong>{payment['borrower_name']}</strong>,<p>Your payment of <strong>₱{float(payment['amount_paid']):,.2f}</strong>
                      for Loan <strong>{payment['loan_no']}</strong> has been verified.</p>
                   <p>Remaining Balance: <strong>₱{new_balance:,.2f}</strong></p>
                   <p style="color:#94a3b8;font-size:12px;">Reference: {payment.get('reference_no','N/A')}</p>
@@ -1374,8 +1374,8 @@ def report_paid_loans():
         query = """
             SELECT l.*, lt.name AS type_name, lp.plan_name,
                    u.full_name AS borrower_name, u.contact_number AS borrower_contact,
-                   COALESCE(SUM(p.amount), 0) AS total_paid_amount,
-                   COALESCE(SUM(p.amount) - l.principal_amount, 0) AS interest_earned
+                   COALESCE(SUM(p.amount_paid), 0) AS total_paid_amount,
+COALESCE(SUM(p.amount_paid) - l.principal_amount, 0) AS interest_earned
             FROM loans l
             JOIN loan_types lt ON l.loan_type_id = lt.id
             JOIN loan_plans lp ON l.loan_plan_id = lp.id

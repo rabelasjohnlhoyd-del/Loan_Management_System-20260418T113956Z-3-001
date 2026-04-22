@@ -176,7 +176,7 @@
                   <div class="td-sub">{{ p.borrower_email }}</div>
                 </td>
                 <td><span class="td-name">{{ p.loan_no }}</span></td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(p.amount) }}</strong></td>
+                <td><strong>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</strong></td>
                 <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
                 <td>{{ p.payment_method | replace('_',' ') | title if p.payment_method else '—' }}</td>
                 <td>
