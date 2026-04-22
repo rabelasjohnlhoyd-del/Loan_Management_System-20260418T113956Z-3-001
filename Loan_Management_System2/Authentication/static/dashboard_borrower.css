@@ -213,16 +213,12 @@ button {
 }
 
 .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
-  transition: background 0.15s, color 0.15s;
-  cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--r-sm);
+  color: rgba(255,255,255,.68); font-size: 13px; font-weight: 500;
+  text-decoration: none; cursor: pointer;
+  background: none; border: none; width: 100%; text-align: left;
+  transition: background .15s, color .15s;
 }
 
 .nav-item:hover {
