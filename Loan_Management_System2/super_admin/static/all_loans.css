@@ -47,7 +47,7 @@ html, body {
 
 /* ── Sidebar ── */
 .sidebar {
-  width: var(--sidebar-w); min-height: 100vh;
+  width: 250px; min-height: 100vh;
   background: linear-gradient(175deg, var(--primary-dark) 0%, var(--primary-darker) 100%);
   display: flex; flex-direction: column;
   position: fixed; top: 0; left: 0; z-index: 100; overflow-y: auto; overflow-x: hidden;

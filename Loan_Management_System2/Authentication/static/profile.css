@@ -77,7 +77,7 @@ button {
    SIDEBAR
    ================================================================ */
 .sidebar {
-  width: var(--sidebar-w);
+  width: 250px;
   min-height: 100vh;
   background: linear-gradient(175deg, var(--mint-dark) 0%, var(--mint-darker) 100%);
   display: flex;
