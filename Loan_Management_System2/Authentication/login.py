@@ -1025,7 +1025,16 @@ def payment_history():
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
         payments = []
-    return render_template('make_payment.html', payments=payments, view='history')
+
+    return render_template(
+        'make_payment.html',
+        payments=payments,
+        view='history',
+        loan=None,           # ← add these
+        schedules=[],        # ← add these
+        active_loans=[],     # ← add these
+        today=datetime.date.today()
+    )
 
 
 # ================================================================

@@ -14,6 +14,8 @@
 
   <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
   <aside class="sidebar" id="sidebar">
+
+    <!-- Brand -->
     <div class="sidebar-header">
       <div class="sidebar-brand">
         <div class="s-logo"></div>
@@ -24,59 +26,62 @@
       </div>
     </div>
 
-    <div class="sidebar-user">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+    <!-- USER BOX — dropdown trigger (same as dashboard_admin) -->
+    <div class="sidebar-user" id="userDropdownToggle">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
       <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else '' }}</div>
+        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
       </div>
+      <span class="s-chevron"></span>
     </div>
 
+    <!-- USER DROPDOWN (same as dashboard_admin) -->
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('auth.profile') }}">
+        <span class="dd-icon dd-icon--profile"></span>My Profile
+      </a>
+      {% if session.role == 'super_admin' %}
+      <a href="{{ url_for('super_admin.manage_users') }}">
+        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+      </a>
+      {% endif %}
+      <a href="{{ url_for('super_admin.reports_page') }}">
+        <span class="dd-icon dd-icon--reports"></span>Reports
+      </a>
+      <a href="{{ url_for('super_admin.activity_logs') }}">
+        <span class="dd-icon dd-icon--activity"></span>Activity Logs
+      </a>
+    </div>
+
+    <!-- MAIN NAV — no section labels, same as dashboard_admin -->
     <nav class="sidebar-nav">
-      <div class="nav-section-label">Overview</div>
       <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-
-      <div class="nav-section-label nav-section--spaced">Loan Management</div>
       <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
         <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
       </a>
       <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
         <span class="nav-icon nav-icon--clock"></span>Applications
+        {% if stats is defined and stats.get('pending_applications', 0) > 0 %}
+        <span class="nav-badge">{{ stats.pending_applications }}</span>
+        {% endif %}
       </a>
       <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
         <span class="nav-icon nav-icon--applications"></span>All Loans
       </a>
-
-      <div class="nav-section-label nav-section--spaced">Borrowers</div>
       <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
         <span class="nav-icon nav-icon--borrowers"></span>Borrowers
       </a>
-
-      <div class="nav-section-label nav-section--spaced">Payments</div>
       <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item active">
         <span class="nav-icon nav-icon--loans"></span>Payment Verification
         {% if counts is defined and counts.get('pending', 0) > 0 %}
         <span class="nav-badge">{{ counts.get('pending', 0) }}</span>
         {% endif %}
       </a>
-
-      <div class="nav-section-label nav-section--spaced">Reports</div>
-      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item">
-        <span class="nav-icon nav-icon--reports"></span>Reports
-      </a>
-
-      {% if session.role == 'super_admin' %}
-      <div class="nav-section-label nav-section--spaced">Admin</div>
-      <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Manage Users
-      </a>
-      {% endif %}
-
-      <div class="nav-section-label nav-section--spaced">Account</div>
-      <a href="{{ url_for('auth.profile') }}" class="nav-item">
-        <span class="nav-icon nav-icon--profile"></span>My Profile
+      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
       </a>
     </nav>
 
@@ -87,6 +92,7 @@
         </button>
       </form>
     </div>
+
   </aside>
   <!-- /SIDEBAR -->
 
@@ -150,7 +156,7 @@
       <div class="card">
         <div class="card-header">
           <h3>Payments</h3>
-          <span style="font-size:12px; color:var(--gray-400);">{{ payments|length }} result(s)</span>
+          <span style="font-size:12px; color:var(--text-muted);">{{ payments|length }} result(s)</span>
         </div>
         <div class="card-body" style="padding:0;">
           {% if payments %}
@@ -169,47 +175,45 @@
             </thead>
             <tbody>
               {% for p in payments %}
-              <tr>
-                <td><span class="td-name">{{ p.reference_no or '—' }}</span></td>
-                <td>
-                  <div class="td-name">{{ p.borrower_name }}</div>
-                  <div class="td-sub">{{ p.borrower_email }}</div>
-                </td>
-                <td><span class="td-name">{{ p.loan_no }}</span></td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</strong></td>
-                <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
-                <td>{{ p.payment_method | replace('_',' ') | title if p.payment_method else '—' }}</td>
-                <td>
-                  <span class="pay-status {{ p.status }}">
-                    {{ p.status | title }}
-                  </span>
-                </td>
-                <td>
-                  <div class="action-btns">
-                    {% if p.proof_image %}
-                    <button class="btn btn-outline btn-sm"
-                            onclick="viewProof('{{ p.proof_image }}', '{{ p.borrower_name }}', '{{ p.loan_no }}', {{ p.amount }}, '{{ p.reference_no or '' }}')">
-                      View Proof
-                    </button>
-                    {% endif %}
-                    {% if p.status == 'pending' and session.role in ['admin','super_admin','loan_officer'] %}
-                    <button class="btn btn-success btn-sm"
-                            onclick="openVerifyModal({{ p.id }}, '{{ p.reference_no or p.id }}', {{ p.amount }}, '{{ p.borrower_name }}', '{{ p.loan_no }}')">
-                      Approve
-                    </button>
-                    <button class="btn btn-danger btn-sm"
-                            onclick="openRejectModal({{ p.id }}, '{{ p.reference_no or p.id }}', '{{ p.borrower_name }}')">
-                      Reject
-                    </button>
-                    {% elif p.status == 'approved' %}
-                    <span style="font-size:12px; color:var(--success);">
-                      Verified by {{ p.verified_by_name or 'Admin' }}
-                    </span>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
+<tr>
+  <td><span class="td-name">{{ p.payment_no or '—' }}</span></td>
+  <td>
+    <div class="td-name">{{ p.borrower_name }}</div>
+    <div class="td-sub">{{ p.borrower_email }}</div>
+  </td>
+  <td><span class="td-name">{{ p.loan_no }}</span></td>
+  <td><strong>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</strong></td>
+  <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
+  <td>{{ p.payment_method | replace('_',' ') | title if p.payment_method else '—' }}</td>
+  <td>
+    <span class="pay-status {{ p.status }}">{{ p.status | title }}</span>
+  </td>
+  <td>
+    <div class="action-btns">
+      {% if p.screenshot_path %}
+      <button class="btn btn-outline btn-sm"
+              onclick="viewProof('{{ p.screenshot_path }}', '{{ p.borrower_name }}', '{{ p.loan_no }}', {{ p.amount_paid }}, '{{ p.reference_number or '' }}')">
+        View Proof
+      </button>
+      {% endif %}
+      {% if p.status == 'pending' and session.role in ['admin','super_admin','loan_officer'] %}
+      <button class="btn btn-success btn-sm"
+              onclick="openVerifyModal({{ p.id }}, '{{ p.payment_no or p.id }}', {{ p.amount_paid }}, '{{ p.borrower_name }}', '{{ p.loan_no }}')">
+        Approve
+      </button>
+      <button class="btn btn-danger btn-sm"
+              onclick="openRejectModal({{ p.id }}, '{{ p.payment_no or p.id }}', '{{ p.borrower_name }}')">
+        Reject
+      </button>
+      {% elif p.status == 'approved' %}
+      <span style="font-size:12px; color:var(--success);">
+        Verified by {{ p.verified_by_name or 'Admin' }}
+      </span>
+      {% endif %}
+    </div>
+  </td>
+</tr>
+{% endfor %}
             </tbody>
           </table>
           {% else %}
@@ -231,9 +235,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     PROOF OF PAYMENT MODAL
-══════════════════════════════════════ -->
+<!-- PROOF MODAL -->
 <div class="modal-overlay" id="proofModal">
   <div class="modal-box modal-box--wide">
     <div class="modal-header-row">
@@ -260,24 +262,19 @@
     </div>
     <div class="proof-img-wrap">
       <img id="proofImg" src="" alt="Payment Proof" onclick="openLightbox(this.src)"/>
-      <p style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;">
-        Click image to enlarge
-      </p>
+      <p style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;">Click image to enlarge</p>
     </div>
-    <div class="modal-actions modal-actions--spaced">
+    <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModals()">Close</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     APPROVE MODAL
-══════════════════════════════════════ -->
+<!-- APPROVE MODAL -->
 <div class="modal-overlay" id="approveModal">
   <div class="modal-box">
     <h3>Approve Payment</h3>
     <p id="approveDesc"></p>
-
     <div class="modal-amount-row">
       <div class="modal-amount-item">
         <div class="modal-amount-label">Amount</div>
@@ -288,13 +285,10 @@
         <div class="modal-amount-value" id="approveLoanNo"></div>
       </div>
     </div>
-
     <div class="modal-field">
       <label class="modal-label">Verification Notes <span>(optional)</span></label>
-      <textarea class="modal-textarea" id="approveNotes"
-                placeholder="Add a note about this verification..."></textarea>
+      <textarea class="modal-textarea" id="approveNotes" placeholder="Add a note about this verification..."></textarea>
     </div>
-
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModals()">Cancel</button>
       <button class="btn-approve" onclick="submitApprove()">Confirm Approval</button>
@@ -302,20 +296,15 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     REJECT MODAL
-══════════════════════════════════════ -->
+<!-- REJECT MODAL -->
 <div class="modal-overlay" id="rejectModal">
   <div class="modal-box">
     <h3>Reject Payment</h3>
     <p id="rejectDesc"></p>
-
     <div class="modal-field">
       <label class="modal-label">Reason for rejection <span>(optional)</span></label>
-      <textarea class="modal-textarea" id="rejectNotes"
-                placeholder="e.g. Screenshot unclear, amount mismatch..."></textarea>
+      <textarea class="modal-textarea" id="rejectNotes" placeholder="e.g. Screenshot unclear, amount mismatch..."></textarea>
     </div>
-
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModals()">Cancel</button>
       <button class="btn-reject-confirm" onclick="submitReject()">Confirm Rejection</button>
@@ -323,9 +312,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     LIGHTBOX
-══════════════════════════════════════ -->
+<!-- LIGHTBOX -->
 <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
   <button class="lightbox-close" onclick="closeLightbox()">&#10005;</button>
   <img id="lightboxImg" src="" alt="Preview"/>
@@ -342,77 +329,29 @@
 </form>
 
 <script>
-  const BASE_VERIFY_URL = "{{ url_for('super_admin.verify_payment', payment_id=0) }}".replace('/0/', '/');
+  window.BASE_VERIFY_URL = "{{ url_for('super_admin.verify_payment', payment_id=0) }}".replace('0/verify', '');
+  window.PROOF_BASE_URL  = "{{ url_for('auth.static', filename='uploads/proofs/') }}";
+</script>
+<script src="{{ url_for('super_admin.static', filename='admin_payments.js') }}"></script>
 
-  let currentPaymentId = null;
-
-  function viewProof(imgPath, borrower, loanNo, amount, ref) {
-    document.getElementById('proofBorrower').textContent = borrower;
-    document.getElementById('proofLoanNo').textContent = loanNo;
-    document.getElementById('proofAmount').textContent = '₱' + parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
-    document.getElementById('proofRef').textContent = ref || '—';
-    document.getElementById('proofImg').src = "{{ url_for('auth.static', filename='uploads/') }}" + imgPath;
-    document.getElementById('proofModal').classList.add('active');
-  }
-
-  function openVerifyModal(id, ref, amount, borrower, loanNo) {
-    currentPaymentId = id;
-    document.getElementById('approveDesc').textContent =
-      'Approve payment from ' + borrower + ' for Loan ' + loanNo + '?';
-    document.getElementById('approveAmount').textContent =
-      '₱' + parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits:2});
-    document.getElementById('approveLoanNo').textContent = loanNo;
-    document.getElementById('approveNotes').value = '';
-    document.getElementById('approveModal').classList.add('active');
-  }
-
-  function openRejectModal(id, ref, borrower) {
-    currentPaymentId = id;
-    document.getElementById('rejectDesc').textContent =
-      'Reject payment submission from ' + borrower + '?';
-    document.getElementById('rejectNotes').value = '';
-    document.getElementById('rejectModal').classList.add('active');
-  }
-
-  function submitApprove() {
-    const notes = document.getElementById('approveNotes').value;
-    document.getElementById('approveNotesHidden').value = notes;
-    const form = document.getElementById('approveForm');
-    form.action = BASE_VERIFY_URL + currentPaymentId + '/verify';
-    form.submit();
-  }
-
-  function submitReject() {
-    const notes = document.getElementById('rejectNotes').value;
-    document.getElementById('rejectNotesHidden').value = notes;
-    const form = document.getElementById('rejectForm');
-    form.action = BASE_VERIFY_URL + currentPaymentId + '/verify';
-    form.submit();
-  }
-
-  function closeModals() {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-  }
-
-  function openLightbox(src) {
-    document.getElementById('lightboxImg').src = src;
-    document.getElementById('lightbox').classList.add('active');
-  }
-
-  function closeLightbox() {
-    document.getElementById('lightbox').classList.remove('active');
-  }
-
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
-      if (e.target === this) closeModals();
+<!-- Dropdown toggle (same JS as dashboard_admin) -->
+<script>
+  (function () {
+    var toggle   = document.getElementById('userDropdownToggle');
+    var dropdown = document.getElementById('userDropdown');
+    if (!toggle || !dropdown) return;
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+      toggle.classList.toggle('open');
     });
-  });
-
-  // Auto-dismiss flash messages
-  setTimeout(() => {
-    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
-  }, 5000);
+    document.addEventListener('click', function (e) {
+      if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+        toggle.classList.remove('open');
+      }
+    });
+  })();
 </script>
 </body>
 </html>

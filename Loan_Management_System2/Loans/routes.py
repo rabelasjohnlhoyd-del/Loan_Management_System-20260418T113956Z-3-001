@@ -40,7 +40,7 @@ def login_required(f):
     def decorated(*args, **kwargs):
         if not is_logged_in():
             flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('loans_bp.login'))
+            return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     return decorated
 

@@ -6,7 +6,7 @@
   <title>Make a Payment — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+
   <link rel="stylesheet" href="{{ url_for('auth.static', filename='dashboard_payment.css') }}" />
 </head>
 <body>
@@ -37,16 +37,15 @@
       <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-      <a href="#" class="nav-item active">
-        <span class="nav-icon nav-icon--payment"></span>Make a Payment
-      </a>
-      <a href="{{ url_for('auth.payment_history') }}" class="nav-item">
-        <span class="nav-icon nav-icon--history"></span>Payment History
-      </a>
-      <a href="{{ url_for('auth.my_documents') }}" class="nav-item">
-        <span class="nav-icon nav-icon--docs"></span>Documents
-      </a>
-    </nav>
+      <a href="{{ url_for('auth.select_loan_to_pay') }}" class="nav-item active">
+    <span class="nav-icon nav-icon--payment"></span>Make a Payment
+</a>
+<a href="{{ url_for('auth.payment_history') }}" class="nav-item">
+    <span class="nav-icon nav-icon--history"></span>Payment History
+</a>
+<a href="{{ url_for('auth.my_documents') }}" class="nav-item">
+    <span class="nav-icon nav-icon--docs"></span>Documents
+</a>
 
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
@@ -140,7 +139,7 @@
 
       <!-- PAYMENT FORM (hidden until loan selected) -->
       <div id="sectionPaymentForm" style="display:none;">
-        <form method="POST" action="{{ url_for('auth.make_payment', loan_id=loan.id) }}" enctype="multipart/form-data" id="paymentForm">
+        <form method="POST" action="{{ url_for('auth.make_payment', loan_id=active_loans[0].id) if active_loans else '#' }}" enctype="multipart/form-data" id="paymentForm">
           <input type="hidden" name="loan_id" id="hiddenLoanId" />
           <input type="hidden" name="payment_method" id="hiddenMethod" value="gcash" />
 
@@ -351,6 +350,9 @@
     el.classList.add('selected');
 
     selectedLoanData = { id, ref, amount, type, due };
+
+    // ✅ ADD THIS LINE
+    document.getElementById('paymentForm').action = `/auth/payments/make/${id}`;
 
     document.getElementById('hiddenLoanId').value = id;
     document.getElementById('paymentAmount').value = amount > 0 ? amount.toFixed(2) : '';

@@ -112,7 +112,7 @@ button {
 }
 
 .sidebar-brand {
-  display: flex;
+  display: flex;    
   align-items: center;
   gap: 12px;
 }
