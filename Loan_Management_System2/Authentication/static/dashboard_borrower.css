@@ -139,20 +139,13 @@ button {
   line-height: 1.2;
 }
 
-.sidebar-brand span {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
-}
+.sidebar-brand span { font-size: 10px; color: rgba(255,255,255,0.6);}
 
 /* User */
 .sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  margin: 0 10px 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; margin: 0px 10px 8px;
+  background: rgba(255,255,255,.08); border-radius: var(--r-md);
 }
 
 .s-avatar {

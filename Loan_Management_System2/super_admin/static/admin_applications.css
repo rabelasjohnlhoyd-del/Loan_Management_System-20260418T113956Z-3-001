@@ -86,15 +86,12 @@ button { font-family: inherit; }
   font-family: var(--font-h); font-size: 15px; font-weight: 700;
   color: var(--white); line-height: 1.2;
 }
-.sidebar-brand > div > span {
-  font-size: 10px; color: rgba(255,255,255,.45);
-  text-transform: uppercase; letter-spacing: .5px;
-}
+.sidebar-brand span { font-size: 10px; color: rgba(255,255,255,0.6);}
 
 /* User block */
 .sidebar-user {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px; margin: 4px 10px 10px;
+  padding: 12px 14px; margin: 0px 10px 8px;
   background: rgba(255,255,255,.08); border-radius: var(--r-md);
 }
 .s-avatar {
