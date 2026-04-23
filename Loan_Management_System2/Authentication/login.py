@@ -833,25 +833,41 @@ def select_loan_to_pay():
     try:
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
+
+        # Kunin LAHAT ng active loans (hindi lang isa)
         cursor.execute("""
-            SELECT id FROM loans
-            WHERE borrower_id = %s
-              AND status IN ('active', 'disbursed')
-            ORDER BY created_at DESC
-            LIMIT 1
+            SELECT l.*, lt.name AS type_name,
+                   (SELECT MIN(a.due_date)
+                    FROM amortization_schedule a
+                    WHERE a.loan_id = l.id AND a.is_paid = 0) AS next_due,
+                   (SELECT SUM(a.total_due)
+                    FROM amortization_schedule a
+                    WHERE a.loan_id = l.id AND a.is_paid = 0
+                      AND a.due_date = (
+                          SELECT MIN(a2.due_date)
+                          FROM amortization_schedule a2
+                          WHERE a2.loan_id = l.id AND a2.is_paid = 0
+                      )) AS next_amount
+            FROM loans l
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            WHERE l.borrower_id = %s
+              AND l.status IN ('active', 'disbursed')
+            ORDER BY l.created_at DESC
         """, (session['user_id'],))
-        loan = cursor.fetchone()
+
+        active_loans = cursor.fetchall()
+
         cursor.close()
         conn.close()
+
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('auth.borrower_dashboard'))
 
-    if not loan:
-        flash('You have no active loans to pay.', 'warning')
-        return redirect(url_for('auth.borrower_dashboard'))
-
-    return redirect(url_for('auth.make_payment', loan_id=loan['id']))
+    # ❗ FIX: HUWAG na mag redirect kahit walang loan
+    return render_template('make_payment.html',
+                           active_loans=active_loans,
+                           today=datetime.date.today())
 
 
 # ================================================================
