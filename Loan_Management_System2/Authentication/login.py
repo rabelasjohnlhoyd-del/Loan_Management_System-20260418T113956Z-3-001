@@ -943,6 +943,7 @@ def make_payment(loan_id):
                                    active_loans=active_loans,
                                    today=datetime.date.today())
 
+
         # Handle screenshot upload
         screenshot_path = None
         if proof_file and proof_file.filename:

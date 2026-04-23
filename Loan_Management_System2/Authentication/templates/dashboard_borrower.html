@@ -154,20 +154,19 @@
     </div>
 
     <nav class="sidebar-nav">
-  <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item active">
-    <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-  </a>
-  <a href="{{ url_for('auth.select_loan_to_pay') }}" class="nav-item">
-    <span class="nav-icon nav-icon--payment"></span>Make a Payment
-  </a>
-  <a href="{{ url_for('auth.payment_history') }}" class="nav-item">
-    <span class="nav-icon nav-icon--history"></span>Payment History
-  </a>
-  <a href="{{ url_for('auth.my_documents') }}" class="nav-item">
-    <span class="nav-icon nav-icon--docs"></span>Documents
-  </a>
-</nav>
-
+      <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <a href="{{ url_for('auth.select_loan_to_pay') }}" class="nav-item">
+        <span class="nav-icon nav-icon--payment"></span>Make a Payment
+      </a>
+      <a href="{{ url_for('auth.payment_history') }}" class="nav-item">
+        <span class="nav-icon nav-icon--history"></span>Payment History
+      </a>
+      <a href="{{ url_for('auth.my_documents') }}" class="nav-item">
+        <span class="nav-icon nav-icon--docs"></span>Documents
+      </a>
+    </nav>
 
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
@@ -244,7 +243,7 @@
         </div>
       </div>
 
-      <!-- ── STATS GRID — now dynamic ── -->
+      <!-- ── STATS GRID ── -->
       <div class="stats-grid">
         <div class="stat-card" data-animate>
           <div class="stat-info">
@@ -291,7 +290,7 @@
 
       <div class="dash-grid">
 
-        <!-- ── RECENT LOANS CARD — now dynamic ── -->
+        <!-- ── RECENT LOANS CARD ── -->
         <div class="card">
           <div class="card-header">
             <div>
@@ -345,7 +344,7 @@
           {% endif %}
         </div>
 
-        <!-- QUICK ACTIONS (unchanged) -->
+        <!-- QUICK ACTIONS -->
         <div class="card">
           <div class="card-header">
             <div>
@@ -363,12 +362,12 @@
                 </div>
               </a>
               <a href="{{ url_for('auth.select_loan_to_pay') }}" class="quick-btn">
-  <div class="qb-icon qb-icon--green"></div>
-  <div class="qb-text">
-    <h4>Make Payment</h4>
-    <p>Pay your monthly due</p>
-  </div>
-</a>
+                <div class="qb-icon qb-icon--green"></div>
+                <div class="qb-text">
+                  <h4>Make Payment</h4>
+                  <p>Pay your monthly due</p>
+                </div>
+              </a>
               <a href="{{ url_for('loans.my_applications') }}" class="quick-btn">
                 <div class="qb-icon qb-icon--yellow"></div>
                 <div class="qb-text">
