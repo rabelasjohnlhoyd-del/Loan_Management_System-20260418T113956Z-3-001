@@ -947,7 +947,7 @@ def make_payment(loan_id):
         screenshot_path = None
         if proof_file and proof_file.filename:
             from werkzeug.utils import secure_filename
-            PROOF_FOLDER = os.path.join(os.path.dirname(_file_), 'static', 'uploads', 'proofs')
+            PROOF_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'proofs')
             os.makedirs(PROOF_FOLDER, exist_ok=True)
             fname = secure_filename(
                 f"proof_{session['user_id']}_{datetime.datetime.now().timestamp()}_{proof_file.filename}"
@@ -1066,7 +1066,7 @@ def upload_document():
     file = request.files.get('document')
 
     UPLOAD_FOLDER_DOCS = os.path.join(
-        os.path.dirname(_file_), 'static', 'uploads', 'documents'
+        os.path.dirname(__file__), 'static', 'uploads', 'documents'
     )
 
     if not file or not allowed_file(file.filename):
