@@ -772,7 +772,10 @@ def all_payments():
 def verify_payment(payment_id):
     action = request.form.get('action')
     notes  = request.form.get('notes', '').strip()
-
+    
+    # ADD THIS LINE ↓
+    print(f"[VERIFY] payment_id={payment_id} action='{action}' form={dict(request.form)}")
+    
     if action not in ('approved', 'rejected'):
         flash('Invalid action.', 'danger')
         return redirect(url_for('super_admin.all_payments'))
@@ -799,11 +802,13 @@ def verify_payment(payment_id):
 
         now = datetime.datetime.now()
 
+        # I-update agad yung status
         cursor.execute("""
-            UPDATE payments
-            SET status = %s, verified_by = %s, verified_at = %s, notes = %s
-            WHERE id = %s
+        UPDATE payments
+        SET status = %s, verified_by = %s, verified_at = %s, notes = %s
+        WHERE id = %s
         """, (action, session['user_id'], now, notes, payment_id))
+        conn.commit()  # ← COMMIT AGAD DITO
 
         if action == 'approved':
             new_balance = max(0, float(payment['outstanding_balance']) - float(payment['amount_paid']))

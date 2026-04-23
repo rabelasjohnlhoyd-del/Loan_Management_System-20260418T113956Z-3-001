@@ -1012,13 +1012,13 @@ def payment_history():
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT p.*, l.reference_no AS loan_ref, lt.name AS type_name
-            FROM payments p
-            JOIN loans l  ON p.loan_id = l.id
-            JOIN loan_types lt ON l.loan_type_id = lt.id
-            WHERE p.borrower_id = %s
-            ORDER BY p.created_at DESC
-        """, (session['user_id'],))
+    SELECT p.*, l.loan_no AS loan_ref, lt.name AS type_name
+    FROM payments p
+    JOIN loans l  ON p.loan_id = l.id
+    JOIN loan_types lt ON l.loan_type_id = lt.id
+    WHERE p.borrower_id = %s
+    ORDER BY p.created_at DESC
+""", (session['user_id'],))
         payments = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -1026,15 +1026,7 @@ def payment_history():
         flash(f'Error: {str(e)}', 'danger')
         payments = []
 
-    return render_template(
-        'make_payment.html',
-        payments=payments,
-        view='history',
-        loan=None,           # ← add these
-        schedules=[],        # ← add these
-        active_loans=[],     # ← add these
-        today=datetime.date.today()
-    )
+    return render_template('payment_history.html', payments=payments)
 
 
 # ================================================================
