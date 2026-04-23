@@ -26,7 +26,7 @@
     </div>
 
     <div class="sidebar-user">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+      <div class="s-avatar">J</div>
       <div class="s-user-info">
         <h4>{{ session.user_name }}</h4>
         <div class="s-role-badge">Borrower</div>
@@ -38,15 +38,14 @@
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
       <a href="{{ url_for('auth.select_loan_to_pay') }}" class="nav-item active">
-        <span class="nav-icon nav-icon--payment"></span>Make a Payment
-      </a>
-      <a href="{{ url_for('auth.payment_history') }}" class="nav-item">
-        <span class="nav-icon nav-icon--history"></span>Payment History
-      </a>
-      <a href="{{ url_for('auth.my_documents') }}" class="nav-item">
-        <span class="nav-icon nav-icon--docs"></span>Documents
-      </a>
-    </nav>
+    <span class="nav-icon nav-icon--payment"></span>Make a Payment
+</a>
+<a href="{{ url_for('auth.payment_history') }}" class="nav-item">
+    <span class="nav-icon nav-icon--history"></span>Payment History
+</a>
+<a href="{{ url_for('auth.my_documents') }}" class="nav-item">
+    <span class="nav-icon nav-icon--docs"></span>Documents
+</a>
 
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
@@ -56,6 +55,7 @@
       </form>
     </div>
   </aside>
+  
 
   <!-- MAIN -->
   <div class="main-content">
@@ -64,9 +64,7 @@
         <h1>Make a Payment</h1>
         <p>Submit your payment proof for verification</p>
       </div>
-      <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
-        {{ session.user_name[0]|upper if session.user_name else 'U' }}
-      </a>
+      <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">J</a>
     </header>
 
     <main class="page-body">
@@ -142,12 +140,7 @@
 
       <!-- PAYMENT FORM (hidden until loan selected) -->
       <div id="sectionPaymentForm" style="display:none;">
-        {#
-          FIX: action starts with a placeholder loan_id (0).
-          The JS selectLoan() will overwrite it with the real id via url_for-based base URL.
-          This avoids hardcoding the /auth/ prefix which can differ per environment.
-        #}
-        <form method="POST" action="{{ url_for('auth.make_payment', loan_id=0) }}" enctype="multipart/form-data" id="paymentForm">
+        <form method="POST" action="{{ url_for('auth.make_payment', loan_id=active_loans[0].id) if active_loans else '#' }}" enctype="multipart/form-data" id="paymentForm">
           <input type="hidden" name="loan_id" id="hiddenLoanId" />
           <input type="hidden" name="payment_method" id="hiddenMethod" value="gcash" />
 
@@ -346,15 +339,11 @@
   let selectedLoanData = null;
   let currentMethod = 'gcash';
 
-  // FIX: Derive the base URL from Jinja url_for instead of hardcoding '/auth/payments/make/'.
-  // This ensures the correct prefix is used regardless of how the blueprint is registered.
-  const MAKE_PAYMENT_BASE_URL = "{{ url_for('auth.make_payment', loan_id=0) }}".replace(/\/0$/, '/');
-
   const methodDetails = {
-    gcash: { name: 'GCash',             account: 'Hiraya Lending Corp.', num: '+63 912 345 6789',                  app: 'GCash'   },
-    maya:  { name: 'Maya',              account: 'Hiraya Lending Corp.', num: '09187654321',                       app: 'Maya'    },
+    gcash: { name: 'GCash',         account: 'Hiraya Lending Corp.', num: '+63 912 345 6789',                  app: 'GCash'   },
+    maya:  { name: 'Maya',          account: 'Hiraya Lending Corp.', num: '09187654321',                       app: 'Maya'    },
     bank:  { name: 'BDO Bank Transfer', account: 'Hiraya Lending Corp.', num: 'Account No: 0012-3456-7890 | BDO', app: 'banking' },
-    cash:  { name: 'Cash / Manual',     account: '',                     num: '',                                   app: ''        },
+    cash:  { name: 'Cash / Manual', account: '',                     num: '',                                   app: ''        },
   };
 
   function selectLoan(el, id, ref, amount, type, due) {
@@ -363,8 +352,8 @@
 
     selectedLoanData = { id, ref, amount, type, due };
 
-    // FIX: Use the Jinja-derived base URL instead of a hardcoded path prefix.
-    document.getElementById('paymentForm').action = MAKE_PAYMENT_BASE_URL + id;
+    // ✅ ADD THIS LINE
+    document.getElementById('paymentForm').action = `/auth/payments/make/${id}`;
 
     document.getElementById('hiddenLoanId').value = id;
     document.getElementById('paymentAmount').value = amount > 0 ? amount.toFixed(2) : '';
