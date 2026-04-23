@@ -7,323 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
-  <style>
-    /* ── CSS VARIABLES (same as Hiraya) ── */
-    :root {
-      --mint:       #3ecfbe;
-      --mint-dark:  #2ab3a3;
-      --mint-light: #e6faf8;
-      --sidebar-bg: #0f2027;
-      --sidebar-w:  240px;
-      --gray-50:    #f8fafc;
-      --gray-100:   #f1f5f9;
-      --gray-200:   #e2e8f0;
-      --gray-400:   #94a3b8;
-      --gray-600:   #475569;
-      --gray-800:   #1e293b;
-      --gray-900:   #0f172a;
-      --white:      #ffffff;
-      --danger:     #ef4444;
-      --success:    #22c55e;
-      --warning:    #f59e0b;
-      --blue:       #3b82f6;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', sans-serif; background: var(--gray-50); color: var(--gray-800); display: flex; min-height: 100vh; }
-
-    /* ── SIDEBAR ── */
-    .sidebar {
-      width: var(--sidebar-w);
-      background: linear-gradient(180deg, #0f2027 0%, #162a34 100%);
-      display: flex; flex-direction: column;
-      position: fixed; top: 0; left: 0; height: 100vh;
-      z-index: 100; overflow-y: auto;
-    }
-    .sidebar-header { padding: 22px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); }
-    .sidebar-brand { display: flex; align-items: center; gap: 12px; }
-    .s-logo {
-      width: 36px; height: 36px; border-radius: 10px;
-      background: linear-gradient(135deg, var(--mint), var(--mint-dark));
-      flex-shrink: 0;
-    }
-    .sidebar-brand h2 { font-family: 'Sora', sans-serif; font-size: 18px; color: #fff; }
-    .sidebar-brand span { font-size: 10px; color: rgba(255,255,255,0.45); display: block; margin-top: 1px; }
-
-    .sidebar-user {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 14px; margin: 10px 10px 4px;
-      border-radius: 10px; cursor: pointer; position: relative; user-select: none;
-      transition: background 0.15s;
-    }
-    .sidebar-user:hover { background: rgba(255,255,255,0.1); }
-    .s-avatar {
-      width: 34px; height: 34px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--mint), #1a8f85);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #fff;
-      flex-shrink: 0;
-    }
-    .s-user-info h4 { font-size: 13px; font-weight: 600; color: #fff; }
-    .s-role-badge {
-      display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.5px;
-      text-transform: uppercase; padding: 2px 7px; border-radius: 20px;
-      background: rgba(62,207,190,0.18); color: var(--mint); margin-top: 2px;
-    }
-
-    .sidebar-nav { padding: 8px 10px; flex: 1; }
-    .nav-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 500;
-      color: rgba(255,255,255,0.65); text-decoration: none; margin-bottom: 2px;
-      transition: background 0.15s, color 0.15s; background: none; border: none; cursor: pointer; width: 100%;
-    }
-    .nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
-    .nav-item.active { background: rgba(62,207,190,0.15); color: var(--mint); }
-    .nav-icon {
-      width: 18px; height: 18px; flex-shrink: 0; background: currentColor;
-      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-    }
-    .nav-icon--dashboard { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='7' height='7' rx='1'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='7' height='7' rx='1'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1'/%3E%3C/svg%3E"); }
-    .nav-icon--payment { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect x='2' y='5' width='20' height='14' rx='2'/%3E%3Cpath stroke-linecap='round' d='M2 10h20'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect x='2' y='5' width='20' height='14' rx='2'/%3E%3Cpath stroke-linecap='round' d='M2 10h20'/%3E%3C/svg%3E"); }
-    .nav-icon--history { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'/%3E%3C/svg%3E"); }
-    .nav-icon--docs { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/%3E%3C/svg%3E"); }
-    .nav-icon--logout { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1'/%3E%3C/svg%3E"); }
-
-    .sidebar-footer { padding: 10px; border-top: 1px solid rgba(255,255,255,0.07); }
-
-    /* ── MAIN ── */
-    .app-wrap { display: flex; width: 100%; }
-    .main-content { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
-
-    /* ── TOPBAR ── */
-    .topbar {
-      background: var(--white); border-bottom: 1px solid var(--gray-200);
-      padding: 14px 28px; display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 50;
-    }
-    .topbar h1 { font-family: 'Sora', sans-serif; font-size: 20px; color: var(--gray-900); }
-    .topbar p { font-size: 13px; color: var(--gray-400); margin-top: 2px; }
-    .topbar-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--mint), #1a8f85);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #fff;
-      text-decoration: none;
-    }
-
-    /* ── PAGE BODY ── */
-    .page-body { padding: 28px; flex: 1; }
-
-    /* ── LOAN SELECTOR ── */
-    .loan-select-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 14px; margin-bottom: 28px;
-    }
-    .loan-select-card {
-      background: var(--white); border: 2px solid var(--gray-200);
-      border-radius: 14px; padding: 18px; cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      position: relative; overflow: hidden;
-    }
-    .loan-select-card:hover { border-color: var(--mint); }
-    .loan-select-card.selected {
-      border-color: var(--mint);
-      box-shadow: 0 0 0 3px rgba(62,207,190,0.15);
-    }
-    .loan-select-card.selected::before {
-      content: '✓';
-      position: absolute; top: 12px; right: 14px;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: var(--mint); color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 700;
-    }
-    .loan-card-ref { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--mint-dark); letter-spacing: 0.5px; }
-    .loan-card-type { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: var(--gray-900); margin: 4px 0; }
-    .loan-card-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; }
-    .loan-card-stat { text-align: center; flex: 1; }
-    .loan-card-stat-val { font-size: 14px; font-weight: 700; color: var(--gray-900); }
-    .loan-card-stat-lbl { font-size: 10px; color: var(--gray-400); margin-top: 1px; text-transform: uppercase; letter-spacing: 0.4px; }
-    .loan-card-divider { width: 1px; height: 32px; background: var(--gray-200); }
-    .due-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; margin-top: 10px;
-    }
-    .due-badge.overdue { background: #fef2f2; color: var(--danger); }
-    .due-badge.upcoming { background: #fffbea; color: var(--warning); }
-    .due-badge.ok { background: #f0fdf4; color: var(--success); }
-
-    /* ── PAYMENT FORM CARD ── */
-    .card {
-      background: var(--white); border-radius: 14px;
-      border: 1px solid var(--gray-200); margin-bottom: 20px;
-    }
-    .card-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      padding: 18px 22px; border-bottom: 1px solid var(--gray-200);
-    }
-    .card-header h3 { font-family: 'Sora', sans-serif; font-size: 15px; color: var(--gray-900); }
-    .card-header p { font-size: 12.5px; color: var(--gray-400); margin-top: 2px; }
-    .card-body { padding: 22px; }
-
-    /* ── FORM ── */
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group.full { grid-column: 1 / -1; }
-    label { font-size: 12.5px; font-weight: 600; color: var(--gray-600); }
-    .form-control {
-      padding: 10px 14px; border: 1.5px solid var(--gray-200); border-radius: 8px;
-      font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--gray-900);
-      background: var(--white); transition: border-color 0.15s, box-shadow 0.15s;
-      outline: none; width: 100%;
-    }
-    .form-control:focus { border-color: var(--mint); box-shadow: 0 0 0 3px rgba(62,207,190,0.12); }
-    .form-hint { font-size: 11.5px; color: var(--gray-400); margin-top: 2px; }
-
-    /* ── PAYMENT METHOD TABS ── */
-    .method-tabs { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
-    .method-tab {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 16px; border-radius: 10px; border: 2px solid var(--gray-200);
-      cursor: pointer; font-size: 13px; font-weight: 600; color: var(--gray-600);
-      background: var(--white); transition: all 0.15s;
-    }
-    .method-tab:hover { border-color: var(--mint); color: var(--gray-900); }
-    .method-tab.active { border-color: var(--mint); background: var(--mint-light); color: var(--mint-dark); }
-    .method-icon { font-size: 18px; }
-
-    /* ── QR SECTION ── */
-    .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .qr-card {
-      border: 2px solid var(--gray-200); border-radius: 12px; padding: 14px;
-      text-align: center; cursor: pointer; transition: all 0.15s;
-    }
-    .qr-card:hover { border-color: var(--mint); }
-    .qr-card.active { border-color: var(--mint); background: var(--mint-light); }
-    .qr-card .qr-logo { font-size: 28px; margin-bottom: 6px; }
-    .qr-card .qr-name { font-size: 12px; font-weight: 600; color: var(--gray-700); }
-    .qr-display {
-      background: var(--gray-50); border: 1.5px dashed var(--gray-300);
-      border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 16px;
-    }
-    .qr-display .qr-code {
-      width: 160px; height: 160px; margin: 0 auto 12px;
-      background: var(--white); border: 1px solid var(--gray-200); border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; color: var(--gray-400); position: relative;
-      overflow: hidden;
-    }
-    /* Fake QR pattern */
-    .qr-code svg { width: 140px; height: 140px; }
-    .qr-display p { font-size: 13px; color: var(--gray-600); }
-    .qr-display strong { color: var(--gray-900); }
-    .qr-acct { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
-
-    /* ── UPLOAD ZONE ── */
-    .upload-zone {
-      border: 2px dashed var(--gray-300); border-radius: 12px; padding: 28px;
-      text-align: center; cursor: pointer; transition: all 0.2s;
-      position: relative; background: var(--gray-50);
-    }
-    .upload-zone:hover, .upload-zone.dragover { border-color: var(--mint); background: var(--mint-light); }
-    .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-    .upload-icon { font-size: 32px; margin-bottom: 8px; }
-    .upload-zone p { font-size: 13.5px; color: var(--gray-600); margin-bottom: 4px; }
-    .upload-zone span { font-size: 12px; color: var(--gray-400); }
-    .upload-preview {
-      display: none; align-items: center; gap: 12px;
-      background: var(--white); border: 1.5px solid var(--gray-200);
-      border-radius: 10px; padding: 12px 14px; margin-top: 12px;
-    }
-    .upload-preview.show { display: flex; }
-    .preview-thumb { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; }
-    .preview-info { flex: 1; }
-    .preview-name { font-size: 13px; font-weight: 600; color: var(--gray-900); }
-    .preview-size { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
-    .preview-remove { font-size: 18px; color: var(--gray-400); cursor: pointer; padding: 4px; }
-    .preview-remove:hover { color: var(--danger); }
-
-    /* ── SUMMARY BOX ── */
-    .summary-box {
-      background: linear-gradient(135deg, #f0fdf4 0%, #e6faf8 100%);
-      border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 18px 20px;
-      margin-bottom: 20px;
-    }
-    .summary-box h4 { font-family: 'Sora', sans-serif; font-size: 13px; color: #166534; margin-bottom: 12px; }
-    .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .summary-row:last-child { margin-bottom: 0; padding-top: 10px; border-top: 1px solid #86efac; }
-    .summary-label { font-size: 13px; color: #166534; }
-    .summary-value { font-size: 13px; font-weight: 600; color: var(--gray-900); }
-    .summary-row:last-child .summary-value { font-size: 17px; font-family: 'Sora', sans-serif; color: #166534; }
-
-    /* ── BUTTON ── */
-    .btn-primary {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      background: linear-gradient(135deg, var(--mint), var(--mint-dark));
-      color: #fff; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700;
-      padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s; width: 100%;
-    }
-    .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
-    .btn-primary:active { transform: translateY(0); }
-
-    /* ── STEP INDICATOR ── */
-    .steps { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
-    .step { display: flex; align-items: center; gap: 8px; flex: 1; }
-    .step-num {
-      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 700; font-family: 'Sora', sans-serif;
-    }
-    .step.done .step-num { background: var(--mint); color: #fff; }
-    .step.active .step-num { background: var(--gray-900); color: #fff; }
-    .step.todo .step-num { background: var(--gray-200); color: var(--gray-400); }
-    .step-label { font-size: 12px; font-weight: 600; }
-    .step.done .step-label { color: var(--mint-dark); }
-    .step.active .step-label { color: var(--gray-900); }
-    .step.todo .step-label { color: var(--gray-400); }
-    .step-line { flex: 1; height: 2px; background: var(--gray-200); margin: 0 8px; }
-    .step-line.done { background: var(--mint); }
-
-    /* ── EMPTY / NO LOANS ── */
-    .no-loans {
-      text-align: center; padding: 48px 24px;
-      background: var(--white); border-radius: 14px; border: 1px solid var(--gray-200);
-    }
-    .no-loans-icon { font-size: 48px; margin-bottom: 12px; }
-    .no-loans h3 { font-family: 'Sora', sans-serif; font-size: 16px; color: var(--gray-900); margin-bottom: 6px; }
-    .no-loans p { font-size: 13px; color: var(--gray-400); }
-
-    /* ── SUCCESS MODAL ── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-      z-index: 200; align-items: center; justify-content: center;
-    }
-    .modal-overlay.show { display: flex; }
-    .modal {
-      background: var(--white); border-radius: 18px; padding: 36px 32px;
-      max-width: 420px; width: 90%; text-align: center;
-      animation: popIn 0.25s cubic-bezier(.34,1.56,.64,1);
-    }
-    @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .modal-check { font-size: 56px; margin-bottom: 14px; }
-    .modal h3 { font-family: 'Sora', sans-serif; font-size: 20px; color: var(--gray-900); margin-bottom: 8px; }
-    .modal p { font-size: 13.5px; color: var(--gray-600); line-height: 1.6; margin-bottom: 20px; }
-    .modal-ref { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--mint-dark); background: var(--mint-light); padding: 6px 14px; border-radius: 20px; display: inline-block; margin-bottom: 20px; }
-    .modal-actions { display: flex; gap: 10px; }
-    .btn-secondary {
-      flex: 1; padding: 11px; border-radius: 10px; border: 1.5px solid var(--gray-200);
-      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer;
-      background: var(--white); color: var(--gray-700); transition: background 0.15s;
-    }
-    .btn-secondary:hover { background: var(--gray-50); }
-    .modal .btn-primary { flex: 1; width: auto; }
-
-    /* ── SECTION TITLE ── */
-    .section-title { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: var(--gray-900); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('auth.static', filename='dashboard_payment.css') }}" />
 </head>
 <body>
 
@@ -357,8 +41,8 @@
         <span class="nav-icon nav-icon--payment"></span>Make a Payment
       </a>
       <a href="{{ url_for('auth.payment_history') }}" class="nav-item">
-  <span class="nav-icon nav-icon--history"></span>Payment History
-</a>
+        <span class="nav-icon nav-icon--history"></span>Payment History
+      </a>
       <a href="{{ url_for('auth.my_documents') }}" class="nav-item">
         <span class="nav-icon nav-icon--docs"></span>Documents
       </a>
@@ -412,15 +96,7 @@
       <div id="sectionSelectLoan">
         <p class="section-title">Choose a Loan to Pay</p>
 
-        <!-- If no loans: show empty state -->
-        <!-- <div class="no-loans">
-          <div class="no-loans-icon">💳</div>
-          <h3>No Active Loans</h3>
-          <p>You don't have any active loans to make a payment for.</p>
-        </div> -->
-
         <div class="loan-select-grid" id="loanCards">
-          <!-- Loan cards rendered dynamically from Jinja2 -->
           {% for loan in active_loans %}
           <div class="loan-select-card" onclick="selectLoan(this, {{ loan.id }}, '{{ loan.reference_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}', '{{ loan.next_due.strftime('%b %d, %Y') if loan.next_due else 'N/A' }}')" data-id="{{ loan.id }}">
             <div class="loan-card-ref">{{ loan.reference_no }}</div>
@@ -469,7 +145,7 @@
           <input type="hidden" name="payment_method" id="hiddenMethod" value="gcash" />
 
           <!-- PAYMENT DETAILS -->
-          <div class="card" style="margin-bottom:20px;">
+          <div class="card">
             <div class="card-header">
               <div>
                 <h3>Payment Details</h3>
@@ -502,7 +178,7 @@
           </div>
 
           <!-- PAYMENT METHOD -->
-          <div class="card" style="margin-bottom:20px;">
+          <div class="card">
             <div class="card-header">
               <div>
                 <h3>Payment Method</h3>
@@ -521,7 +197,6 @@
               <div id="qrSection">
                 <div class="qr-display">
                   <div class="qr-code" id="qrCodeBox">
-                    <!-- Decorative QR using SVG -->
                     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" id="qrSvg">
                       <rect x="5" y="5" width="35" height="35" fill="none" stroke="#0f2027" stroke-width="4" rx="3"/>
                       <rect x="12" y="12" width="21" height="21" fill="#0f2027" rx="2"/>
@@ -568,10 +243,10 @@
               </div>
 
               <div id="cashSection" style="display:none;">
-                <div style="background:#fffbea;border:1.5px solid #fde68a;border-radius:10px;padding:16px;">
-                  <p style="font-size:13px;color:#92400e;font-weight:600;margin-bottom:4px;">📍 Office Payment Instructions</p>
-                  <p style="font-size:13px;color:#78350f;line-height:1.6;">
-                    Please visit our office at <strong>Unit 3, ABC Building, Main Street</strong> during business hours (Mon–Fri, 8AM–5PM) 
+                <div class="cash-notice">
+                  <p class="cash-notice-title">📍 Office Payment Instructions</p>
+                  <p class="cash-notice-body">
+                    Please visit our office at <strong>Unit 3, ABC Building, Main Street</strong> during business hours (Mon–Fri, 8AM–5PM)
                     and present your loan reference number to the cashier. You will receive an official receipt.
                   </p>
                 </div>
@@ -580,7 +255,7 @@
           </div>
 
           <!-- UPLOAD PROOF -->
-          <div class="card" style="margin-bottom:20px;">
+          <div class="card">
             <div class="card-header">
               <div>
                 <h3>Upload Payment Screenshot</h3>
@@ -656,7 +331,6 @@
     <div class="modal-actions">
       <button class="btn-secondary" onclick="document.getElementById('successModal').classList.remove('show')">Close</button>
       <a href="{{ url_for('auth.borrower_dashboard') }}" class="btn-primary" style="text-decoration:none;">View My Loans</a>
-
     </div>
   </div>
 </div>
@@ -665,16 +339,14 @@
   let selectedLoanData = null;
   let currentMethod = 'gcash';
 
-  // QR account details per method
   const methodDetails = {
-    gcash: { name: 'GCash', account: 'Hiraya Lending Corp.', num: '+63 912 345 6789', app: 'GCash' },
-    maya:  { name: 'Maya',  account: 'Hiraya Lending Corp.', num: '09187654321',       app: 'Maya'  },
+    gcash: { name: 'GCash',         account: 'Hiraya Lending Corp.', num: '+63 912 345 6789',                  app: 'GCash'   },
+    maya:  { name: 'Maya',          account: 'Hiraya Lending Corp.', num: '09187654321',                       app: 'Maya'    },
     bank:  { name: 'BDO Bank Transfer', account: 'Hiraya Lending Corp.', num: 'Account No: 0012-3456-7890 | BDO', app: 'banking' },
-    cash:  { name: 'Cash / Manual', account: '', num: '', app: '' },
+    cash:  { name: 'Cash / Manual', account: '',                     num: '',                                   app: ''        },
   };
 
   function selectLoan(el, id, ref, amount, type, due) {
-    // Deselect all
     document.querySelectorAll('.loan-select-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
 
@@ -682,20 +354,17 @@
 
     document.getElementById('hiddenLoanId').value = id;
     document.getElementById('paymentAmount').value = amount > 0 ? amount.toFixed(2) : '';
-    document.getElementById('dueAmountHint').textContent = amount > 0 ? amount.toLocaleString('en-PH', {minimumFractionDigits:2}) : '0.00';
+    document.getElementById('dueAmountHint').textContent = amount > 0 ? amount.toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '0.00';
     document.getElementById('selectedLoanLabel').textContent = ref + ' — ' + type;
 
-    // Set today's date as default
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('paymentDate').value = today;
 
     updateSummary();
 
-    // Reveal form section with smooth scroll
     document.getElementById('sectionPaymentForm').style.display = 'block';
     document.getElementById('sectionPaymentForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Update steps
     setStep(2);
   }
 
@@ -735,7 +404,7 @@
     document.getElementById('summaryRef').textContent = selectedLoanData.ref;
     document.getElementById('summaryType').textContent = selectedLoanData.type;
     document.getElementById('summaryDue').textContent = selectedLoanData.due;
-    document.getElementById('summaryAmount').textContent = '₱' + amt.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+    document.getElementById('summaryAmount').textContent = '₱' + amt.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function setStep(active) {
@@ -755,7 +424,6 @@
   function previewFile(input) {
     const file = input.files[0];
     if (!file) return;
-    const preview = document.getElementById('uploadPreview');
     const thumb = document.getElementById('previewThumb');
     document.getElementById('previewName').textContent = file.name;
     document.getElementById('previewSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
@@ -764,9 +432,10 @@
       reader.onload = e => { thumb.src = e.target.result; };
       reader.readAsDataURL(file);
     } else {
-      thumb.src = ''; thumb.style.display = 'none';
+      thumb.src = '';
+      thumb.style.display = 'none';
     }
-    preview.classList.add('show');
+    document.getElementById('uploadPreview').classList.add('show');
     setStep(3);
   }
 
@@ -791,19 +460,10 @@
     }
   });
 
-  // Form submit — show modal (demo) or let Flask handle it
-  document.getElementById('paymentForm').addEventListener('submit', function(e) {
-    // Remove this block if submitting to Flask — let the form POST normally
-    // Demo: show modal
-    // e.preventDefault();
-    // document.getElementById('modalRef').textContent = 'PAY-' + Date.now().toString().slice(-8);
-    // document.getElementById('successModal').classList.add('show');
-  });
-
   // Init
   setStep(1);
 
-  // Flash messages from Flask (if any) — auto-hide after 4s
+  // Flash messages from Flask — auto-hide after 4s
   setTimeout(() => {
     document.querySelectorAll('.flash-msg').forEach(el => el.remove());
   }, 4000);
