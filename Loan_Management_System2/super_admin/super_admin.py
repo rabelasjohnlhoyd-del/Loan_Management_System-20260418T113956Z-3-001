@@ -1412,3 +1412,4 @@ COALESCE(SUM(p.amount_paid) - l.principal_amount, 0) AS interest_earned
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('super_admin.reports_page'))
+    
