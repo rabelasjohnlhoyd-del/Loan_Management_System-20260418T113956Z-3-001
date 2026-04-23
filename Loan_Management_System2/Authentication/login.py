@@ -788,6 +788,18 @@ def borrower_dashboard():
                            total_paid=total_paid)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 # ================================================================
 # SECTION 7: USER PROFILE
 # ================================================================
@@ -834,7 +846,7 @@ def select_loan_to_pay():
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # Kunin LAHAT ng active loans (hindi lang isa)
+        
         cursor.execute("""
             SELECT l.*, lt.name AS type_name,
                    (SELECT MIN(a.due_date)
@@ -864,7 +876,7 @@ def select_loan_to_pay():
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('auth.borrower_dashboard'))
 
-    # ❗ FIX: HUWAG na mag redirect kahit walang loan
+
     return render_template('make_payment.html',
                            active_loans=active_loans,
                            today=datetime.date.today())
@@ -1040,36 +1052,58 @@ def payment_history():
 @role_required('borrower')
 def my_documents():
     try:
-        conn   = get_db()
+        conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ID & selfie from user record
+        # 1. Get User Data (Need created_at for the "Uploaded on" labels)
         cursor.execute("""
-            SELECT id_document_path, selfie_path, id_verification_status
+            SELECT id_document_path, selfie_path, id_verification_status, created_at 
             FROM users WHERE id = %s
         """, (session['user_id'],))
-        user_docs = cursor.fetchone()
+        user_data = cursor.fetchone()
 
-        # Documents tied to loan applications
+        # 2. Get Application Documents (Requirements uploaded during application)
         cursor.execute("""
-            SELECT ad.*, la.reference_no AS app_ref, la.status AS app_status
+            SELECT ad.*, la.reference_no, la.status as app_status
             FROM application_documents ad
             JOIN loan_applications la ON ad.application_id = la.id
             WHERE la.borrower_id = %s
-            ORDER BY ad.id DESC
         """, (session['user_id'],))
         app_docs = cursor.fetchall()
 
+        # 3. Get Active Loans (To generate Agreement PDFs and Amortization schedules)
+        cursor.execute("""
+            SELECT l.*, lt.name AS type_name 
+            FROM loans l
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            WHERE l.borrower_id = %s
+        """, (session['user_id'],))
+        loans = cursor.fetchall()
+
+        # 4. Get Payments (To show Payment Proof screenshots)
+        cursor.execute("""
+            SELECT * FROM payments 
+            WHERE borrower_id = %s AND screenshot_path IS NOT NULL
+        """, (session['user_id'],))
+        payments = cursor.fetchall()
+
         cursor.close()
         conn.close()
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-        user_docs = {}
-        app_docs  = []
 
+    except Exception as e:
+        flash(f'Error loading documents: {str(e)}', 'danger')
+        user_data = {}
+        app_docs, loans, payments = [], [], []
+
+    # 'user' fixes the UndefinedError
+    # 'documents' handles the stats and app docs
+    # 'generated_docs' is a helper for your stats bar
     return render_template('documents.html',
-                           user_docs=user_docs,
-                           app_docs=app_docs)
+                           user=user_data,
+                           documents=app_docs,
+                           loans=loans,
+                           payments=payments,
+                           generated_docs=loans) # Assuming 1 report per loan for stats
 
 
 @auth.route('/documents/upload', methods=['POST'])
