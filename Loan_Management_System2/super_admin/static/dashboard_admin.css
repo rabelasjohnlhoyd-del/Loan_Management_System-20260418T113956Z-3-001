@@ -86,7 +86,7 @@ body {
   color: var(--white); line-height: 1.2;
 }
 .sidebar-brand > div > span {
-  font-size: 10px; color: rgba(255,255,255,.45);
+  font-size: 10px; color: rgba(255,255,255,0.6);
 }
 
 /* User block */

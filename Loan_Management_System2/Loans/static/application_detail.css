@@ -90,7 +90,7 @@ button { font-family: inherit; }
 
 .sidebar-brand h2 {
   font-family: var(--font-h); font-size: 15px; font-weight: 700;
-  color: var(--white); line-height: 1.1;
+  color: var(--white); line-height: 1.2;
 }
 .sidebar-brand > div > span {
   font-size: 10px; color: rgba(255,255,255,.45);
