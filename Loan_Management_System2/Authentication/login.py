@@ -834,38 +834,24 @@ def select_loan_to_pay():
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-    SELECT l.*, lt.name AS type_name, lp.plan_name,
-           (SELECT MIN(a.due_date)
-            FROM amortization_schedule a
-            WHERE a.loan_id = l.id AND a.is_paid = 0) AS next_due,
-           (SELECT SUM(a.total_due)
-            FROM amortization_schedule a
-            WHERE a.loan_id = l.id
-              AND a.is_paid = 0
-              AND a.due_date = (
-                  SELECT MIN(a2.due_date)
-                  FROM amortization_schedule a2
-                  WHERE a2.loan_id = l.id AND a2.is_paid = 0
-              )) AS next_amount
-            FROM loans l
-            JOIN loan_types lt ON l.loan_type_id = lt.id
-            JOIN loan_plans lp ON l.loan_plan_id = lp.id
-            WHERE l.borrower_id = %s
-              AND l.status IN ('active', 'disbursed')
-            ORDER BY l.created_at DESC
+            SELECT id FROM loans
+            WHERE borrower_id = %s
+              AND status IN ('active', 'disbursed')
+            ORDER BY created_at DESC
+            LIMIT 1
         """, (session['user_id'],))
-        active_loans = cursor.fetchall()
+        loan = cursor.fetchone()
         cursor.close()
         conn.close()
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-        active_loans = []
+        return redirect(url_for('auth.borrower_dashboard'))
 
-    # 1 active loan lang → diretso na sa payment page
-    if len(active_loans) == 1:
-        return redirect(url_for('auth.make_payment', loan_id=active_loans[0]['id']))
+    if not loan:
+        flash('You have no active loans to pay.', 'warning')
+        return redirect(url_for('auth.borrower_dashboard'))
 
-    return render_template('select_loan_to_pay.html', active_loans=active_loans)
+    return redirect(url_for('auth.make_payment', loan_id=loan['id']))
 
 # ================================================================
 # SECTION 9: PAYMENTS
@@ -960,7 +946,7 @@ def make_payment(loan_id):
         screenshot_path = None
         if proof_file and proof_file.filename:
             from werkzeug.utils import secure_filename
-            PROOF_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'proofs')
+            PROOF_FOLDER = os.path.join(os.path.dirname(_file_), 'static', 'uploads', 'proofs')
             os.makedirs(PROOF_FOLDER, exist_ok=True)
             fname = secure_filename(
                 f"proof_{session['user_id']}_{datetime.datetime.now().timestamp()}_{proof_file.filename}"
@@ -1079,7 +1065,7 @@ def upload_document():
     file = request.files.get('document')
 
     UPLOAD_FOLDER_DOCS = os.path.join(
-        os.path.dirname(__file__), 'static', 'uploads', 'documents'
+        os.path.dirname(_file_), 'static', 'uploads', 'documents'
     )
 
     if not file or not allowed_file(file.filename):
