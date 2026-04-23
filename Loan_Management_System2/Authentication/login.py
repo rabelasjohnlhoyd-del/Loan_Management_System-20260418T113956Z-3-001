@@ -853,6 +853,7 @@ def select_loan_to_pay():
 
     return redirect(url_for('auth.make_payment', loan_id=loan['id']))
 
+
 # ================================================================
 # SECTION 9: PAYMENTS
 # ================================================================
