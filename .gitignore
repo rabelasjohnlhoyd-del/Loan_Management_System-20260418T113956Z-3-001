@@ -19,3 +19,4 @@ Loan_Management_System2/Authentication/static/uploads/
 pyvenv.cfg
 Loan_Management_System2/Loans/__pycache__/routes.cpython-313.pyc
 .gitignore
+Loan_Management_System2/Authentication/__pycache__/login.cpython-314.pyc
