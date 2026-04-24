@@ -15,9 +15,21 @@ loans_bp = Blueprint(
     static_url_path='/loans/static'
 )
 
-# Upload configuration
-UPLOAD_FOLDER_DOCS = os.path.join(os.path.dirname(__file__), '..', 'Authentication', 'static', 'uploads', 'documents')
+# ================================================================
+# SECTION 1: UPLOAD PATH CONFIGURATION
+# ================================================================
+# ✅ FIX: Centralized upload root — both loans.py and borrower.py
+#         now read/write from the same folder under Authentication.
+#         This ensures view_doc, view_payment_proof, and upload_document
+#         all look at the same physical path.
+_BASE_DIR        = os.path.dirname(__file__)                     # .../Loans/
+_AUTH_STATIC     = os.path.join(_BASE_DIR, '..', 'Authentication', 'static')
+UPLOAD_ROOT      = os.path.join(_AUTH_STATIC, 'uploads')        # .../Authentication/static/uploads/
+UPLOAD_DOCS      = os.path.join(UPLOAD_ROOT, 'documents')       # .../uploads/documents/
+UPLOAD_PROOFS    = os.path.join(UPLOAD_ROOT, 'proofs')          # .../uploads/proofs/
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
+
 
 # ================================================================
 # SECTION 2: HELPER FUNCTIONS
@@ -44,7 +56,7 @@ def role_required(*roles):
         @wraps(f)
         def decorated(*args, **kwargs):
             if not is_logged_in():
-                return redirect(url_for('auth.login')) 
+                return redirect(url_for('auth.login'))
             if session.get('role') not in roles:
                 flash('Access denied.', 'danger')
                 return redirect(url_for('auth.dashboard'))
@@ -56,11 +68,11 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def generate_reference(prefix, table, col):
-    conn = get_db()
+    conn   = get_db()
     cursor = conn.cursor()
-    year = datetime.datetime.now().year
+    year   = datetime.datetime.now().year
     cursor.execute(f"SELECT COUNT(*) FROM {table} WHERE YEAR(created_at) = %s", (year,))
-    count = cursor.fetchone()[0] + 1
+    count  = cursor.fetchone()[0] + 1
     cursor.close()
     conn.close()
     return f"{prefix}-{year}-{str(count).zfill(6)}"
@@ -68,51 +80,54 @@ def generate_reference(prefix, table, col):
 def calculate_monthly_payment(principal, annual_rate, months):
     if annual_rate == 0:
         return principal / months
-    r = (annual_rate / 100) / 12
+    r       = (annual_rate / 100) / 12
     payment = principal * (r * (1 + r) ** months) / ((1 + r) ** months - 1)
     return round(payment, 2)
 
 def build_amortization(principal, annual_rate, months, start_date):
     schedule = []
-    r = (annual_rate / 100) / 12
-    monthly = calculate_monthly_payment(principal, annual_rate, months)
-    balance = principal
+    r        = (annual_rate / 100) / 12
+    monthly  = calculate_monthly_payment(principal, annual_rate, months)
+    balance  = principal
 
     for i in range(1, months + 1):
-        interest = round(balance * r, 2)
+        interest          = round(balance * r, 2)
         principal_portion = round(monthly - interest, 2)
         if i == months:
             principal_portion = balance
-        balance = round(balance - principal_portion, 2)
-        
-        # ✅ FIXED: This block is now INSIDE the loop
+        balance  = round(balance - principal_portion, 2)
         due_date = start_date + datetime.timedelta(days=30 * i)
         schedule.append({
-            'period_no': i,
-            'due_date': due_date,
+            'period_no':     i,
+            'due_date':      due_date,
             'principal_due': principal_portion,
-            'interest_due': interest,
-            'total_due': round(principal_portion + interest, 2),
+            'interest_due':  interest,
+            'total_due':     round(principal_portion + interest, 2),
             'balance_after': max(balance, 0)
         })
     return schedule
 
+
 # ================================================================
 # SECTION 3: LOAN TYPES & PLANS
 # ================================================================
+
+# 3.1 LOAN TYPES LIST
 @loans_bp.route('/loan-types')
 @login_required
 def loan_types():
     types = []
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM loan_types WHERE is_active = 1 ORDER BY id")
         types = cursor.fetchall()
 
         for t in types:
-            cursor.execute("SELECT COUNT(*) AS cnt FROM loan_plans WHERE loan_type_id = %s AND is_active = 1", (t['id'],))
-            # ✅ FIXED: Indented this so it runs for EVERY loan type
+            cursor.execute("""
+                SELECT COUNT(*) AS cnt FROM loan_plans
+                WHERE loan_type_id = %s AND is_active = 1
+            """, (t['id'],))
             t['plan_count'] = cursor.fetchone()['cnt']
 
         cursor.close()
@@ -128,15 +143,20 @@ def loan_types():
 @login_required
 def loan_plans(type_id):
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM loan_types WHERE id = %s", (type_id,))
         loan_type = cursor.fetchone()
+
         if not loan_type:
             flash('Loan type not found.', 'danger')
             return redirect(url_for('loans.loan_types'))
 
-        cursor.execute("SELECT * FROM loan_plans WHERE loan_type_id = %s AND is_active = 1 ORDER BY min_amount", (type_id,))
+        cursor.execute("""
+            SELECT * FROM loan_plans
+            WHERE loan_type_id = %s AND is_active = 1
+            ORDER BY min_amount
+        """, (type_id,))
         plans = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -152,14 +172,15 @@ def loan_plans(type_id):
 @login_required
 def api_plans(type_id):
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT id, plan_name, interest_rate, interest_type,
                    term_months_min, term_months_max,
                    min_amount, max_amount, processing_fee,
                    collateral_required, collateral_notes
-            FROM loan_plans WHERE loan_type_id = %s AND is_active = 1
+            FROM loan_plans
+            WHERE loan_type_id = %s AND is_active = 1
         """, (type_id,))
         plans = cursor.fetchall()
         cursor.close()
@@ -176,15 +197,15 @@ def api_calculate():
     data = request.json
     try:
         principal = float(data.get('amount', 0))
-        rate = float(data.get('rate', 0))
-        months = int(data.get('months', 0))
-        monthly = calculate_monthly_payment(principal, rate, months)
-        total = round(monthly * months, 2)
-        interest = round(total - principal, 2)
+        rate      = float(data.get('rate', 0))
+        months    = int(data.get('months', 0))
+        monthly   = calculate_monthly_payment(principal, rate, months)
+        total     = round(monthly * months, 2)
+        interest  = round(total - principal, 2)
         return jsonify({
             'monthly_payment': monthly,
-            'total_payment': total,
-            'total_interest': interest
+            'total_payment':   total,
+            'total_interest':  interest,
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 400
@@ -193,45 +214,56 @@ def api_calculate():
 # ================================================================
 # SECTION 4: LOAN APPLICATION FLOW
 # ================================================================
+
 # 4.1 APPLY FOR LOAN (GET/POST)
 @loans_bp.route('/apply', methods=['GET', 'POST'])
 @login_required
 @role_required('borrower')
 def apply():
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM loan_types WHERE is_active = 1")
         types = cursor.fetchall()
-        cursor.execute("SELECT lp.*, lt.name AS type_name FROM loan_plans lp JOIN loan_types lt ON lp.loan_type_id = lt.id WHERE lp.is_active = 1")
+
+        cursor.execute("""
+            SELECT lp.*, lt.name AS type_name
+            FROM loan_plans lp
+            JOIN loan_types lt ON lp.loan_type_id = lt.id
+            WHERE lp.is_active = 1
+        """)
         plans = cursor.fetchall()
 
-        cursor.execute("SELECT id_verification_status FROM users WHERE id = %s", (session['user_id'],))
+        cursor.execute(
+            "SELECT id_verification_status FROM users WHERE id = %s",
+            (session['user_id'],)
+        )
         user = cursor.fetchone()
         cursor.close()
         conn.close()
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-        return redirect(url_for('loans_bp.dashboard'))
+        # ✅ FIX: was url_for('loans_bp.dashboard') — invalid endpoint
+        return redirect(url_for('borrower.borrower_dashboard'))
 
     if user['id_verification_status'] != 'verified':
         flash('Your ID must be verified before applying for a loan.', 'warning')
-        return redirect(url_for('loans_bp.borrower_dashboard'))
+        # ✅ FIX: was url_for('loans_bp.borrower_dashboard') — invalid endpoint
+        return redirect(url_for('borrower.borrower_dashboard'))
 
-    # Start of POST logic (This must be indented)
     if request.method == 'POST':
         loan_type_id = request.form.get('loan_type_id')
         loan_plan_id = request.form.get('loan_plan_id')
-        amount = request.form.get('amount', '').strip()
-        term_months = request.form.get('term_months', '').strip()
-        purpose = request.form.get('purpose', '').strip()
+        amount       = request.form.get('amount', '').strip()
+        term_months  = request.form.get('term_months', '').strip()
+        purpose      = request.form.get('purpose', '').strip()
 
         errors = []
         if not all([loan_type_id, loan_plan_id, amount, term_months]):
             errors.append('All fields are required.')
 
         try:
-            amount = float(amount)
+            amount      = float(amount)
             term_months = int(term_months)
         except ValueError:
             errors.append('Invalid amount or term.')
@@ -239,13 +271,12 @@ def apply():
         if errors:
             for e in errors:
                 flash(e, 'danger')
-            
             selected_plan_id = request.form.get('loan_plan_id', type=int)
             return render_template('apply.html', types=types, plans=plans,
                                    selected_plan_id=selected_plan_id)
 
         try:
-            conn = get_db()
+            conn   = get_db()
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM loan_plans WHERE id = %s", (loan_plan_id,))
             plan = cursor.fetchone()
@@ -253,39 +284,53 @@ def apply():
             conn.close()
         except Exception as e:
             flash(f'Error: {str(e)}', 'danger')
-            return render_template('apply.html', types=types, plans=plans, selected_plan_id=None)
+            return render_template('apply.html', types=types, plans=plans,
+                                   selected_plan_id=None)
 
         if plan:
             if not (plan['min_amount'] <= amount <= plan['max_amount']):
-                flash(f'Amount must be between ₱{plan["min_amount"]:,.2f} and ₱{plan["max_amount"]:,.2f}.', 'danger')
+                flash(
+                    f'Amount must be between ₱{plan["min_amount"]:,.2f} '
+                    f'and ₱{plan["max_amount"]:,.2f}.',
+                    'danger'
+                )
                 return render_template('apply.html', types=types, plans=plans,
                                        selected_plan_id=int(loan_plan_id))
+
             if not (plan['term_months_min'] <= term_months <= plan['term_months_max']):
-                flash(f'Term must be between {plan["term_months_min"]} and {plan["term_months_max"]} months.', 'danger')
+                flash(
+                    f'Term must be between {plan["term_months_min"]} '
+                    f'and {plan["term_months_max"]} months.',
+                    'danger'
+                )
                 return render_template('apply.html', types=types, plans=plans,
                                        selected_plan_id=int(loan_plan_id))
 
         try:
             ref_no = generate_reference('LA', 'loan_applications', 'id')
-            conn = get_db()
+            conn   = get_db()
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO loan_applications
                   (reference_no, borrower_id, loan_type_id, loan_plan_id,
                    amount_requested, term_months, purpose, status, submitted_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, 'submitted', NOW())
-            """, (ref_no, session['user_id'], loan_type_id, loan_plan_id, amount, term_months, purpose))
+            """, (ref_no, session['user_id'], loan_type_id, loan_plan_id,
+                  amount, term_months, purpose))
 
             app_id = cursor.lastrowid
 
             docs = request.files.getlist('documents')
-            os.makedirs(UPLOAD_FOLDER_DOCS, exist_ok=True)
+            os.makedirs(UPLOAD_DOCS, exist_ok=True)
             for doc in docs:
                 if doc and allowed_file(doc.filename):
-                    fname = secure_filename(f"doc_{app_id}_{datetime.datetime.now().timestamp()}_{doc.filename}")
-                    doc.save(os.path.join(UPLOAD_FOLDER_DOCS, fname))
+                    fname = secure_filename(
+                        f"doc_{app_id}_{datetime.datetime.now().timestamp()}_{doc.filename}"
+                    )
+                    doc.save(os.path.join(UPLOAD_DOCS, fname))
                     cursor.execute("""
-                        INSERT INTO application_documents (application_id, document_type, file_path)
+                        INSERT INTO application_documents
+                          (application_id, document_type, file_path)
                         VALUES (%s, 'requirement', %s)
                     """, (app_id, fname))
 
@@ -293,12 +338,12 @@ def apply():
             cursor.close()
             conn.close()
 
-            flash(f'Application submitted successfully! Reference: {ref_no}', 'success')
+            flash(f'Application submitted! Reference: {ref_no}', 'success')
             return redirect(url_for('loans.my_applications'))
+
         except Exception as e:
             flash(f'Error submitting application: {str(e)}', 'danger')
 
-    # GET request — read ?plan= from URL (This must also be indented)
     selected_plan_id = request.args.get('plan', type=int)
     return render_template('apply.html', types=types, plans=plans,
                            selected_plan_id=selected_plan_id)
@@ -310,7 +355,7 @@ def apply():
 @role_required('borrower')
 def my_applications():
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("""
@@ -350,13 +395,13 @@ def my_applications():
                            notifications=notifications)
 
 
-# 4.3 APPLICATION DETAIL (VIEW SPECIFIC)
+# 4.3 APPLICATION DETAIL
 @loans_bp.route('/applications/<int:app_id>')
 @login_required
 @role_required('borrower')
 def application_detail(app_id):
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT la.*, lt.name AS type_name, lp.plan_name, lp.interest_rate,
@@ -374,7 +419,10 @@ def application_detail(app_id):
             flash('Application not found.', 'danger')
             return redirect(url_for('loans.my_applications'))
 
-        cursor.execute("SELECT * FROM application_documents WHERE application_id = %s", (app_id,))
+        cursor.execute(
+            "SELECT * FROM application_documents WHERE application_id = %s",
+            (app_id,)
+        )
         docs = cursor.fetchall()
 
         monthly = calculate_monthly_payment(
@@ -389,19 +437,21 @@ def application_detail(app_id):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('loans.my_applications'))
 
-    return render_template('application_detail.html', app=app, docs=docs, monthly_payment=monthly)
+    return render_template('application_detail.html',
+                           app=app, docs=docs, monthly_payment=monthly)
 
 
 # ================================================================
 # SECTION 5: ACTIVE LOANS MANAGEMENT
 # ================================================================
+
 # 5.1 MY LOANS (LIST)
 @loans_bp.route('/my-loans')
 @login_required
 @role_required('borrower')
 def my_loans():
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT l.*, lt.name AS type_name, lp.plan_name
@@ -421,13 +471,13 @@ def my_loans():
     return render_template('my_loans.html', loans=my_loan_list)
 
 
-# 5.2 LOAN DETAIL (VIEW SPECIFIC LOAN)
+# 5.2 LOAN DETAIL
 @loans_bp.route('/my-loans/<int:loan_id>')
 @login_required
 @role_required('borrower')
 def loan_detail(loan_id):
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT l.*, lt.name AS type_name, lp.plan_name, lp.interest_rate,
@@ -466,12 +516,13 @@ def loan_detail(loan_id):
 # ================================================================
 # SECTION 6: NOTIFICATIONS SYSTEM
 # ================================================================
+
 # 6.1 FULL NOTIFICATIONS PAGE
 @loans_bp.route('/notifications')
 @login_required
 def notifications_page():
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT id, type, title, message, link, is_read, created_at
@@ -482,17 +533,17 @@ def notifications_page():
         """, (session['user_id'],))
         notifs = cursor.fetchall()
 
-        cursor.execute(
-            "SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = %s AND is_read = 0",
-            (session['user_id'],)
-        )
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM notifications
+            WHERE user_id = %s AND is_read = 0
+        """, (session['user_id'],))
         unread_count = cursor.fetchone()['cnt']
 
         cursor.close()
         conn.close()
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-        notifs = []
+        notifs       = []
         unread_count = 0
 
     return render_template('notifications.html',
@@ -505,17 +556,17 @@ def notifications_page():
 @login_required
 def notif_count():
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute(
-            "SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = %s AND is_read = 0",
-            (session['user_id'],)
-        )
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM notifications
+            WHERE user_id = %s AND is_read = 0
+        """, (session['user_id'],))
         count = cursor.fetchone()['cnt']
         cursor.close()
         conn.close()
         return jsonify({'count': count})
-    except Exception as e:
+    except Exception:
         return jsonify({'count': 0})
 
 
@@ -524,7 +575,7 @@ def notif_count():
 @login_required
 def notif_list():
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT id, type, title, message, link, is_read,
@@ -561,12 +612,12 @@ def notif_list():
 @login_required
 def notif_mark_read(notif_id):
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE notifications SET is_read = 1 WHERE id = %s AND user_id = %s",
-            (notif_id, session['user_id'])
-        )
+        cursor.execute("""
+            UPDATE notifications SET is_read = 1
+            WHERE id = %s AND user_id = %s
+        """, (notif_id, session['user_id']))
         conn.commit()
         cursor.close()
         conn.close()
@@ -580,86 +631,121 @@ def notif_mark_read(notif_id):
 @login_required
 def notif_mark_all_read():
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE notifications SET is_read = 1 WHERE user_id = %s AND is_read = 0",
-            (session['user_id'],)
-        )
+        cursor.execute("""
+            UPDATE notifications SET is_read = 1
+            WHERE user_id = %s AND is_read = 0
+        """, (session['user_id'],))
         conn.commit()
         cursor.close()
         conn.close()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-    
 
 
 # ================================================================
-# SECTION 7: DOCUMENT & PDF GENERATION
+# SECTION 7: DOCUMENT VIEWING & PDF GENERATION
 # ================================================================
 
-# 1. VIEW KYC / APPLICATION DOCUMENTS
-# Replace ALL occurrences of 'def view_doc' with this ONE function:
-# ================================================================
-# SECTION 7: DOCUMENTS, VIEWING & PDF GENERATION
-# ================================================================
-
-# 1. Unified View Function (ID, Selfie, Application Docs)
+# 7.1 VIEW KYC / APPLICATION / ID DOCUMENTS
 @loans_bp.route('/view-doc/<string:filename>')
 @login_required
 def view_doc(filename):
-    doc_path = os.path.join(os.path.dirname(__file__), '..', 'Authentication', 'static', 'uploads', 'documents')
-    user_path = os.path.join(os.path.dirname(__file__), '..', 'Authentication', 'static', 'uploads')
-    
-    # Check if file is in documents folder, if not check parent uploads folder
-    if os.path.exists(os.path.join(doc_path, filename)):
-        return send_from_directory(doc_path, filename)
-    return send_from_directory(user_path, filename)
+    """
+    ✅ FIX: Now checks both UPLOAD_DOCS and UPLOAD_ROOT (for ID/selfie files).
+    Both borrower.py and loans.py save to the same Authentication/static/uploads
+    paths defined at the top of this file.
+    """
+    if os.path.exists(os.path.join(UPLOAD_DOCS, filename)):
+        return send_from_directory(UPLOAD_DOCS, filename)
+    return send_from_directory(UPLOAD_ROOT, filename)
 
-# 2. View Payment Proofs (Stored in proofs folder)
+
+# 7.2 VIEW PAYMENT PROOFS
 @loans_bp.route('/payment-proof/<int:payment_id>')
 @login_required
 def view_payment_proof(payment_id):
-    conn = get_db(); cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT screenshot_path FROM payments WHERE id = %s", (payment_id,))
+    """
+    ✅ FIX: Uses centralized UPLOAD_PROOFS path.
+    Both borrower.py (make_payment) and this view now point to the same folder.
+    """
+    conn   = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT screenshot_path FROM payments WHERE id = %s",
+        (payment_id,)
+    )
     res = cursor.fetchone()
-    cursor.close(); conn.close()
-    
-    if res and res['screenshot_path']:
-        proof_path = os.path.join(os.path.dirname(__file__), '..', 'Authentication', 'static', 'uploads', 'proofs')
-        return send_from_directory(proof_path, res['screenshot_path'])
-    flash("File not found", "danger")
-    return redirect(url_for('auth.my_documents'))
+    cursor.close()
+    conn.close()
 
-# 3. Real PDF Receipt Download
+    if res and res['screenshot_path']:
+        return send_from_directory(UPLOAD_PROOFS, res['screenshot_path'])
+
+    flash('File not found.', 'danger')
+    # ✅ FIX: was url_for('auth.my_documents') — moved to borrower blueprint
+    return redirect(url_for('borrower.my_documents'))
+
+
+# 7.3 PDF RECEIPT DOWNLOAD
 @loans_bp.route('/download-receipt/<int:payment_id>')
 @login_required
 def download_receipt(payment_id):
-    conn = get_db(); cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT p.*, u.full_name, l.reference_no FROM payments p JOIN users u ON p.borrower_id = u.id JOIN loans l ON p.loan_id = l.id WHERE p.id = %s", (payment_id,))
+    conn   = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT p.*, u.full_name, l.loan_no
+        FROM payments p
+        JOIN users u  ON p.borrower_id = u.id
+        JOIN loans l  ON p.loan_id     = l.id
+        WHERE p.id = %s
+    """, (payment_id,))
     pay = cursor.fetchone()
-    cursor.close(); conn.close()
-    
-    html = f"<html><body style='font-family:Helvetica;'><h1>HIRAYA RECEIPT</h1><hr><p>Ref: {pay['payment_no']}</p><p>Amount: PHP {pay['amount_paid']:,.2f}</p><p>Date: {pay['payment_date']}</p></body></html>"
-    pdf = io.BytesIO()
-    pisa.CreatePDF(io.BytesIO(html.encode("UTF-8")), dest=pdf)
-    pdf.seek(0)
-    return send_file(pdf, mimetype='application/pdf', as_attachment=True, download_name=f"Receipt_{pay['payment_no']}.pdf")
+    cursor.close()
+    conn.close()
 
-# 4. Real PDF Loan Agreement
-# 4. Real PDF Loan Agreement (FIXED KEYERROR)
+    if not pay:
+        flash('Payment not found.', 'danger')
+        return redirect(url_for('borrower.payment_history'))
+
+    html = f"""
+    <html>
+      <body style="font-family:Helvetica;padding:30px;">
+        <h1>HIRAYA RECEIPT</h1>
+        <hr>
+        <p>Reference No: {pay['payment_no']}</p>
+        <p>Loan No: {pay['loan_no']}</p>
+        <p>Borrower: {pay['full_name']}</p>
+        <p>Amount Paid: PHP {float(pay['amount_paid']):,.2f}</p>
+        <p>Payment Date: {pay['payment_date']}</p>
+        <p>Status: {pay['status']}</p>
+      </body>
+    </html>
+    """
+    pdf = io.BytesIO()
+    pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf)
+    pdf.seek(0)
+    return send_file(
+        pdf,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f"Receipt_{pay['payment_no']}.pdf"
+    )
+
+
+# 7.4 PDF LOAN AGREEMENT
 @loans_bp.route('/download-agreement/<int:loan_id>')
 @login_required
 def download_agreement(loan_id):
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
-        # We select l.* which includes 'loan_no'
         cursor.execute("""
-            SELECT l.*, u.full_name 
-            FROM loans l 
-            JOIN users u ON l.borrower_id = u.id 
+            SELECT l.*, u.full_name
+            FROM loans l
+            JOIN users u ON l.borrower_id = u.id
             WHERE l.id = %s
         """, (loan_id,))
         loan = cursor.fetchone()
@@ -667,51 +753,156 @@ def download_agreement(loan_id):
         conn.close()
 
         if not loan:
-            flash("Loan record not found.", "danger")
-            return redirect(url_for('auth.my_documents'))
+            flash('Loan record not found.', 'danger')
+            # ✅ FIX: was url_for('auth.my_documents')
+            return redirect(url_for('borrower.my_documents'))
 
-        # ✅ FIXED: Changed loan['reference_no'] to loan['loan_no']
         html = f"""
         <html>
-            <body style="font-family: Helvetica; padding: 30px;">
-                <h1 style="text-align: center;">LOAN AGREEMENT</h1>
-                <p>This document certifies that <strong>{loan['full_name']}</strong> 
-                   has an active loan with the reference number: <strong>{loan['loan_no']}</strong>.</p>
-                <p>Date of Issue: {datetime.datetime.now().strftime('%Y-%m-%d')}</p>
-                <br><br>
-                <p>__________________________</p>
-                <p>Authorized Signature</p>
-            </body>
+          <body style="font-family:Helvetica;padding:30px;">
+            <h1 style="text-align:center;">LOAN AGREEMENT</h1>
+            <p>This document certifies that <strong>{loan['full_name']}</strong>
+               has an active loan with reference number:
+               <strong>{loan['loan_no']}</strong>.</p>
+            <p>Principal Amount: PHP {float(loan['principal_amount']):,.2f}</p>
+            <p>Date of Issue: {datetime.datetime.now().strftime('%Y-%m-%d')}</p>
+            <br><br>
+            <p>__________________________</p>
+            <p>Authorized Signature</p>
+          </body>
         </html>
         """
-        
         pdf_out = io.BytesIO()
-        pisa.CreatePDF(io.BytesIO(html.encode("UTF-8")), dest=pdf_out)
+        pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf_out)
         pdf_out.seek(0)
 
         return send_file(
-            pdf_out, 
-            mimetype='application/pdf', 
-            as_attachment=True, 
+            pdf_out,
+            mimetype='application/pdf',
+            as_attachment=True,
             download_name=f"Agreement_{loan['loan_no']}.pdf"
         )
     except Exception as e:
-        flash(f"Error: {str(e)}", "danger")
-        return redirect(url_for('auth.my_documents'))
+        flash(f'Error: {str(e)}', 'danger')
+        # ✅ FIX: was url_for('auth.my_documents')
+        return redirect(url_for('borrower.my_documents'))
 
-# 5. Real PDF Amortization
+
+# 7.5 PDF AMORTIZATION SCHEDULE
 @loans_bp.route('/amortization-pdf/<int:loan_id>')
 @login_required
 def amortization_pdf(loan_id):
-    pdf = io.BytesIO()
-    pisa.CreatePDF(io.BytesIO("<p>Amortization Schedule Content</p>".encode("UTF-8")), dest=pdf)
-    pdf.seek(0)
-    return send_file(pdf, mimetype='application/pdf', as_attachment=True, download_name="Amortization_Schedule.pdf")
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT l.*, u.full_name
+            FROM loans l JOIN users u ON l.borrower_id = u.id
+            WHERE l.id = %s
+        """, (loan_id,))
+        loan = cursor.fetchone()
 
+        cursor.execute("""
+            SELECT * FROM amortization_schedule
+            WHERE loan_id = %s ORDER BY period_no
+        """, (loan_id,))
+        schedule = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        rows = ''.join([
+            f"<tr><td>{s['period_no']}</td><td>{s['due_date']}</td>"
+            f"<td>₱{float(s['principal_due']):,.2f}</td>"
+            f"<td>₱{float(s['interest_due']):,.2f}</td>"
+            f"<td>₱{float(s['total_due']):,.2f}</td>"
+            f"<td>₱{float(s['balance_after']):,.2f}</td>"
+            f"<td>{'Paid' if s['is_paid'] else 'Unpaid'}</td></tr>"
+            for s in schedule
+        ])
+
+        html = f"""
+        <html>
+          <body style="font-family:Helvetica;padding:20px;">
+            <h2>Amortization Schedule — {loan['loan_no']}</h2>
+            <p>Borrower: {loan['full_name']}</p>
+            <table border="1" cellpadding="4" cellspacing="0" width="100%">
+              <thead>
+                <tr><th>#</th><th>Due Date</th><th>Principal</th>
+                    <th>Interest</th><th>Total</th><th>Balance</th><th>Status</th></tr>
+              </thead>
+              <tbody>{rows}</tbody>
+            </table>
+          </body>
+        </html>
+        """
+        pdf = io.BytesIO()
+        pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf)
+        pdf.seek(0)
+        return send_file(
+            pdf,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f"Amortization_{loan['loan_no']}.pdf"
+        )
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('borrower.my_documents'))
+
+
+# 7.6 PDF PAYMENT HISTORY
 @loans_bp.route('/payment-history-pdf/<int:loan_id>')
 @login_required
 def payment_history_pdf(loan_id):
-    pdf = io.BytesIO()
-    pisa.CreatePDF(io.BytesIO("<p>Payment History Content</p>".encode("UTF-8")), dest=pdf)
-    pdf.seek(0)
-    return send_file(pdf, mimetype='application/pdf', as_attachment=True, download_name="Payment_History.pdf")
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT l.*, u.full_name
+            FROM loans l JOIN users u ON l.borrower_id = u.id
+            WHERE l.id = %s
+        """, (loan_id,))
+        loan = cursor.fetchone()
+
+        cursor.execute("""
+            SELECT * FROM payments
+            WHERE loan_id = %s
+            ORDER BY payment_date DESC
+        """, (loan_id,))
+        payments = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        rows = ''.join([
+            f"<tr><td>{p['payment_no']}</td><td>{p['payment_date']}</td>"
+            f"<td>₱{float(p['amount_paid']):,.2f}</td>"
+            f"<td>{p['payment_method']}</td><td>{p['status']}</td></tr>"
+            for p in payments
+        ])
+
+        html = f"""
+        <html>
+          <body style="font-family:Helvetica;padding:20px;">
+            <h2>Payment History — {loan['loan_no']}</h2>
+            <p>Borrower: {loan['full_name']}</p>
+            <table border="1" cellpadding="4" cellspacing="0" width="100%">
+              <thead>
+                <tr><th>Ref</th><th>Date</th><th>Amount</th>
+                    <th>Method</th><th>Status</th></tr>
+              </thead>
+              <tbody>{rows}</tbody>
+            </table>
+          </body>
+        </html>
+        """
+        pdf = io.BytesIO()
+        pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf)
+        pdf.seek(0)
+        return send_file(
+            pdf,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f"PaymentHistory_{loan['loan_no']}.pdf"
+        )
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('borrower.my_documents'))

@@ -232,8 +232,8 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('auth.select_loan_to_pay') }}" class="nav-item"><span class="nav-icon nav-icon--payment"></span>Make a Payment</a>
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
+      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item"><span class="nav-icon nav-icon--payment"></span>Make a Payment</a>
       <a href="{{ url_for('loans.my_applications') }}" class="nav-item"><span class="nav-icon nav-icon--history"></span>Payment History</a>
       <a href="#" class="nav-item active"><span class="nav-icon nav-icon--docs"></span>Documents</a>
     </nav>
@@ -255,7 +255,7 @@
         <button class="doc-btn primary" onclick="openUploadModal()" style="padding:8px 16px;border-radius:8px;font-size:13px;">
           ＋ Upload Document
         </button>
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</a>
+        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</a>
       </div>
     </header>
 
@@ -314,7 +314,7 @@
             </span>
             <div class="doc-actions">
               <a href="{{ url_for('loans.view_doc', filename=user.selfie_path) }}" target="_blank" class="doc-btn">👁 View</a>
-              <a href="{{ url_for('auth.static', filename='uploads/' + user.id_document_path) }}" download class="doc-btn">⬇ Download</a>
+              <a href="{{ url_for('borrower.static', filename='uploads/' + user.id_document_path) }}" download class="doc-btn">⬇ Download</a>
             </div>
           </div>
           {% endif %}
@@ -489,7 +489,7 @@
   <div class="modal">
     <h3>📎 Upload Document</h3>
     <p>Upload a document to attach to your account or a specific loan.</p>
-    <form method="POST" action="{{ url_for('auth.upload_document') }}" enctype="multipart/form-data"></form>
+    <form method="POST" action="{{ url_for('borrower.upload_document') }}" enctype="multipart/form-data"></form>
       <div class="modal-form-group">
         <label>Document Type</label>
         <select name="doc_type" id="uploadDocType">

@@ -65,7 +65,7 @@
       </div>
       <div class="topbar-right">
         <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Print</button>
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
           {{ session.user_name[0]|upper if session.user_name else 'A' }}
         </a>
       </div>

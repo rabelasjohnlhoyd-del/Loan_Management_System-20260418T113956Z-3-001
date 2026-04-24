@@ -67,7 +67,7 @@
       <span class="s-chevron"></span>
     </div>
     <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('auth.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+      <a href="{{ url_for('borrower.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
       <a href="{{ url_for('loans.my_loans') }}"><span class="dd-icon dd-icon--loans"></span>My Loans</a>
       <a href="{{ url_for('loans.my_applications') }}"><span class="dd-icon dd-icon--applications"></span>My Applications</a>
       <a href="{{ url_for('loans.loan_types') }}"><span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans</a>
@@ -84,7 +84,7 @@
 
     <nav class="sidebar-nav">
       {% if session.role == 'borrower' %}
-            <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item">
+            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
             <a href="#" class="nav-item">
@@ -98,7 +98,7 @@
       </a>
       {% else %}
       <div class="nav-section-label">Overview</div>
-      <a href="{{ url_for('auth.dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
+      <a href="{{ url_for('borrower.dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
       <div class="nav-section-label nav-section--spaced">Loan Management</div>
       <a href="{{ url_for('loans.loan_types') }}" class="nav-item"><span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans</a>
       <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
@@ -132,7 +132,7 @@
       </div>
       <div class="topbar-right">
         <a href="{{ url_for('loans.apply') }}" class="btn btn-primary btn-sm">+ New Application</a>
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
           {{ session.user_name[0]|upper if session.user_name else 'U' }}
         </a>
       </div>

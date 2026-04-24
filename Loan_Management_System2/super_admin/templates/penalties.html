@@ -66,7 +66,7 @@
       </a>
       {% endif %}
       <div class="nav-section-label nav-section--spaced">Account</div>
-      <a href="{{ url_for('auth.profile') }}" class="nav-item">
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="nav-item">
         <span class="nav-icon nav-icon--profile"></span>My Profile
       </a>
     </nav>
@@ -92,7 +92,7 @@
           <button type="submit" class="btn btn-warning btn-sm">Run Penalty Computation</button>
         </form>
         {% endif %}
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
           {{ session.user_name[0]|upper if session.user_name else 'A' }}
         </a>
       </div>

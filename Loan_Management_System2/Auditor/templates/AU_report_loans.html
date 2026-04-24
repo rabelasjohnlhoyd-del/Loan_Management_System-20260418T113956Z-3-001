@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Loan Report — Hiraya Auditor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('auditor.static', filename='AU_style.css') }}"/>
+</head>
+<body>
+<div class="app-wrap">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div><h2>Hiraya</h2><span>Management System</span></div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name }}</h4>
+        <div class="s-role-badge">Auditor</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="{{ url_for('auditor.auditor_dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <div class="nav-section-label nav-section--spaced">Audit</div>
+      <a href="{{ url_for('auditor.audit_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Loans
+      </a>
+      <a href="{{ url_for('auditor.audit_payments') }}" class="nav-item">
+        <span class="nav-icon nav-icon--payments"></span>Payments
+      </a>
+      <div class="nav-section-label nav-section--spaced">Borrowers</div>
+      <a href="{{ url_for('auditor.borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+      </a>
+      <div class="nav-section-label nav-section--spaced">Reports</div>
+      <a href="{{ url_for('auditor.reports') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--reports"></span>Reports
+      </a>
+      <div class="nav-section-label nav-section--spaced">Logs</div>
+      <a href="{{ url_for('auditor.activity_logs') }}" class="nav-item">
+        <span class="nav-icon nav-icon--logs"></span>Activity Logs
+      </a>
+      <div class="nav-section-label nav-section--spaced">Account</div>
+      <a href="{{ url_for('auditor.profile') }}" class="nav-item">
+        <span class="nav-icon nav-icon--profile"></span>My Profile
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Loan Summary Report</h1>
+        <p>Breakdown of all loans by status</p>
+      </div>
+      <div class="topbar-right">
+        <a href="{{ url_for('auditor.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+        </a>
+      </div>
+    </header>
+
+    <main class="page-body">
+      <a href="{{ url_for('auditor.reports') }}" class="back-link">&#8592; Back to Reports</a>
+
+      {% if summary %}
+      <div class="report-grid" style="margin-bottom:24px;">
+        {% for row in summary %}
+        <div class="report-card">
+          <h4>{{ row.status | replace('_',' ') | title }}</h4>
+          <div class="rc-value">{{ row.count }}</div>
+          <div class="rc-sub">Total: &#8369;{{ "{:,.2f}".format(row.total) if row.total else '0.00' }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header">
+          <div><h3>Detail by Status</h3><p>Count and principal totals</p></div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          {% if summary %}
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Count</th>
+                <th>Total Principal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in summary %}
+              <tr>
+                <td><span class="badge status-{{ row.status }}">{{ row.status | replace('_',' ') | title }}</span></td>
+                <td>{{ row.count }}</td>
+                <td>&#8369;{{ "{:,.2f}".format(row.total) if row.total else '0.00' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">
+            <span class="empty-icon"></span>
+            <p>No loan data available.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

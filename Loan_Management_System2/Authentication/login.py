@@ -69,6 +69,20 @@ def role_required(*roles):
         return decorated
     return decorator
 
+def calculate_age(dob_str):
+    """Compute age from a date string like '1990-05-12'. Returns int."""
+    if not dob_str:
+        return 0
+    try:
+        birth_date = datetime.datetime.strptime(dob_str, '%Y-%m-%d').date()
+        today = datetime.date.today()
+        age = today.year - birth_date.year - (
+            (today.month, today.day) < (birth_date.month, birth_date.day)
+        )
+        return max(age, 0)
+    except (ValueError, TypeError):
+        return 0
+
 
 # ================================================================
 # SECTION 3: AUTH CORE — LOGIN / LOGOUT
@@ -111,6 +125,12 @@ def login():
 
                     # ✅ FIX #2: Clear session before setting new data (prevents session fixation)
                     session.clear()
+
+                    if 'remember' in request.form:
+                        session.permanent = True
+                    else:
+                        session.permanent = False
+
                     session['logged_in'] = True
                     session['user_id'] = user['id']
                     session['user_name'] = user['full_name']
@@ -156,91 +176,71 @@ def register():
         return redirect(url_for('auth.dashboard'))
 
     if request.method == 'POST':
-        full_name = request.form.get('full_name', '').strip()
         email = request.form.get('email', '').strip()
-        dob_str = request.form.get('dob', '').strip()
-        password = request.form.get('password', '').strip()
-        confirm_pass = request.form.get('confirm_password', '').strip()
-        contact = request.form.get('contact_number', '').strip()
-        terms = request.form.get('terms')
+        password = request.form.get('password')
+        confirm_pass = request.form.get('confirm_password')
 
-        errors = []
-        if not all([full_name, email, dob_str, password, confirm_pass, contact]):
-            errors.append('All fields are required.')
+        if not email or not password:
+            flash('Email and password are required.', 'danger')
+            return render_template('register.html', form_data=request.form)
+
         if password != confirm_pass:
-            errors.append('Passwords do not match.')
-        if len(password) < 8:
-            errors.append('Password must be at least 8 characters.')
-        if not terms:
-            errors.append('You must accept the Terms & Conditions.')
-
-        dob = None
-        age = None
-        if dob_str:
-            try:
-                dob = datetime.datetime.strptime(dob_str, '%Y-%m-%d').date()
-                today = datetime.date.today()
-                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-                if age < 18:
-                    errors.append('You must be at least 18 years old.')
-            except ValueError:
-                errors.append('Invalid date of birth.')
-
-        if errors:
-            for err in errors:
-                flash(err, 'danger')
+            flash('Passwords do not match.', 'danger')
             return render_template('register.html', form_data=request.form)
 
-        try:
-            conn = get_db()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
-            existing = cursor.fetchone()
-            cursor.close()
-            conn.close()
+        # ✅ FIX: Compute age server-side from dob — never trust client-sent age
+        dob_str = request.form.get('dob', '').strip()
+        computed_age = calculate_age(dob_str)
 
-            if existing:
-                flash('An account with this email already exists.', 'danger')
-                return render_template('register.html', form_data=request.form)
-        except Exception as e:
-            flash(f'Database error: {str(e)}', 'danger')
-            return render_template('register.html', form_data=request.form)
+        # ✅ FIX: Build full_name server-side from name parts — never trust client hidden field
+        first_name  = (request.form.get('first_name', '') or '').strip()
+        middle_name = (request.form.get('middle_name', '') or '').strip()
+        last_name   = (request.form.get('last_name',  '') or '').strip()
+        full_name   = ' '.join(part for part in [first_name, middle_name, last_name] if part)
 
-        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        # Store all reg data in session
         session['reg_data'] = {
+            'first_name': first_name,
+            'middle_name': middle_name,
+            'last_name': last_name,
             'full_name': full_name,
             'email': email,
+            'contact_number': request.form.get('contact_number'),
+            'gender': request.form.get('gender'),
+            'nationality': request.form.get('nationality'),
+            'civil_status': request.form.get('civil_status'),
             'dob': dob_str,
-            'age': age,
-            'password': hashed_pw,
-            'contact_number': contact,
+            'age': computed_age,                        # ✅ Server-computed, always present
+            'province': request.form.get('province'),
+            'city': request.form.get('city'),
+            'barangay': request.form.get('barangay'),
+            'zip_code': request.form.get('zip_code'),
+            'house_street': request.form.get('house_street'),
+            'employment_type': request.form.get('employment_type'),
+            'job_role': request.form.get('job_role'),
+            'employer_business': request.form.get('employer_business'),
+            'nature_of_work': request.form.get('nature_of_work'),
+            'source_of_funds': request.form.get('source_of_funds'),
+            'monthly_transactions': request.form.get('monthly_transactions'),
+            'password': bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
             'terms_accepted': True,
             'terms_version': '1.0',
             'terms_timestamp': datetime.datetime.now().isoformat()
         }
 
+        # OTP Logic
         otp = str(random.randint(100000, 999999))
         session['otp'] = otp
         session['otp_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=10)).isoformat()
         session['otp_email'] = email
 
         try:
-            msg = Message('Your Verification OTP - Loan Management System', recipients=[email])
-            msg.html = f"""
-            <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;
-                        background:#0f172a;color:#e2e8f0;padding:40px;border-radius:12px;">
-              <h2 style="color:#38bdf8;margin-bottom:8px;">Email Verification</h2>
-              <p>Hello <strong>{full_name}</strong>,</p>
-              <p>Use the OTP below to verify your email. It expires in <strong>10 minutes</strong>.</p>
-              <div style="background:#1e293b;border-radius:8px;padding:24px;text-align:center;
-                          margin:24px 0;letter-spacing:12px;font-size:36px;
-                          font-weight:bold;color:#38bdf8;">{otp}</div>
-              <p style="font-size:12px;color:#64748b;">If you did not register, ignore this email.</p>
-            </div>"""
+            msg = Message('Your Verification OTP', recipients=[email])
+            msg.body = f"OTP code: {otp}"
             mail.send(msg)
-            flash(f'OTP sent to {email}. Please check your inbox.', 'success')
-        except Exception as e:
-            flash(f'Could not send OTP: {str(e)}. Dev OTP: {otp}', 'warning')
+            flash(f'OTP sent to {email}.', 'success')
+        except:
+            flash(f'Dev OTP: {otp}', 'warning')
 
         return redirect(url_for('auth.verify_otp'))
 
@@ -306,7 +306,8 @@ def resend_otp():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Failed: {str(e)}. Dev OTP: {otp}'})
 
-    
+
+# 4.4 VALIDATE ID (GEMINI AI)
 @auth.route('/validate-id-api', methods=['POST'])
 def validate_id_api():
     import time
@@ -381,11 +382,6 @@ face_match=false if uncertain. liveness=false if photo-of-photo or screen.
 approve = all checks true + confidence high. review = valid+clear+confidence medium.
 reject = any check false or confidence low."""
 
-    MODELS = [
-        'gemini-2.5-flash',      # 10 RPM, 250 RPD (post-Dec 2025 limits) — primary
-        'gemini-2.5-flash-lite', # 15 RPM, 1000 RPD — stable GA since Feb 2026
-    ]
-
     # ── MANUAL REVIEW FALLBACK ───────────────────────────────────
     def _manual_review():
         session['gemini_approved'] = False
@@ -423,7 +419,7 @@ reject = any check false or confidence low."""
                 ),
             ]
 
-        for model in MODELS:
+        for model in GEMINI_MODELS:
             for attempt in range(1, MAX_RETRIES + 1):
                 try:
                     response = client.models.generate_content(
@@ -566,6 +562,10 @@ def upload_id():
             f.write(selfie_data)
 
         reg = session['reg_data']
+
+        # ✅ FIX: Always use server-computed age from reg_data (never from form/client)
+        age = reg.get('age', 0)
+
         try:
             conn = get_db()
             cursor = conn.cursor()
@@ -578,7 +578,7 @@ def upload_id():
                      terms_accepted_at, is_active, failed_attempts, created_at)
                 VALUES (%s,%s,%s,%s,%s,%s,'borrower',%s,%s,%s,1,%s,%s,1,0,%s)
             """, (
-                reg['full_name'], reg['email'], reg['dob'], reg['age'],
+                reg['full_name'], reg['email'], reg['dob'], age,
                 reg['password'], reg['contact_number'],
                 id_filename, selfie_filename,
                 verification_status,
@@ -701,9 +701,8 @@ def reset_password():
 
 
 # ================================================================
-# SECTION 6: DASHBOARD & REDIRECTS
+# SECTION 6: DASHBOARD REDIRECT (role-based)
 # ================================================================
-# 6.1 MAIN DASHBOARD (role-based redirect)
 @auth.route('/dashboard')
 @login_required
 def dashboard():
@@ -716,110 +715,12 @@ def dashboard():
     elif role == 'auditor':
         return redirect(url_for('super_admin.auditor_dashboard'))
     else:
-        return redirect(url_for('auth.borrower_dashboard'))
-
-
-# 6.2 BORROWER DASHBOARD
-@auth.route('/dashboard/borrower')
-@login_required
-@role_required('borrower')
-def borrower_dashboard():
-
-    recent_loans = []
-    stats = {'active_count': 0, 'total_outstanding': 0}
-    next_payment = {'next_due': None, 'next_amount': 0}
-    total_paid = 0
-
-    try:
-        conn = get_db()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute("""
-            SELECT l.*, lt.name AS type_name, lp.plan_name
-            FROM loans l
-            JOIN loan_types lt ON l.loan_type_id = lt.id
-            JOIN loan_plans lp ON l.loan_plan_id = lp.id
-            WHERE l.borrower_id = %s
-            ORDER BY l.created_at DESC
-            LIMIT 5
-        """, (session['user_id'],))
-        recent_loans = cursor.fetchall()
-
-        cursor.execute("""
-            SELECT COUNT(*) AS active_count,
-                   COALESCE(SUM(outstanding_balance), 0) AS total_outstanding
-            FROM loans
-            WHERE borrower_id = %s AND status IN ('active', 'disbursed')
-        """, (session['user_id'],))
-        stats = cursor.fetchone() or {'active_count': 0, 'total_outstanding': 0}
-
-        cursor.execute("""
-            SELECT MIN(a.due_date) AS next_due,
-                   SUM(a.total_due) AS next_amount
-            FROM amortization_schedule a
-            JOIN loans l ON a.loan_id = l.id
-            WHERE l.borrower_id = %s
-              AND l.status = 'active'
-              AND a.is_paid = 0
-              AND a.due_date >= CURDATE()
-        """, (session['user_id'],))
-        next_payment = cursor.fetchone() or {'next_due': None, 'next_amount': 0}
-
-        cursor.execute("""
-            SELECT COALESCE(SUM(p.amount_paid), 0) AS total_paid
-            FROM payments p
-            JOIN loans l ON p.loan_id = l.id
-            WHERE l.borrower_id = %s
-              AND p.status = 'completed'
-        """, (session['user_id'],))
-        paid_row = cursor.fetchone()
-        total_paid = paid_row['total_paid'] if paid_row else 0
-
-        cursor.close()
-        conn.close()
-
-    except Exception as e:
-        print(f"[borrower_dashboard ERROR] {e}")
-
-    return render_template('dashboard_borrower.html',
-                           recent_loans=recent_loans,
-                           stats=stats,
-                           next_payment=next_payment,
-                           total_paid=total_paid)
-
-
-
-
-
-
-
-
-
-
-
-
+        # ✅ Updated: now points to the Borrower blueprint
+        return redirect(url_for('borrower.borrower_dashboard'))
 
 
 # ================================================================
-# SECTION 7: USER PROFILE
-# ================================================================
-@auth.route('/profile')
-@login_required
-def profile():
-    try:
-        conn = get_db()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-    except:
-        user = {}
-    return render_template('profile.html', user=user)
-
-
-# ================================================================
-# SECTION 8: API ENDPOINTS
+# SECTION 7: API ENDPOINTS
 # ================================================================
 @auth.route('/api/check-email', methods=['POST'])
 def check_email():
@@ -834,314 +735,3 @@ def check_email():
         return jsonify({'exists': exists})
     except:
         return jsonify({'exists': False})
-    
-# ================================================================
-# SECTION 8.5: PAYMENT — SELECT LOAN (sidebar entry point)
-# ================================================================
-@auth.route('/payments/select')
-@login_required
-@role_required('borrower')
-def select_loan_to_pay():
-    try:
-        conn = get_db()
-        cursor = conn.cursor(dictionary=True)
-
-        
-        cursor.execute("""
-            SELECT l.*, lt.name AS type_name,
-                   (SELECT MIN(a.due_date)
-                    FROM amortization_schedule a
-                    WHERE a.loan_id = l.id AND a.is_paid = 0) AS next_due,
-                   (SELECT SUM(a.total_due)
-                    FROM amortization_schedule a
-                    WHERE a.loan_id = l.id AND a.is_paid = 0
-                      AND a.due_date = (
-                          SELECT MIN(a2.due_date)
-                          FROM amortization_schedule a2
-                          WHERE a2.loan_id = l.id AND a2.is_paid = 0
-                      )) AS next_amount
-            FROM loans l
-            JOIN loan_types lt ON l.loan_type_id = lt.id
-            WHERE l.borrower_id = %s
-              AND l.status IN ('active', 'disbursed')
-            ORDER BY l.created_at DESC
-        """, (session['user_id'],))
-
-        active_loans = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-        return redirect(url_for('auth.borrower_dashboard'))
-
-
-    return render_template('make_payment.html',
-                           active_loans=active_loans,
-                           today=datetime.date.today())
-
-
-# ================================================================
-# SECTION 9: PAYMENTS
-# ================================================================
-@auth.route('/payments/make/<int:loan_id>', methods=['GET', 'POST'])
-@login_required
-@role_required('borrower')
-def make_payment(loan_id):
-    try:
-        conn = get_db()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute("""
-            SELECT l.*, lt.name AS type_name, lp.plan_name, lp.interest_rate
-            FROM loans l
-            JOIN loan_types lt ON l.loan_type_id = lt.id
-            JOIN loan_plans lp ON l.loan_plan_id = lp.id
-            WHERE l.id = %s AND l.borrower_id = %s
-        """, (loan_id, session['user_id']))
-        loan = cursor.fetchone()
-
-        if not loan:
-            flash('Loan not found.', 'danger')
-            return redirect(url_for('auth.borrower_dashboard'))
-
-        cursor.execute("""
-            SELECT * FROM amortization_schedule
-            WHERE loan_id = %s AND is_paid = 0
-            ORDER BY due_date ASC
-        """, (loan_id,))
-        schedules = cursor.fetchall()
-
-        cursor.execute("""
-            SELECT l.*, lt.name AS type_name, lp.plan_name,
-                   (SELECT MIN(a.due_date)
-                    FROM amortization_schedule a
-                    WHERE a.loan_id = l.id AND a.is_paid = 0) AS next_due,
-                   (SELECT SUM(a.total_due)
-                    FROM amortization_schedule a
-                    WHERE a.loan_id = l.id AND a.is_paid = 0
-                      AND a.due_date = (
-                          SELECT MIN(a2.due_date)
-                          FROM amortization_schedule a2
-                          WHERE a2.loan_id = l.id AND a2.is_paid = 0
-                      )) AS next_amount
-            FROM loans l
-            JOIN loan_types lt ON l.loan_type_id = lt.id
-            JOIN loan_plans lp ON l.loan_plan_id = lp.id
-            WHERE l.borrower_id = %s AND l.status IN ('active', 'disbursed')
-            ORDER BY l.created_at DESC
-        """, (session['user_id'],))
-        active_loans = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-        return redirect(url_for('auth.borrower_dashboard'))
-
-    if request.method == 'POST':
-        amount_paid      = request.form.get('amount_paid', '').strip()
-        payment_method   = request.form.get('payment_method', '').strip()
-        reference_number = request.form.get('reference_number', '').strip()
-        payment_date     = request.form.get('payment_date', '').strip()
-        notes            = request.form.get('notes', '').strip()
-        proof_file       = request.files.get('payment_screenshot')
-
-        errors = []
-        if not amount_paid or not payment_method:
-            errors.append('Amount and payment method are required.')
-        if not reference_number:
-            errors.append('Reference number is required.')
-        if not payment_date:
-            errors.append('Payment date is required.')
-
-        try:
-            amount_paid = float(amount_paid)
-            if amount_paid <= 0:
-                errors.append('Amount must be greater than zero.')
-        except (ValueError, TypeError):
-            errors.append('Invalid amount.')
-
-        if errors:
-            for e in errors:
-                flash(e, 'danger')
-            return render_template('make_payment.html',
-                                   loan=loan, schedules=schedules,
-                                   active_loans=active_loans,
-                                   today=datetime.date.today())
-                                       
-        # Handle screenshot upload
-        screenshot_path = None
-        if proof_file and proof_file.filename:
-            from werkzeug.utils import secure_filename
-            PROOF_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'proofs')
-            os.makedirs(PROOF_FOLDER, exist_ok=True)
-            fname = secure_filename(
-                f"proof_{session['user_id']}_{datetime.datetime.now().timestamp()}_{proof_file.filename}"
-            )
-            proof_file.save(os.path.join(PROOF_FOLDER, fname))
-            screenshot_path = fname
-
-        try:
-            conn   = get_db()
-            cursor = conn.cursor()
-
-            year  = datetime.datetime.now().year
-            cursor.execute("SELECT COUNT(*) FROM payments WHERE YEAR(created_at) = %s", (year,))
-            count  = cursor.fetchone()[0] + 1
-            pay_no = f"PAY-{year}-{str(count).zfill(6)}"
-
-            cursor.execute("""
-                INSERT INTO payments
-                    (payment_no, loan_id, borrower_id,
-                     amount_paid, payment_method, reference_number,
-                     payment_date, screenshot_path, notes,
-                     status, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', NOW())
-            """, (
-                pay_no, loan_id, session['user_id'],
-                amount_paid, payment_method, reference_number,
-                payment_date, screenshot_path, notes
-            ))
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            flash(f'Payment submitted! Ref: {pay_no}. Awaiting verification.', 'success')
-            return redirect(url_for('auth.borrower_dashboard'))
-
-        except Exception as e:
-            flash(f'Error processing payment: {str(e)}', 'danger')
-
-    return render_template('make_payment.html',
-                           loan=loan, schedules=schedules,
-                           active_loans=active_loans,
-                           today=datetime.date.today())
-
-@auth.route('/payments/history')
-@login_required
-@role_required('borrower')
-def payment_history():
-    try:
-        conn   = get_db()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-    SELECT p.*, l.loan_no AS loan_ref, lt.name AS type_name
-    FROM payments p
-    JOIN loans l  ON p.loan_id = l.id
-    JOIN loan_types lt ON l.loan_type_id = lt.id
-    WHERE p.borrower_id = %s
-    ORDER BY p.created_at DESC
-""", (session['user_id'],))
-        payments = cursor.fetchall()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-        payments = []
-
-    return render_template('payment_history.html', payments=payments)
-
-
-# ================================================================
-# SECTION 10: DOCUMENTS
-# ================================================================
-@auth.route('/documents')
-@login_required
-@role_required('borrower')
-def my_documents():
-    try:
-        conn = get_db()
-        cursor = conn.cursor(dictionary=True)
-
-        # 1. Get User Data (Need created_at for the "Uploaded on" labels)
-        cursor.execute("""
-            SELECT id_document_path, selfie_path, id_verification_status, created_at 
-            FROM users WHERE id = %s
-        """, (session['user_id'],))
-        user_data = cursor.fetchone()
-
-        # 2. Get Application Documents (Requirements uploaded during application)
-        cursor.execute("""
-            SELECT ad.*, la.reference_no, la.status as app_status
-            FROM application_documents ad
-            JOIN loan_applications la ON ad.application_id = la.id
-            WHERE la.borrower_id = %s
-        """, (session['user_id'],))
-        app_docs = cursor.fetchall()
-
-        # 3. Get Active Loans (To generate Agreement PDFs and Amortization schedules)
-        cursor.execute("""
-            SELECT l.*, lt.name AS type_name 
-            FROM loans l
-            JOIN loan_types lt ON l.loan_type_id = lt.id
-            WHERE l.borrower_id = %s
-        """, (session['user_id'],))
-        loans = cursor.fetchall()
-
-        # 4. Get Payments (To show Payment Proof screenshots)
-        cursor.execute("""
-            SELECT * FROM payments 
-            WHERE borrower_id = %s AND screenshot_path IS NOT NULL
-        """, (session['user_id'],))
-        payments = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-    except Exception as e:
-        flash(f'Error loading documents: {str(e)}', 'danger')
-        user_data = {}
-        app_docs, loans, payments = [], [], []
-
-    # 'user' fixes the UndefinedError
-    # 'documents' handles the stats and app docs
-    # 'generated_docs' is a helper for your stats bar
-    return render_template('documents.html',
-                           user=user_data,
-                           documents=app_docs,
-                           loans=loans,
-                           payments=payments,
-                           generated_docs=loans) # Assuming 1 report per loan for stats
-
-
-@auth.route('/documents/upload', methods=['POST'])
-@login_required
-@role_required('borrower')
-def upload_document():
-    """Upload an additional supporting document linked to a loan application."""
-    app_id = request.form.get('application_id')
-    doc_type = request.form.get('document_type', 'requirement')
-    file = request.files.get('document')
-
-    UPLOAD_FOLDER_DOCS = os.path.join(
-        os.path.dirname(__file__), 'static', 'uploads', 'documents'
-    )
-
-    if not file or not allowed_file(file.filename):
-        flash('Invalid file. Allowed: PNG, JPG, JPEG, PDF.', 'danger')
-        return redirect(url_for('auth.my_documents'))
-
-    try:
-        os.makedirs(UPLOAD_FOLDER_DOCS, exist_ok=True)
-        fname = secure_filename(
-            f"doc_{session['user_id']}_{datetime.datetime.now().timestamp()}_{file.filename}"
-        )
-        file.save(os.path.join(UPLOAD_FOLDER_DOCS, fname))
-
-        conn   = get_db()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO application_documents (application_id, document_type, file_path)
-            VALUES (%s, %s, %s)
-        """, (app_id, doc_type, fname))
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        flash('Document uploaded successfully.', 'success')
-    except Exception as e:
-        flash(f'Upload error: {str(e)}', 'danger')
-
-    return redirect(url_for('auth.my_documents'))

@@ -99,7 +99,7 @@
     </div>
 
     <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('auth.profile') }}">
+      <a href="{{ url_for('super_admin.SA_profile') }}">
         <span class="dd-icon dd-icon--profile"></span>My Profile
       </a>
       {% if session.role == 'super_admin' %}
@@ -175,7 +175,7 @@
       </div>
       <div class="topbar-right">
         <a href="{{ url_for('super_admin.borrowers') }}" class="btn btn-ghost btn-sm">← Borrowers</a>
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
           {{ session.user_name[0]|upper if session.user_name else 'A' }}
         </a>
       </div>

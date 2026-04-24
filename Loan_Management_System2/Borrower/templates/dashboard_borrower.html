@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('auth.static', filename='dashboard_borrower.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_borrower.css') }}"/>
   <style>
     /* ── User dropdown ── */
     .sidebar-user {
@@ -139,7 +139,7 @@
     </div>
 
     <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('auth.profile') }}">
+      <a href="{{ url_for('borrower.profile') }}">
         <span class="dd-icon dd-icon--profile"></span>My Profile
       </a>
       <a href="{{ url_for('loans.my_loans') }}">
@@ -154,16 +154,16 @@
     </div>
 
     <nav class="sidebar-nav">
-      <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item active">
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item active">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-      <a href="{{ url_for('auth.select_loan_to_pay') }}" class="nav-item">
+      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
         <span class="nav-icon nav-icon--payment"></span>Make a Payment
       </a>
-      <a href="{{ url_for('auth.payment_history') }}" class="nav-item">
+      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
         <span class="nav-icon nav-icon--history"></span>Payment History
       </a>
-      <a href="{{ url_for('auth.my_documents') }}" class="nav-item">
+      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
         <span class="nav-icon nav-icon--docs"></span>Documents
       </a>
     </nav>
@@ -206,7 +206,7 @@
             </div>
           </div>
         </div>
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
           {{ session.user_name[0]|upper if session.user_name else 'U' }}
         </a>
       </div>
@@ -239,7 +239,7 @@
         </div>
         <div class="wb-actions">
           <a href="{{ url_for('loans.apply') }}" class="wb-btn wb-btn-white">Apply for Loan</a>
-          <a href="{{ url_for('auth.select_loan_to_pay') }}" class="wb-btn wb-btn-outline">Make Payment</a>
+          <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="wb-btn wb-btn-outline">Make Payment</a>
         </div>
       </div>
 
@@ -361,7 +361,7 @@
                   <p>Submit a new application</p>
                 </div>
               </a>
-              <a href="{{ url_for('auth.select_loan_to_pay') }}" class="quick-btn">
+              <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="quick-btn">
                 <div class="qb-icon qb-icon--green"></div>
                 <div class="qb-text">
                   <h4>Make Payment</h4>
@@ -375,7 +375,7 @@
                   <p>Download your records</p>
                 </div>
               </a>
-              <a href="{{ url_for('auth.profile') }}" class="quick-btn">
+              <a href="{{ url_for('borrower.profile') }}" class="quick-btn">
                 <div class="qb-icon qb-icon--gray"></div>
                 <div class="qb-text">
                   <h4>My Profile</h4>
@@ -393,7 +393,7 @@
 
 </div>
 
-<script src="{{ url_for('auth.static', filename='dashboard_borrower.js') }}"></script>
+<script src="{{ url_for('borrower.static', filename='dashboard_borrower.js') }}"></script>
 <script>
   (function () {
     var toggle = document.getElementById('userDropdownToggle');

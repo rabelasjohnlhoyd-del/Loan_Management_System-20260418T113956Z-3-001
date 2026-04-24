@@ -124,7 +124,7 @@
 
     <!-- USER DROPDOWN -->
     <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('auth.profile') }}">
+      <a href="{{ url_for('super_admin.SA_profile') }}">
         <span class="dd-icon dd-icon--profile"></span>My Profile
       </a>
       {% if session.role == 'super_admin' %}
@@ -206,7 +206,7 @@
           <span class="topbar-icon topbar-icon--bell"></span>
           <span class="notif-dot" id="notifDot"></span>
         </button>
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
           {{ session.user_name[0]|upper if session.user_name else 'A' }}
         </a>
 

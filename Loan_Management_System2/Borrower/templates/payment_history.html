@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Payment History — Hiraya</title>
-  <link rel="stylesheet" href="{{ url_for('auth.static', filename='dashboard_payment.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_payment.css') }}"/>
 </head>
 <body>
 <div class="app-wrap">
@@ -25,16 +25,16 @@
       </div>
     </div>
     <nav class="sidebar-nav">
-      <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item">
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-      <a href="{{ url_for('auth.select_loan_to_pay') }}" class="nav-item">
+      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
         <span class="nav-icon nav-icon--payment"></span>Make a Payment
       </a>
-      <a href="{{ url_for('auth.payment_history') }}" class="nav-item active">
+      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item active">
         <span class="nav-icon nav-icon--history"></span>Payment History
       </a>
-      <a href="{{ url_for('auth.my_documents') }}" class="nav-item">
+      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
         <span class="nav-icon nav-icon--docs"></span>Documents
       </a>
     </nav>
@@ -54,7 +54,7 @@
         <h1>Payment History</h1>
         <p>All your submitted payments</p>
       </div>
-      <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
         {{ session.user_name[0]|upper if session.user_name else 'U' }}
       </a>
     </header>
@@ -118,7 +118,7 @@
         <div style="font-size:3rem;margin-bottom:16px;">🧾</div>
         <h6 style="font-weight:700;color:#374151;margin-bottom:8px;">No Payment Records</h6>
         <p style="font-size:0.88rem;">You haven't made any payments yet.</p>
-        <a href="{{ url_for('auth.select_loan_to_pay') }}" 
+        <a href="{{ url_for('borrower.select_loan_to_pay') }}" 
            style="display:inline-block;margin-top:16px;background:#16a34a;color:white;padding:10px 24px;border-radius:10px;text-decoration:none;font-weight:600;">
           Make a Payment
         </a>

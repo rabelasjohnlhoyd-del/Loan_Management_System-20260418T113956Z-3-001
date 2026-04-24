@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Audit Payments — Hiraya Auditor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('auditor.static', filename='AU_style.css') }}"/>
+</head>
+<body>
+<div class="app-wrap">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div><h2>Hiraya</h2><span>Management System</span></div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name }}</h4>
+        <div class="s-role-badge">Auditor</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="{{ url_for('auditor.auditor_dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <div class="nav-section-label nav-section--spaced">Audit</div>
+      <a href="{{ url_for('auditor.audit_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Loans
+      </a>
+      <a href="{{ url_for('auditor.audit_payments') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--payments"></span>Payments
+      </a>
+      <div class="nav-section-label nav-section--spaced">Borrowers</div>
+      <a href="{{ url_for('auditor.borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+      </a>
+      <div class="nav-section-label nav-section--spaced">Reports</div>
+      <a href="{{ url_for('auditor.reports') }}" class="nav-item">
+        <span class="nav-icon nav-icon--reports"></span>Reports
+      </a>
+      <div class="nav-section-label nav-section--spaced">Logs</div>
+      <a href="{{ url_for('auditor.activity_logs') }}" class="nav-item">
+        <span class="nav-icon nav-icon--logs"></span>Activity Logs
+      </a>
+      <div class="nav-section-label nav-section--spaced">Account</div>
+      <a href="{{ url_for('auditor.profile') }}" class="nav-item">
+        <span class="nav-icon nav-icon--profile"></span>My Profile
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Payments</h1>
+        <p>Read-only audit view of all payment transactions</p>
+      </div>
+      <div class="topbar-right">
+        <a href="{{ url_for('auditor.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+        </a>
+      </div>
+    </header>
+
+    <main class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <ul class="flash-list">
+            {% for category, message in messages %}
+              <li class="flash-msg {{ category }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3>All Payments</h3>
+            <p>{{ payments | length }} transaction(s) found</p>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          {% if payments %}
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Borrower</th>
+                <th>Loan No.</th>
+                <th>Amount Paid</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in payments %}
+              <tr>
+                <td><span class="td-mono">{{ p.payment_no }}</span></td>
+                <td>{{ p.borrower_name }}</td>
+                <td><span class="td-mono">{{ p.reference_no }}</span></td>
+                <td>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</td>
+                <td>{{ p.payment_method | replace('_',' ') | title }}</td>
+                <td><span class="badge status-{{ p.status }}">{{ p.status | title }}</span></td>
+                <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="table-empty">
+            <span class="empty-icon"></span>
+            <p>No payment records found.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

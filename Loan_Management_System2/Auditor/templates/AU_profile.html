@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Profile — Hiraya Auditor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('auditor.static', filename='AU_style.css') }}"/>
+</head>
+<body>
+<div class="app-wrap">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div><h2>Hiraya</h2><span>Management System</span></div>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+      <div class="s-user-info">
+        <h4>{{ session.user_name }}</h4>
+        <div class="s-role-badge">Auditor</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a href="{{ url_for('auditor.auditor_dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <div class="nav-section-label nav-section--spaced">Audit</div>
+      <a href="{{ url_for('auditor.audit_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Loans
+      </a>
+      <a href="{{ url_for('auditor.audit_payments') }}" class="nav-item">
+        <span class="nav-icon nav-icon--payments"></span>Payments
+      </a>
+      <div class="nav-section-label nav-section--spaced">Borrowers</div>
+      <a href="{{ url_for('auditor.borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+      </a>
+      <div class="nav-section-label nav-section--spaced">Reports</div>
+      <a href="{{ url_for('auditor.reports') }}" class="nav-item">
+        <span class="nav-icon nav-icon--reports"></span>Reports
+      </a>
+      <div class="nav-section-label nav-section--spaced">Logs</div>
+      <a href="{{ url_for('auditor.activity_logs') }}" class="nav-item">
+        <span class="nav-icon nav-icon--logs"></span>Activity Logs
+      </a>
+      <div class="nav-section-label nav-section--spaced">Account</div>
+      <a href="{{ url_for('auditor.profile') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--profile"></span>My Profile
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>My Profile</h1>
+        <p>View your account information</p>
+      </div>
+      <div class="topbar-right">
+        <a href="{{ url_for('auditor.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+        </a>
+      </div>
+    </header>
+
+    <main class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <ul class="flash-list">
+            {% for category, message in messages %}
+              <li class="flash-msg {{ category }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+
+      <div class="card">
+        <div class="card-header">
+          <div><h3>Account Information</h3><p>Your auditor account details</p></div>
+        </div>
+        <div class="card-body">
+          {% if user %}
+          <div style="display:flex;align-items:center;gap:20px;margin-bottom:28px;">
+            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#4f8ef7,#a78bfa);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:26px;font-weight:700;color:#fff;flex-shrink:0;">
+              {{ user.full_name[0]|upper if user.full_name else 'A' }}
+            </div>
+            <div>
+              <h2 style="font-family:'Sora',sans-serif;font-size:18px;font-weight:700;color:var(--text-primary);">{{ user.full_name }}</h2>
+              <span class="badge badge-active" style="margin-top:4px;">Auditor</span>
+            </div>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-field">
+              <label>Full Name</label>
+              <span>{{ user.full_name or '—' }}</span>
+            </div>
+            <div class="detail-field">
+              <label>Email Address</label>
+              <span>{{ user.email or '—' }}</span>
+            </div>
+            <div class="detail-field">
+              <label>Role</label>
+              <span>Auditor</span>
+            </div>
+            <div class="detail-field">
+              <label>Member Since</label>
+              <span>{{ user.created_at.strftime('%B %d, %Y') if user.created_at else '—' }}</span>
+            </div>
+            {% if user.phone %}
+            <div class="detail-field">
+              <label>Phone</label>
+              <span>{{ user.phone }}</span>
+            </div>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="table-empty">
+            <span class="empty-icon"></span>
+            <p>Unable to load profile information.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

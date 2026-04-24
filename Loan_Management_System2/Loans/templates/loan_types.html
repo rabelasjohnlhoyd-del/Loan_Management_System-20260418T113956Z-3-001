@@ -35,7 +35,7 @@
     </div>
 
     <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('auth.profile') }}">
+      <a href="{{ url_for('borrower.profile') }}">
         <span class="dd-icon dd-icon--profile"></span>My Profile
       </a>
       {% if session.role == 'borrower' %}
@@ -65,7 +65,7 @@
 
     <nav class="sidebar-nav">
 
-      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
 
@@ -130,7 +130,7 @@
         </div>
       </div>
       <div class="topbar-right">
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
           {{ session.user_name[0]|upper if session.user_name else 'U' }}
         </a>
       </div>

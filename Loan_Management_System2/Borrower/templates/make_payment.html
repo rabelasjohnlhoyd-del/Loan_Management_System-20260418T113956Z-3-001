@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-  <link rel="stylesheet" href="{{ url_for('auth.static', filename='dashboard_payment.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_payment.css') }}" />
 </head>
 <body>
 
@@ -34,16 +34,16 @@
     </div>
 
     <nav class="sidebar-nav">
-      <a href="{{ url_for('auth.borrower_dashboard') }}" class="nav-item">
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-      <a href="{{ url_for('auth.select_loan_to_pay') }}" class="nav-item active">
+      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item active">
     <span class="nav-icon nav-icon--payment"></span>Make a Payment
 </a>
-<a href="{{ url_for('auth.payment_history') }}" class="nav-item">
+<a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
     <span class="nav-icon nav-icon--history"></span>Payment History
 </a>
-<a href="{{ url_for('auth.my_documents') }}" class="nav-item">
+<a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
     <span class="nav-icon nav-icon--docs"></span>Documents
 </a>
 
@@ -64,7 +64,7 @@
         <h1>Make a Payment</h1>
         <p>Submit your payment proof for verification</p>
       </div>
-      <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">J</a>
+      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">J</a>
     </header>
 
     <main class="page-body">
@@ -140,7 +140,7 @@
 
       <!-- PAYMENT FORM (hidden until loan selected) -->
       <div id="sectionPaymentForm" style="display:none;">
-        <form method="POST" action="{{ url_for('auth.make_payment', loan_id=active_loans[0].id) if active_loans else '#' }}" enctype="multipart/form-data" id="paymentForm">
+        <form method="POST" action="{{ url_for('borrower.make_payment', loan_id=active_loans[0].id) if active_loans else '#' }}" enctype="multipart/form-data" id="paymentForm">
           <input type="hidden" name="loan_id" id="hiddenLoanId" />
           <input type="hidden" name="payment_method" id="hiddenMethod" value="gcash" />
 
@@ -330,7 +330,7 @@
     <p style="font-size:12px;color:var(--gray-400);margin-bottom:20px;">You'll receive an email confirmation once reviewed.</p>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="document.getElementById('successModal').classList.remove('show')">Close</button>
-      <a href="{{ url_for('auth.borrower_dashboard') }}" class="btn-primary" style="text-decoration:none;">View My Loans</a>
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-primary" style="text-decoration:none;">View My Loans</a>
     </div>
   </div>
 </div>
@@ -353,7 +353,7 @@
     selectedLoanData = { id, ref, amount, type, due };
 
     // ✅ ADD THIS LINE
-    document.getElementById('paymentForm').action = `/auth/payments/make/${id}`;
+    document.getElementById('paymentForm').action = `/borrower/payments/make/${id}`;
 
     document.getElementById('hiddenLoanId').value = id;
     document.getElementById('paymentAmount').value = amount > 0 ? amount.toFixed(2) : '';

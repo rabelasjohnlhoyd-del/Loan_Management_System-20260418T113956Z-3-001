@@ -6,12 +6,7 @@ from Loan_Management_System2 import db_config, mail
 from flask_mail import Message
 import mysql.connector
 
-admin_bp = Blueprint(
-    'super_admin', __name__,
-    template_folder='templates',
-    static_folder='static',
-    static_url_path='/admin/static'
-)
+super_admin_bp = Blueprint('super_admin', __name__,template_folder='templates',static_folder='static',static_url_path='/admin/static')
 
 def get_db():
     return mysql.connector.connect(**db_config)
@@ -67,7 +62,7 @@ def log_activity(action, details=''):
 # ─────────────────────────────────────────────
 # ADMIN DASHBOARD
 # ─────────────────────────────────────────────
-@admin_bp.route('/dashboard')
+@super_admin_bp.route('/dashboard')
 @login_required
 @role_required('admin', 'super_admin')
 def admin_dashboard():
@@ -103,13 +98,13 @@ def admin_dashboard():
         stats['pending_payments'] = cursor.fetchone()['cnt']
 
         cursor.execute("""
-    SELECT la.id, la.reference_no, la.amount_requested, la.status, la.submitted_at,
-           u.full_name AS borrower_name, lt.name AS type_name
-    FROM loan_applications la
-    JOIN users u ON u.id = la.borrower_id
-    JOIN loan_types lt ON lt.id = la.loan_type_id
-    ORDER BY la.submitted_at DESC LIMIT 5
-""")
+            SELECT la.id, la.reference_no, la.amount_requested, la.status, la.submitted_at,
+                   u.full_name AS borrower_name, lt.name AS type_name
+            FROM loan_applications la
+            JOIN users u ON u.id = la.borrower_id
+            JOIN loan_types lt ON lt.id = la.loan_type_id
+            ORDER BY la.submitted_at DESC LIMIT 5
+        """)
         recent_applications = cursor.fetchall()
 
         cursor.execute("""
@@ -135,7 +130,7 @@ def admin_dashboard():
 # ─────────────────────────────────────────────
 # OFFICER DASHBOARD
 # ─────────────────────────────────────────────
-@admin_bp.route('/officer-dashboard')
+@super_admin_bp.route('/officer-dashboard')
 @login_required
 @role_required('loan_officer')
 def officer_dashboard():
@@ -145,7 +140,7 @@ def officer_dashboard():
 # ─────────────────────────────────────────────
 # AUDITOR DASHBOARD
 # ─────────────────────────────────────────────
-@admin_bp.route('/auditor-dashboard')
+@super_admin_bp.route('/auditor-dashboard')
 @login_required
 @role_required('auditor')
 def auditor_dashboard():
@@ -155,7 +150,7 @@ def auditor_dashboard():
 # ─────────────────────────────────────────────
 # ADMIN: ALL APPLICATIONS
 # ─────────────────────────────────────────────
-@admin_bp.route('/applications')
+@super_admin_bp.route('/applications')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer')
 def admin_applications():
@@ -220,7 +215,7 @@ def admin_applications():
 # ─────────────────────────────────────────────
 # ADMIN: APPLICATION DETAIL
 # ─────────────────────────────────────────────
-@admin_bp.route('/applications/<int:app_id>')
+@super_admin_bp.route('/applications/<int:app_id>')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer')
 def application_detail(app_id):
@@ -248,9 +243,9 @@ def application_detail(app_id):
 
         from Loan_Management_System2.Loans.routes import calculate_monthly_payment
         monthly = calculate_monthly_payment(
-            float(app['amount_requested']),
-            float(app['interest_rate']),
-            app['term_months']
+            float(app['amount_requested'] or 0),
+            float(app['interest_rate'] or 0),
+            app['term_months'] or 0
         )
 
         cursor.close()
@@ -265,7 +260,7 @@ def application_detail(app_id):
 # ─────────────────────────────────────────────
 # ADMIN: ALL LOANS
 # ─────────────────────────────────────────────
-@admin_bp.route('/loans')
+@super_admin_bp.route('/loans')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def all_loans():
@@ -304,6 +299,13 @@ def all_loans():
         cursor.execute(query, params)
         loan_list = cursor.fetchall()
 
+        # Sanitize numeric fields for all loans in list
+        for l in loan_list:
+            l['disbursed_amount']    = float(l.get('disbursed_amount') or 0)
+            l['outstanding_balance'] = float(l.get('outstanding_balance') or 0)
+            l['principal_amount']    = float(l.get('principal_amount') or 0)
+            l['monthly_payment']     = float(l.get('monthly_payment') or 0)
+
         cursor.execute("SELECT status, COUNT(*) AS cnt FROM loans GROUP BY status")
         counts = {r['status']: r['cnt'] for r in cursor.fetchall()}
         cursor.execute("SELECT COUNT(*) AS cnt FROM loans")
@@ -330,7 +332,7 @@ def all_loans():
 # ─────────────────────────────────────────────
 # ADMIN: BORROWERS LIST
 # ─────────────────────────────────────────────
-@admin_bp.route('/borrowers')
+@super_admin_bp.route('/borrowers')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def borrowers():
@@ -396,7 +398,7 @@ def borrowers():
 # ─────────────────────────────────────────────
 # ADMIN: BORROWER DETAIL
 # ─────────────────────────────────────────────
-@admin_bp.route('/borrowers/<int:borrower_id>')
+@super_admin_bp.route('/borrowers/<int:borrower_id>')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def borrower_detail(borrower_id):
@@ -434,6 +436,13 @@ def borrower_detail(borrower_id):
         """, (borrower_id,))
         loan_history = cursor.fetchall()
 
+        # Sanitize loan history numeric fields
+        for l in loan_history:
+            l['principal_amount']    = float(l.get('principal_amount') or 0)
+            l['outstanding_balance'] = float(l.get('outstanding_balance') or 0)
+            l['monthly_payment']     = float(l.get('monthly_payment') or 0)
+            l['disbursed_amount']    = float(l.get('disbursed_amount') or 0)
+
         cursor.execute("""
             SELECT la.*, lt.name AS type_name
             FROM loan_applications la
@@ -458,7 +467,7 @@ def borrower_detail(borrower_id):
 # ─────────────────────────────────────────────
 # ADMIN: LOAN DETAIL
 # ─────────────────────────────────────────────
-@admin_bp.route('/loans/<int:loan_id>')
+@super_admin_bp.route('/loans/<int:loan_id>')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def loan_detail(loan_id):
@@ -482,11 +491,29 @@ def loan_detail(loan_id):
             flash('Loan not found.', 'danger')
             return redirect(url_for('super_admin.all_loans'))
 
+        # Sanitize all numeric fields to prevent format string errors
+        loan['outstanding_balance'] = float(loan.get('outstanding_balance') or 0)
+        loan['principal_amount']    = float(loan.get('principal_amount') or 0)
+        loan['monthly_payment']     = float(loan.get('monthly_payment') or 0)
+        loan['interest_rate']       = float(loan.get('interest_rate') or 0)
+        loan['processing_fee']      = float(loan.get('processing_fee') or 0)
+        loan['disbursed_amount']    = float(loan.get('disbursed_amount') or 0)
+        loan['term_months']         = int(loan.get('term_months') or 0)
+
         cursor.execute("""
             SELECT * FROM amortization_schedule
             WHERE loan_id = %s ORDER BY period_no
         """, (loan_id,))
         schedule = cursor.fetchall()
+
+        # Sanitize schedule rows + normalize status from is_paid
+        for row in schedule:
+            row['principal_due'] = float(row.get('principal_due') or 0)
+            row['interest_due']  = float(row.get('interest_due') or 0)
+            row['total_due']     = float(row.get('total_due') or 0)
+            row['balance_after'] = float(row.get('balance_after') or 0)
+            # Normalize status field from is_paid column
+            row['status'] = 'paid' if row.get('is_paid') else 'upcoming'
 
         cursor.execute("""
             SELECT p.*, u.full_name AS verified_by_name
@@ -497,10 +524,18 @@ def loan_detail(loan_id):
         """, (loan_id,))
         payment_history = cursor.fetchall()
 
+        # Sanitize payment fields
+        for p in payment_history:
+            p['amount_paid'] = float(p.get('amount_paid') or 0)
+
         cursor.execute("SELECT * FROM penalties WHERE loan_id = %s ORDER BY period_no", (loan_id,))
         penalties = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM application_documents WHERE application_id = %s", (loan['application_id'],))
+        # Sanitize penalty fields
+        for pen in penalties:
+            pen['amount'] = float(pen.get('amount') or 0)
+
+        cursor.execute("SELECT * FROM application_documents WHERE application_id = %s", (loan.get('application_id'),))
         documents = cursor.fetchall()
 
         cursor.close()
@@ -514,13 +549,14 @@ def loan_detail(loan_id):
                            schedule=schedule,
                            payment_history=payment_history,
                            penalties=penalties,
-                           documents=documents)
+                           documents=documents,
+                           now=datetime.date.today())
 
 
 # ─────────────────────────────────────────────
 # ADMIN: VERIFY BORROWER ID
 # ─────────────────────────────────────────────
-@admin_bp.route('/borrowers/<int:borrower_id>/verify-id', methods=['POST'])
+@super_admin_bp.route('/borrowers/<int:borrower_id>/verify-id', methods=['POST'])
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer')
 def verify_borrower_id(borrower_id):
@@ -551,10 +587,10 @@ def verify_borrower_id(borrower_id):
 
         try:
             if action == 'verified':
-                note = request.form.get('note', '').strip()
+                note  = request.form.get('note', '').strip()
                 extra = f"<p><em>Note: {note}</em></p>" if note else ""
-                msg = Message('Your ID Has Been Verified - Loan Management System',
-                              recipients=[borrower['email']])
+                msg   = Message('Your ID Has Been Verified - Loan Management System',
+                                recipients=[borrower['email']])
                 msg.html = f"""
                 <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;
                             background:#0f172a;color:#e2e8f0;padding:40px;border-radius:12px;">
@@ -565,7 +601,7 @@ def verify_borrower_id(borrower_id):
                 </div>"""
                 mail.send(msg)
             else:
-                note = request.form.get('note', '').strip()
+                note         = request.form.get('note', '').strip()
                 reason_block = f"""
                   <div style="background:#1e293b;border-left:3px solid #ef4444;
                               border-radius:6px;padding:14px 16px;margin:16px 0;">
@@ -601,7 +637,7 @@ def verify_borrower_id(borrower_id):
 # ─────────────────────────────────────────────
 # ADMIN: APPROVE / REJECT APPLICATION
 # ─────────────────────────────────────────────
-@admin_bp.route('/applications/<int:app_id>/review', methods=['POST'])
+@super_admin_bp.route('/applications/<int:app_id>/review', methods=['POST'])
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer')
 def review_application(app_id):
@@ -629,10 +665,10 @@ def review_application(app_id):
 
         if action == 'approve':
             loan_no        = generate_reference('LN', 'loans', 'id')
-            principal      = float(app['amount_requested'])
-            rate           = float(app['interest_rate'])
-            months         = app['term_months']
-            fee_pct        = float(app['processing_fee'])
+            principal      = float(app['amount_requested'] or 0)
+            rate           = float(app['interest_rate'] or 0)
+            months         = app['term_months'] or 0
+            fee_pct        = float(app['processing_fee'] or 0)
             processing_fee = round(principal * fee_pct / 100, 2)
             disbursed      = round(principal - processing_fee, 2)
             monthly        = calculate_monthly_payment(principal, rate, months)
@@ -711,7 +747,7 @@ def review_application(app_id):
 # ─────────────────────────────────────────────
 # ADMIN: ALL PAYMENTS (Pending Verification)
 # ─────────────────────────────────────────────
-@admin_bp.route('/payments')
+@super_admin_bp.route('/payments')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def all_payments():
@@ -745,6 +781,10 @@ def all_payments():
         cursor.execute(query, params)
         payments = cursor.fetchall()
 
+        # Sanitize payment amounts
+        for p in payments:
+            p['amount_paid'] = float(p.get('amount_paid') or 0)
+
         cursor.execute("SELECT status, COUNT(*) AS cnt FROM payments GROUP BY status")
         counts = {r['status']: r['cnt'] for r in cursor.fetchall()}
         cursor.execute("SELECT COUNT(*) AS cnt FROM payments")
@@ -766,16 +806,13 @@ def all_payments():
 # ─────────────────────────────────────────────
 # ADMIN: VERIFY / REJECT PAYMENT
 # ─────────────────────────────────────────────
-@admin_bp.route('/payments/<int:payment_id>/verify', methods=['POST'])
+@super_admin_bp.route('/payments/<int:payment_id>/verify', methods=['POST'])
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer')
 def verify_payment(payment_id):
     action = request.form.get('action')
     notes  = request.form.get('notes', '').strip()
-    
-    # ADD THIS LINE ↓
-    print(f"[VERIFY] payment_id={payment_id} action='{action}' form={dict(request.form)}")
-    
+
     if action not in ('approved', 'rejected'):
         flash('Invalid action.', 'danger')
         return redirect(url_for('super_admin.all_payments'))
@@ -802,31 +839,27 @@ def verify_payment(payment_id):
 
         now = datetime.datetime.now()
 
-        # I-update agad yung status
         cursor.execute("""
-        UPDATE payments
-        SET status = %s, verified_by = %s, verified_at = %s, notes = %s
-        WHERE id = %s
+            UPDATE payments
+            SET status = %s, verified_by = %s, verified_at = %s, notes = %s
+            WHERE id = %s
         """, (action, session['user_id'], now, notes, payment_id))
-        conn.commit()  # ← COMMIT AGAD DITO
+        conn.commit()
 
         if action == 'approved':
-            new_balance = max(0, float(payment['outstanding_balance']) - float(payment['amount_paid']))
+            new_balance = max(0, float(payment['outstanding_balance'] or 0) - float(payment['amount_paid'] or 0))
 
-            # Mark the corresponding amortization period as paid
-            # Mark the corresponding amortization period as paid
             cursor.execute("""
-            UPDATE amortization_schedule
-            SET is_paid = 1, paid_at = %s
-            WHERE loan_id = %s AND is_paid = 0
-            ORDER BY period_no ASC LIMIT 1
+                UPDATE amortization_schedule
+                SET is_paid = 1, paid_at = %s
+                WHERE loan_id = %s AND is_paid = 0
+                ORDER BY period_no ASC LIMIT 1
             """, (now, payment['loan_id']))
 
-# Update next due date (move to next period)
             cursor.execute("""
-            SELECT due_date FROM amortization_schedule
-            WHERE loan_id = %s AND is_paid = 0
-            ORDER BY period_no ASC LIMIT 1
+                SELECT due_date FROM amortization_schedule
+                WHERE loan_id = %s AND is_paid = 0
+                ORDER BY period_no ASC LIMIT 1
             """, (payment['loan_id'],))
             next_row = cursor.fetchone()
             next_due = next_row['due_date'] if next_row else None
@@ -848,23 +881,23 @@ def verify_payment(payment_id):
                         paid_loans = paid_loans + 1,
                         total_paid = total_paid + %s
                     WHERE user_id = %s
-                """, (float(payment['amount_paid']), payment['borrower_id']))
+                """, (float(payment['amount_paid'] or 0), payment['borrower_id']))
 
             conn.commit()
             log_activity('verify_payment', f'Payment {payment_id} approved for Loan {payment["loan_no"]}')
 
-            # Send confirmation email
             try:
                 msg = Message('Payment Confirmed - Loan Management System',
-                              recipients=[payment['email'] if 'email' in payment else payment['borrower_email']])
+                              recipients=[payment['borrower_email']])
                 msg.html = f"""
                 <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;
                             background:#0f172a;color:#e2e8f0;padding:40px;border-radius:12px;">
                   <h2 style="color:#22c55e;">Payment Confirmed</h2>
-                  <p>Hello <strong>{payment['borrower_name']}</strong>,<p>Your payment of <strong>₱{float(payment['amount_paid']):,.2f}</strong>
+                  <p>Hello <strong>{payment['borrower_name']}</strong>,</p>
+                  <p>Your payment of <strong>&#8369;{float(payment['amount_paid'] or 0):,.2f}</strong>
                      for Loan <strong>{payment['loan_no']}</strong> has been verified.</p>
-                  <p>Remaining Balance: <strong>₱{new_balance:,.2f}</strong></p>
-                  <p style="color:#94a3b8;font-size:12px;">Reference: {payment.get('reference_no','N/A')}</p>
+                  <p>Remaining Balance: <strong>&#8369;{new_balance:,.2f}</strong></p>
+                  <p style="color:#94a3b8;font-size:12px;">Reference: {payment.get('reference_number', 'N/A')}</p>
                 </div>"""
                 mail.send(msg)
             except Exception:
@@ -907,7 +940,7 @@ def verify_payment(payment_id):
 # USER / STAFF MANAGEMENT (Super Admin Only)
 # ═════════════════════════════════════════════
 
-@admin_bp.route('/users')
+@super_admin_bp.route('/users')
 @login_required
 @role_required('super_admin')
 def manage_users():
@@ -949,7 +982,7 @@ def manage_users():
                            search=search)
 
 
-@admin_bp.route('/users/create', methods=['GET', 'POST'])
+@super_admin_bp.route('/users/create', methods=['GET', 'POST'])
 @login_required
 @role_required('super_admin')
 def create_user():
@@ -989,7 +1022,7 @@ def create_user():
     return render_template('create_user.html')
 
 
-@admin_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
+@super_admin_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
 @login_required
 @role_required('super_admin')
 def toggle_user_status(user_id):
@@ -1019,7 +1052,7 @@ def toggle_user_status(user_id):
 # PENALTIES & OVERDUE MANAGEMENT
 # ═════════════════════════════════════════════
 
-@admin_bp.route('/penalties')
+@super_admin_bp.route('/penalties')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def penalties_page():
@@ -1037,6 +1070,11 @@ def penalties_page():
         """)
         penalties = cursor.fetchall()
 
+        # Sanitize penalty amounts
+        for pen in penalties:
+            pen['amount']              = float(pen.get('amount') or 0)
+            pen['outstanding_balance'] = float(pen.get('outstanding_balance') or 0)
+
         cursor.close()
         conn.close()
     except Exception as e:
@@ -1046,7 +1084,7 @@ def penalties_page():
     return render_template('penalties.html', penalties=penalties)
 
 
-@admin_bp.route('/penalties/compute', methods=['POST'])
+@super_admin_bp.route('/penalties/compute', methods=['POST'])
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer')
 def compute_penalties():
@@ -1055,7 +1093,7 @@ def compute_penalties():
     Grace period: 5 days. Penalty rate: 2% of monthly payment per month overdue.
     """
     GRACE_DAYS    = 5
-    PENALTY_RATE  = 0.02  # 2% of monthly_payment
+    PENALTY_RATE  = 0.02
     today         = datetime.date.today()
     applied_count = 0
 
@@ -1081,17 +1119,7 @@ def compute_penalties():
                 continue
 
             months_overdue = max(1, days_overdue // 30)
-            penalty_amount = round(float(loan['monthly_payment']) * PENALTY_RATE * months_overdue, 2)
-
-            # Avoid duplicate penalty for same period
-            cursor.execute("""
-                SELECT id FROM penalties
-                WHERE loan_id = %s AND period_no = (
-                    SELECT COALESCE(MAX(period_no), 0) + 1
-                    FROM penalties WHERE loan_id = %s
-                )
-                LIMIT 1
-            """, (loan['loan_id'], loan['loan_id']))
+            penalty_amount = round(float(loan['monthly_payment'] or 0) * PENALTY_RATE * months_overdue, 2)
 
             cursor.execute("""
                 INSERT INTO penalties (loan_id, amount, days_overdue, due_date, created_at)
@@ -1099,14 +1127,12 @@ def compute_penalties():
                 ON DUPLICATE KEY UPDATE amount = %s
             """, (loan['loan_id'], penalty_amount, days_overdue, loan['next_due_date'], penalty_amount))
 
-            # Add penalty to outstanding balance
             cursor.execute("""
                 UPDATE loans SET outstanding_balance = outstanding_balance + %s WHERE id = %s
             """, (penalty_amount, loan['loan_id']))
 
             applied_count += 1
 
-            # Send overdue email
             try:
                 msg = Message('Overdue Payment Notice - Loan Management System',
                               recipients=[loan['borrower_email']])
@@ -1117,7 +1143,7 @@ def compute_penalties():
                   <p>Hello <strong>{loan['borrower_name']}</strong>,</p>
                   <p>Your loan <strong>{loan['loan_no']}</strong> has a payment
                      overdue by <strong>{days_overdue} days</strong>.</p>
-                  <p>A penalty of <strong>₱{penalty_amount:,.2f}</strong> has been added
+                  <p>A penalty of <strong>&#8369;{penalty_amount:,.2f}</strong> has been added
                      to your outstanding balance.</p>
                   <p>Please settle your account immediately to avoid further penalties.</p>
                 </div>"""
@@ -1140,13 +1166,13 @@ def compute_penalties():
 # ACTIVITY LOGS
 # ═════════════════════════════════════════════
 
-@admin_bp.route('/activity-logs')
+@super_admin_bp.route('/activity-logs')
 @login_required
 @role_required('admin', 'super_admin', 'auditor')
 def activity_logs():
-    search     = request.args.get('search', '').strip()
-    date_from  = request.args.get('date_from', '')
-    date_to    = request.args.get('date_to', '')
+    search    = request.args.get('search', '').strip()
+    date_from = request.args.get('date_from', '')
+    date_to   = request.args.get('date_to', '')
 
     try:
         conn   = get_db()
@@ -1193,14 +1219,14 @@ def activity_logs():
 # REPORTS
 # ═════════════════════════════════════════════
 
-@admin_bp.route('/reports')
+@super_admin_bp.route('/reports')
 @login_required
 @role_required('admin', 'super_admin', 'auditor')
 def reports_page():
     return render_template('reports.html')
 
 
-@admin_bp.route('/reports/amortization/<int:loan_id>')
+@super_admin_bp.route('/reports/amortization/<int:loan_id>')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def report_amortization(loan_id):
@@ -1224,11 +1250,25 @@ def report_amortization(loan_id):
             flash('Loan not found.', 'danger')
             return redirect(url_for('super_admin.reports_page'))
 
+        # Sanitize loan numeric fields
+        loan['principal_amount']    = float(loan.get('principal_amount') or 0)
+        loan['outstanding_balance'] = float(loan.get('outstanding_balance') or 0)
+        loan['monthly_payment']     = float(loan.get('monthly_payment') or 0)
+        loan['interest_rate']       = float(loan.get('interest_rate') or 0)
+        loan['disbursed_amount']    = float(loan.get('disbursed_amount') or 0)
+
         cursor.execute("""
             SELECT * FROM amortization_schedule
             WHERE loan_id = %s ORDER BY period_no
         """, (loan_id,))
         schedule = cursor.fetchall()
+
+        for row in schedule:
+            row['principal_due'] = float(row.get('principal_due') or 0)
+            row['interest_due']  = float(row.get('interest_due') or 0)
+            row['total_due']     = float(row.get('total_due') or 0)
+            row['balance_after'] = float(row.get('balance_after') or 0)
+            row['status']        = 'paid' if row.get('is_paid') else 'upcoming'
 
         cursor.close()
         conn.close()
@@ -1239,13 +1279,13 @@ def report_amortization(loan_id):
         return redirect(url_for('super_admin.reports_page'))
 
 
-@admin_bp.route('/reports/loan-performance')
+@super_admin_bp.route('/reports/loan-performance')
 @login_required
 @role_required('admin', 'super_admin', 'auditor')
 def report_loan_performance():
     """Loan performance report by type and date range."""
-    date_from  = request.args.get('date_from', '')
-    date_to    = request.args.get('date_to', '')
+    date_from   = request.args.get('date_from', '')
+    date_to     = request.args.get('date_to', '')
     type_filter = request.args.get('type', 'all')
 
     try:
@@ -1279,12 +1319,11 @@ def report_loan_performance():
         cursor.execute(query, params)
         loans = cursor.fetchall()
 
-        # Summary stats
-        total_disbursed  = sum(float(l['disbursed_amount'] or 0) for l in loans)
-        total_balance    = sum(float(l['outstanding_balance'] or 0) for l in loans)
-        active_count     = sum(1 for l in loans if l['status'] == 'active')
-        paid_count       = sum(1 for l in loans if l['status'] == 'paid')
-        defaulted_count  = sum(1 for l in loans if l['status'] == 'defaulted')
+        total_disbursed = sum(float(l.get('disbursed_amount') or 0) for l in loans)
+        total_balance   = sum(float(l.get('outstanding_balance') or 0) for l in loans)
+        active_count    = sum(1 for l in loans if l['status'] == 'active')
+        paid_count      = sum(1 for l in loans if l['status'] == 'paid')
+        defaulted_count = sum(1 for l in loans if l['status'] == 'defaulted')
 
         cursor.execute("SELECT * FROM loan_types WHERE is_active=1")
         types = cursor.fetchall()
@@ -1308,7 +1347,7 @@ def report_loan_performance():
         return redirect(url_for('super_admin.reports_page'))
 
 
-@admin_bp.route('/reports/borrower-history/<int:borrower_id>')
+@super_admin_bp.route('/reports/borrower-history/<int:borrower_id>')
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def report_borrower_history(borrower_id):
@@ -1342,6 +1381,9 @@ def report_borrower_history(borrower_id):
         """, (borrower_id,))
         payments = cursor.fetchall()
 
+        for p in payments:
+            p['amount_paid'] = float(p.get('amount_paid') or 0)
+
         cursor.execute("""
             SELECT l.*, lt.name AS type_name, lp.plan_name
             FROM loans l
@@ -1351,6 +1393,11 @@ def report_borrower_history(borrower_id):
             ORDER BY l.created_at DESC
         """, (borrower_id,))
         loans = cursor.fetchall()
+
+        for l in loans:
+            l['principal_amount']    = float(l.get('principal_amount') or 0)
+            l['outstanding_balance'] = float(l.get('outstanding_balance') or 0)
+            l['monthly_payment']     = float(l.get('monthly_payment') or 0)
 
         cursor.close()
         conn.close()
@@ -1364,13 +1411,13 @@ def report_borrower_history(borrower_id):
         return redirect(url_for('super_admin.reports_page'))
 
 
-@admin_bp.route('/reports/paid-loans')
+@super_admin_bp.route('/reports/paid-loans')
 @login_required
 @role_required('admin', 'super_admin', 'auditor')
 def report_paid_loans():
     """Record of all fully paid loans — bank note format."""
-    date_from  = request.args.get('date_from', '')
-    date_to    = request.args.get('date_to', '')
+    date_from = request.args.get('date_from', '')
+    date_to   = request.args.get('date_to', '')
 
     try:
         conn   = get_db()
@@ -1380,7 +1427,7 @@ def report_paid_loans():
             SELECT l.*, lt.name AS type_name, lp.plan_name,
                    u.full_name AS borrower_name, u.contact_number AS borrower_contact,
                    COALESCE(SUM(p.amount_paid), 0) AS total_paid_amount,
-COALESCE(SUM(p.amount_paid) - l.principal_amount, 0) AS interest_earned
+                   COALESCE(SUM(p.amount_paid) - l.principal_amount, 0) AS interest_earned
             FROM loans l
             JOIN loan_types lt ON l.loan_type_id = lt.id
             JOIN loan_plans lp ON l.loan_plan_id = lp.id
@@ -1402,8 +1449,13 @@ COALESCE(SUM(p.amount_paid) - l.principal_amount, 0) AS interest_earned
         cursor.execute(query, params)
         paid_loans = cursor.fetchall()
 
-        total_principal     = sum(float(l['principal_amount'] or 0) for l in paid_loans)
-        total_interest      = sum(float(l['interest_earned'] or 0) for l in paid_loans)
+        for l in paid_loans:
+            l['principal_amount']  = float(l.get('principal_amount') or 0)
+            l['total_paid_amount'] = float(l.get('total_paid_amount') or 0)
+            l['interest_earned']   = float(l.get('interest_earned') or 0)
+
+        total_principal = sum(l['principal_amount'] for l in paid_loans)
+        total_interest  = sum(l['interest_earned'] for l in paid_loans)
 
         cursor.close()
         conn.close()
@@ -1417,4 +1469,55 @@ COALESCE(SUM(p.amount_paid) - l.principal_amount, 0) AS interest_earned
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('super_admin.reports_page'))
-    
+
+
+# ─────────────────────────────────────────────
+# SUPER ADMIN: MY PROFILE
+# ─────────────────────────────────────────────
+@super_admin_bp.route('/profile')
+@login_required
+@role_required('admin', 'super_admin')
+def SA_profile():
+    stats = {
+        'pending_applications': 0,
+        'pending_payments': 0,
+    }
+
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT id, full_name, email, contact_number,
+                   date_of_birth, age, created_at,
+                   id_verification_status
+            FROM users
+            WHERE id = %s
+        """, (session.get('user_id'),))
+        user = cursor.fetchone()
+
+        if user:
+            if user.get('date_of_birth'):
+                user['date_of_birth'] = user['date_of_birth'].strftime('%B %d, %Y') \
+                    if hasattr(user['date_of_birth'], 'strftime') else user['date_of_birth']
+            if user.get('created_at'):
+                user['created_at'] = user['created_at'].strftime('%B %d, %Y') \
+                    if hasattr(user['created_at'], 'strftime') else user['created_at']
+
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM loan_applications
+            WHERE status IN ('submitted', 'under_review')
+        """)
+        stats['pending_applications'] = cursor.fetchone()['cnt']
+
+        cursor.execute("SELECT COUNT(*) AS cnt FROM payments WHERE status = 'pending'")
+        stats['pending_payments'] = cursor.fetchone()['cnt']
+
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        flash(f'Error loading profile: {str(e)}', 'danger')
+        user = None
+
+    return render_template('SA_profile.html', user=user, stats=stats)

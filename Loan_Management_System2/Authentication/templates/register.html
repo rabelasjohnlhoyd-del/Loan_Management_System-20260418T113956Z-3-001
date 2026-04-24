@@ -3,188 +3,211 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Register — Hiraya</title>
+  <title>Create Account — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('auth.static', filename='register.css') }}"/>
+  <style>
+    .step-content { display: none; }
+    .step-content.active { display: block !important; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .m-check { font-size: 11px; color: var(--gray-600); display: flex; align-items: center; gap: 5px; margin-top: -8px; margin-bottom: 10px; cursor: pointer; }
+    .form-section-title { font-size: 13px; font-weight: 700; color: var(--mint-dark); margin: 20px 0 10px; border-bottom: 1px solid var(--gray-200); padding-bottom: 5px; text-transform: uppercase; }
+    input:disabled, select:disabled { background-color: #f1f5f9 !important; cursor: not-allowed; }
+    .readonly-field { background-color: #f8fafc !important; font-weight: 600; color: #1e293b; border: 1px solid #e2e8f0 !important; cursor: default; }
+    .others-input { margin-top: 5px; display: none; }
+    .review-label { font-size: 11px; color: #64748b; margin-bottom: 4px; display: block; font-weight: 600; margin-left: 2px; }
+  </style>
 </head>
 <body>
 
 <div class="page">
-
-  <div class="card">
-
+  <div class="card" style="max-width: 650px; margin: 40px auto;">
     <div class="logo-wrap">
-      <div class="logo-icon">
-        <span class="logo-col logo-col--l"></span>
-        <span class="logo-col logo-col--m"></span>
-        <span class="logo-col logo-col--r"></span>
-        <span class="logo-dome"></span>
-        <span class="logo-dollar">$</span>
-      </div>
+      <div class="logo-icon"><span class="logo-dollar">$</span></div>
     </div>
+    <h1 class="site-title">CREATE YOUR ACCOUNT</h1>
 
-    <h1 class="site-title">Create Your Account</h1>
-
-    <!-- STEP INDICATOR -->
     <div class="steps">
-      <div class="step step--active">
-        <div class="step-num">1</div>
-        <div class="step-name">Details</div>
-      </div>
+      <div class="step step--active" id="ind1"><div class="step-num">1</div><div class="step-name">Details</div></div>
       <div class="step-line"></div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-name">Verify Email</div>
-      </div>
+      <div class="step" id="ind2"><div class="step-num">2</div><div class="step-name">Address</div></div>
       <div class="step-line"></div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-name">Upload ID</div>
-      </div>
+      <div class="step" id="ind3"><div class="step-num">3</div><div class="step-name">Work</div></div>
+      <div class="step-line"></div>
+      <div class="step" id="ind4"><div class="step-num">4</div><div class="step-name">Verify</div></div>
+      <div class="step-line"></div>
+      <div class="step" id="ind5"><div class="step-num">5</div><div class="step-name">ID</div></div>
     </div>
 
-    <p class="form-heading">Personal Information</p>
-
-    <!-- FLASK FLASH MESSAGES -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="flash-stack">
-          {% for category, message in messages %}
-            <div class="flash-msg {{ category }}">
-              <span>{{ message }}</span>
-              <button class="f-close" aria-label="Close">&times;</button>
-            </div>
-          {% endfor %}
-        </div>
+        {% for category, message in messages %}
+          <div style="padding:10px; margin-bottom:15px; border-radius:8px; background:#fef2f2; color:#b91c1c; font-size:13px; border:1px solid #fecaca;">{{ message }}</div>
+        {% endfor %}
       {% endif %}
     {% endwith %}
 
-    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+    <form id="regForm" method="POST" action="{{ url_for('auth.register') }}" novalidate>
+      
+      <!-- ✅ full_name, age, email, contact_number are all computed/read server-side
+           from named form fields — no JS-dependent hidden fields needed -->
 
-      <!-- Full Name -->
-      <div class="field">
-        <span class="field-icon field-icon--user"></span>
-        <input
-          class="field-input"
-          type="text"
-          id="full_name"
-          name="full_name"
-          placeholder="Full Name"
-          value="{{ form_data.get('full_name', '') }}"
-          required
-        />
-        <span class="inline-error" id="full-name-error"></span>
-      </div>
+      <!-- STEP 1: PERSONAL INFORMATION -->
+      <div class="step-content active" id="step1">
+        <p class="form-heading">Personal Information</p>
+        <div class="field"><input class="field-input" type="text" name="first_name" id="f_name" placeholder="First Name" required></div>
+        <div class="field"><input class="field-input" type="text" name="middle_name" id="m_name" placeholder="Middle Name"></div>
+        <label class="m-check"><input type="checkbox" id="no_middle"> I do not have a middle name</label>
+        <div class="field"><input class="field-input" type="text" name="last_name" id="l_name" placeholder="Last Name" required></div>
 
-      <!-- Email -->
-      <div class="field">
-        <span class="field-icon field-icon--email"></span>
-        <input
-          class="field-input"
-          type="email"
-          id="email"
-          name="email"
-          placeholder="Email Address"
-          value="{{ form_data.get('email', '') }}"
-          autocomplete="email"
-          required
-        />
-        <span class="inline-error" id="email-error"></span>
-      </div>
-      <div id="email-hint"></div>
+        <div class="field-row">
+            <div class="field"><input class="field-input" type="email" name="email" id="email_input" placeholder="Email Address" required></div>
+            <div class="field"><input class="field-input" type="tel" name="contact_number" id="contact_input" placeholder="Contact Number" required></div>
+        </div>
 
-      <!-- DOB + Contact -->
-      <div class="field-row">
+        <div class="field-row">
+          <div class="field">
+            <select class="field-input" name="gender" id="gender" required>
+              <option value="" disabled selected>Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div class="field">
+            <select class="field-input" name="nationality" id="nationality_api" required>
+              <option value="" disabled selected>Select Nationality</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <select class="field-input" name="civil_status" id="civil_status" required>
+              <option value="" disabled selected>Civil Status</option>
+              <option value="Single">Single</option>
+              <option value="Married">Married</option>
+              <option value="Separated">Separated</option>
+              <option value="Widowed">Widowed</option>
+            </select>
+          </div>
+          <div class="field" style="position:relative;">
+            <!-- ✅ dob has name="dob" so it submits to backend for server-side age calculation -->
+            <input class="field-input" type="date" name="dob" id="dob" required>
+          </div>
+        </div>
+
+        <div class="form-section-title">Place of Birth</div>
         <div class="field">
-          <span class="field-icon field-icon--cal"></span>
-          <input
-            class="field-input"
-            type="date"
-            id="dob"
-            name="dob"
-            value="{{ form_data.get('dob', '') }}"
-            required
-          />
-          <span class="inline-error" id="dob-error"></span>
+          <select class="field-input" name="birth_country" id="birth_country_api" required>
+            <option value="" disabled selected>Select Country of Birth</option>
+          </select>
+        </div>
+        <div id="ph_birth_wrap" style="display:none;">
+          <div class="field-row">
+            <div class="field"><select class="field-input" id="birth_province_api" name="birth_province_ph"><option value="">Select Province</option></select></div>
+            <div class="field"><select class="field-input" id="birth_city_api" name="birth_city_ph" disabled><option value="">Select City</option></select></div>
+          </div>
+        </div>
+        <div id="intl_birth_wrap" style="display:none;">
+          <div class="field-row">
+            <div class="field"><input class="field-input" type="text" name="birth_province_intl" id="birth_province_intl" placeholder="Province / State"></div>
+            <div class="field"><input class="field-input" type="text" name="birth_city_intl" id="birth_city_intl" placeholder="City"></div>
+          </div>
+        </div>
+        <button type="button" class="btn-register btn-next">Next: Current Address</button>
+      </div>
+
+      <!-- STEP 2: ADDRESS -->
+      <div class="step-content" id="step2">
+        <p class="form-heading">Current Address (PH)</p>
+        <div class="field-row">
+          <div class="field"><select class="field-input" id="curr_province_api" name="province" required><option value="">Select Province</option></select></div>
+          <div class="field"><select class="field-input" id="curr_city_api" name="city" disabled required><option value="">Select City</option></select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><select class="field-input" id="curr_barangay_api" name="barangay" disabled required><option value="">Select Barangay</option></select></div>
+          <div class="field"><input class="field-input" type="text" name="zip_code" id="zip_code" placeholder="Zip Code" required></div>
+        </div>
+        <div class="field"><input class="field-input" type="text" name="house_street" id="house_street" placeholder="House No. / Street / Village" required></div>
+        <div class="field-row">
+          <button type="button" class="btn-register btn-prev" style="background:#64748b;">Back</button>
+          <button type="button" class="btn-register btn-next">Next: Work Details</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: WORK -->
+      <div class="step-content" id="step3">
+        <p class="form-heading">Work Details</p>
+        <div class="field">
+          <select class="field-input" name="employment_type" id="employment_type" required>
+            <option value="" disabled selected>Employment Type</option>
+            <option value="Government">Government</option>
+            <option value="Private">Private</option>
+            <option value="Self-Employed">Self-Employed / Business</option>
+            <option value="OFW">OFW</option>
+          </select>
+        </div>
+        <div class="field"><select class="field-input" name="job_role" id="job_role" required disabled><option value="" disabled selected>Select Role</option></select></div>
+        <div class="field"><select class="field-input" name="employer_business" id="employer_business" required disabled><option value="" disabled selected>Select Employer / Business Type</option></select></div>
+        <div class="field"><select class="field-input" name="nature_of_work" id="nature_of_work" required disabled><option value="" disabled selected>Select Nature of Work</option></select></div>
+        <div class="field">
+          <select class="field-input" name="source_of_funds" id="source_of_funds" required>
+            <option value="" disabled selected>Source of Funds</option>
+            <option value="Salary">Salary</option>
+            <option value="Business Income">Business Income</option>
+            <option value="Remittance">Remittance</option>
+            <option value="Investment">Investment / Dividends</option>
+            <option value="Pension">Pension</option>
+            <option value="Others">Others (Please specify)</option>
+          </select>
+          <input type="text" class="field-input others-input" id="source_others_input" placeholder="Please specify source of funds">
         </div>
         <div class="field">
-          <span class="field-icon field-icon--phone"></span>
-          <input
-            class="field-input"
-            type="tel"
-            id="contact_number"
-            name="contact_number"
-            placeholder="Contact Number"
-            value="{{ form_data.get('contact_number', '') }}"
-            required
-          />
-          <span class="inline-error" id="contact-error"></span>
+            <select class="field-input" name="monthly_transactions" id="monthly_transactions" required>
+              <option value="" disabled selected>Monthly Transactions</option>
+              <option value="Below 50k">Below ₱50,000</option>
+              <option value="50k-100k">₱50,000 - ₱100,000</option>
+              <option value="Above 100k">Above ₱100,000</option>
+            </select>
+        </div>
+        <div class="field-row">
+          <button type="button" class="btn-register btn-prev" style="background:#64748b;">Back</button>
+          <button type="button" class="btn-register btn-next">Next: Review</button>
         </div>
       </div>
 
-      <!-- Password -->
-      <div class="field">
-        <span class="field-icon field-icon--lock"></span>
-        <input
-          class="field-input"
-          type="password"
-          id="password"
-          name="password"
-          placeholder="Password (min. 8 characters)"
-          required
-        />
-        <button type="button" class="pw-toggle" aria-label="Toggle password"></button>
-        <span class="inline-error" id="pw-error"></span>
-      </div>
-
-      <!-- Password Strength -->
-      <div class="pw-meter">
-        <div class="pw-meter-bar">
-          <div class="pw-meter-fill" id="pw-fill"></div>
+      <!-- STEP 4: REVIEW & SUBMIT -->
+      <div class="step-content" id="step4">
+        <p class="form-heading">Review & Submit</p>
+        <div class="field">
+          <label class="review-label">Full Name</label>
+          <input class="field-input readonly-field" type="text" id="auto_full_name" readonly tabindex="-1">
         </div>
-        <span class="pw-meter-label" id="pw-label"></span>
+        <div class="field-row">
+          <div class="field">
+            <label class="review-label">Email Address</label>
+            <input class="field-input readonly-field" type="text" id="review_email" readonly tabindex="-1">
+          </div>
+          <div class="field">
+            <label class="review-label">Contact Number</label>
+            <input class="field-input readonly-field" type="text" id="review_contact" readonly tabindex="-1">
+          </div>
+        </div>
+        <div class="form-section-title" style="margin-top: 25px;">Account Security</div>
+        <div class="field-row">
+          <div class="field"><input class="field-input" type="password" name="password" placeholder="Create Password" required></div>
+          <div class="field"><input class="field-input" type="password" name="confirm_password" placeholder="Confirm Password" required></div>
+        </div>
+        <label class="m-check" style="margin-top: 10px;"><input type="checkbox" name="terms" required> I agree to the Terms & Conditions</label>
+        <div class="field-row">
+          <button type="button" class="btn-register btn-prev" style="background:#64748b;">Back</button>
+          <button type="submit" class="btn-register">Submit & Verify Email</button>
+        </div>
       </div>
-
-      <!-- Confirm Password -->
-      <div class="field">
-        <span class="field-icon field-icon--lock"></span>
-        <input
-          class="field-input"
-          type="password"
-          id="confirm_password"
-          name="confirm_password"
-          placeholder="Confirm Password"
-          required
-        />
-        <button type="button" class="pw-toggle" aria-label="Toggle confirm password"></button>
-      </div>
-
-      <div class="field-error" id="confirm-error">Passwords do not match.</div>
-
-      <!-- Terms -->
-      <div class="terms-row">
-        <label class="check-group">
-          <input type="checkbox" name="terms" required />
-          <span>I agree to the <a href="#" target="_blank">Terms &amp; Conditions</a> and <a href="#" target="_blank">Privacy Policy</a></span>
-        </label>
-      </div>
-
-      <button type="submit" class="btn-register">
-        Continue to Email Verification
-      </button>
-
     </form>
-
-    <div class="auth-foot">
-      Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
-    </div>
-
   </div>
-
-  <p class="copyright">&copy; 2024 Loan Management System. All rights reserved.</p>
-
 </div>
 
 <script src="{{ url_for('auth.static', filename='register.js') }}"></script>

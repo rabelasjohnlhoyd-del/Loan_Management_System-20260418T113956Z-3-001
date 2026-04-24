@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='loan_detail.css') }}"/>
   <style>
-    /* ── User dropdown ── */
     .sidebar-user {
       cursor: pointer;
       user-select: none;
@@ -99,7 +98,7 @@
     </div>
 
     <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('auth.profile') }}">
+      <a href="{{ url_for('super_admin.SA_profile') }}">
         <span class="dd-icon dd-icon--profile"></span>My Profile
       </a>
       {% if session.role == 'super_admin' %}
@@ -116,41 +115,33 @@
     </div>
 
     <nav class="sidebar-nav">
-
       <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-
       <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
         <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
       </a>
-
       <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
         <span class="nav-icon nav-icon--clock"></span>Applications
         {% if stats and stats.get('pending_applications', 0) > 0 %}
         <span class="nav-badge">{{ stats.pending_applications }}</span>
         {% endif %}
       </a>
-
       <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item active">
         <span class="nav-icon nav-icon--applications"></span>All Loans
       </a>
-
       <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
         <span class="nav-icon nav-icon--borrowers"></span>Borrowers
       </a>
-
       <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
         <span class="nav-icon nav-icon--loans"></span>Payment Verification
         {% if stats and stats.get('pending_payments', 0) > 0 %}
         <span class="nav-badge">{{ stats.pending_payments }}</span>
         {% endif %}
       </a>
-
       <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
         <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
       </a>
-
     </nav>
 
     <div class="sidebar-footer">
@@ -162,7 +153,6 @@
     </div>
 
   </aside>
-  <!-- /SIDEBAR -->
 
   <div class="main-content" id="mainContent">
     <header class="topbar">
@@ -178,7 +168,7 @@
         <span class="loan-status {{ loan.status }}" style="margin-right:8px;">{{ loan.status | title }}</span>
         <a href="{{ url_for('super_admin.report_amortization', loan_id=loan.id) }}"
            class="btn btn-outline btn-sm">Amortization Report</a>
-        <a href="{{ url_for('auth.profile') }}" class="topbar-avatar">
+        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
           {{ session.user_name[0]|upper if session.user_name else 'U' }}
         </a>
       </div>
@@ -311,8 +301,9 @@
               {% for p in payment_history %}
               <tr>
                 <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(p.amount) }}</strong></td>
-                <td style="font-size:12px;">{{ p.reference_no or '—' }}</td>
+                {# FIX: Correct field name is amount_paid, not amount #}
+                <td><strong>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</strong></td>
+                <td style="font-size:12px;">{{ p.reference_number or '—' }}</td>
                 <td>{{ p.payment_method | replace('_',' ') | title if p.payment_method else '—' }}</td>
                 <td style="font-size:12px;">{{ p.verified_by_name or '—' }}</td>
                 <td>
@@ -342,6 +333,7 @@
               <tr>
                 <td>{{ pen.due_date.strftime('%b %d, %Y') if pen.due_date else '—' }}</td>
                 <td>{{ pen.days_overdue }} days</td>
+                {# FIX: pen.amount is now sanitized to float in Python #}
                 <td style="color:var(--danger); font-weight:600;">&#8369;{{ "{:,.2f}".format(pen.amount) }}</td>
                 <td style="font-size:12px;">{{ pen.created_at.strftime('%b %d, %Y') if pen.created_at else '—' }}</td>
               </tr>

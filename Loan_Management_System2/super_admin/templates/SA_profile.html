@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile — Hiraya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('auth.static', filename='SA_profile.css') }}"/>
+</head>
+<body>
+
+<div class="app-wrap">
+
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-user" id="userDropdownToggle">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+      <div class="s-user-info">
+        <h4>System Administrator</h4>
+        <div class="s-role-badge">SUPER ADMIN</div>
+      </div>
+      <span class="s-chevron"></span>
+    </div>
+
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('super_admin.SA_profile') }}">
+        <span class="dd-icon dd-icon--profile"></span>My Profile
+      </a>
+      <a href="{{ url_for('super_admin.manage_users') }}">
+        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+      </a>
+      <a href="{{ url_for('super_admin.reports_page') }}">
+        <span class="dd-icon dd-icon--reports"></span>Reports
+      </a>
+      <a href="{{ url_for('super_admin.activity_logs') }}">
+        <span class="dd-icon dd-icon--activity"></span>Activity Logs
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
+      </a>
+      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--clock"></span>Applications
+        {% if stats and stats.get('pending_applications', 0) > 0 %}
+        <span class="nav-badge">{{ stats.pending_applications }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--applications"></span>All Loans
+      </a>
+      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+      </a>
+      <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Payment Verification
+        {% if stats and stats.get('pending_payments', 0) > 0 %}
+        <span class="nav-badge">{{ stats.pending_payments }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
+      </form>
+    </div>
+
+  </aside>
+
+  <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+  <div class="main-content">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn">&#9776;</button>
+        <div>
+          <div class="topbar-heading">My Profile</div>
+          <div class="topbar-sub">Account details and settings</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <a href="{{ url_for('auth.dashboard') }}" class="btn btn-ghost btn-sm">
+          ← Back to Dashboard
+        </a>
+      </div>
+    </header>
+
+    <main class="page-body">
+      <div class="profile-content">
+        <div class="card">
+
+          <div class="card-header">
+            <div>
+              <h3>Personal Information</h3>
+              <p>Your registered account details</p>
+            </div>
+            {% set status = user.get('id_verification_status', 'pending') if user else 'pending' %}
+            <span class="badge {% if status == 'verified' %}badge--approved{% elif status == 'rejected' %}badge--rejected{% else %}badge--pending{% endif %}">
+              ID: {{ status | title }}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <div class="profile-header-section">
+              <div class="profile-avatar">
+                {{ user.get('full_name', '?')[0]|upper if user else '?' }}
+              </div>
+              <div>
+                <h3 class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</h3>
+                <p class="profile-email">{{ user.get('email', '') if user else '' }}</p>
+                <span class="badge badge--info">Super Admin</span>
+              </div>
+            </div>
+
+            <div class="profile-info-grid">
+              <div class="profile-field">
+                <div class="profile-field-label">Full Name</div>
+                <div class="profile-field-value">{{ user.get('full_name', '—') if user else '—' }}</div>
+              </div>
+              <div class="profile-field">
+                <div class="profile-field-label">Email Address</div>
+                <div class="profile-field-value">{{ user.get('email', '—') if user else '—' }}</div>
+              </div>
+              <div class="profile-field">
+                <div class="profile-field-label">Date of Birth</div>
+                <div class="profile-field-value">{{ user.get('date_of_birth', '—') if user else '—' }}</div>
+              </div>
+              <div class="profile-field">
+                <div class="profile-field-label">Age</div>
+                <div class="profile-field-value">{{ user.get('age', '—') if user else '—' }}</div>
+              </div>
+              <div class="profile-field">
+                <div class="profile-field-label">Contact Number</div>
+                <div class="profile-field-value">{{ user.get('contact_number', '—') if user else '—' }}</div>
+              </div>
+              <div class="profile-field">
+                <div class="profile-field-label">Member Since</div>
+                <div class="profile-field-value">{{ user.get('created_at', '—') if user else '—' }}</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+</div>
+
+<script src="{{ url_for('auth.static', filename='profile.js') }}"></script>
+</body>
+</html>
