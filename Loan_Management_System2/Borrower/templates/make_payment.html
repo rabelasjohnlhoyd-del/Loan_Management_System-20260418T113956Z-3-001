@@ -6,8 +6,8 @@
   <title>Make a Payment — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_payment.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='make_payment.css') }}" />
 </head>
 <body>
 
@@ -26,7 +26,7 @@
     </div>
 
     <div class="sidebar-user">
-      <div class="s-avatar">J</div>
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
       <div class="s-user-info">
         <h4>{{ session.user_name }}</h4>
         <div class="s-role-badge">Borrower</div>
@@ -38,14 +38,15 @@
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
       <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item active">
-    <span class="nav-icon nav-icon--payment"></span>Make a Payment
-</a>
-<a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
-    <span class="nav-icon nav-icon--history"></span>Payment History
-</a>
-<a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
-    <span class="nav-icon nav-icon--docs"></span>Documents
-</a>
+        <span class="nav-icon nav-icon--payment"></span>Make a Payment
+      </a>
+      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
+        <span class="nav-icon nav-icon--history"></span>Payment History
+      </a>
+      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
+        <span class="nav-icon nav-icon--docs"></span>Documents
+      </a>
+    </nav>
 
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
@@ -55,7 +56,6 @@
       </form>
     </div>
   </aside>
-  
 
   <!-- MAIN -->
   <div class="main-content">
@@ -64,19 +64,27 @@
         <h1>Make a Payment</h1>
         <p>Submit your payment proof for verification</p>
       </div>
-      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">J</a>
+      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
+        {{ session.user_name[0]|upper if session.user_name else 'U' }}
+      </a>
     </header>
 
     <main class="page-body">
 
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-msg {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
       <!-- STEP INDICATOR -->
       <div class="steps">
-        <div class="step done" id="step1">
+        <div class="step active" id="step1">
           <div class="step-num">1</div>
           <div class="step-label">Select Loan</div>
         </div>
-        <div class="step-line done" id="line1"></div>
-        <div class="step active" id="step2">
+        <div class="step-line" id="line1"></div>
+        <div class="step todo" id="step2">
           <div class="step-num">2</div>
           <div class="step-label">Payment Details</div>
         </div>
@@ -95,10 +103,11 @@
       <!-- STEP 1: SELECT LOAN -->
       <div id="sectionSelectLoan">
         <p class="section-title">Choose a Loan to Pay</p>
-
         <div class="loan-select-grid" id="loanCards">
           {% for loan in active_loans %}
-          <div class="loan-select-card" onclick="selectLoan(this, {{ loan.id }}, '{{ loan.reference_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}', '{{ loan.next_due.strftime('%b %d, %Y') if loan.next_due else 'N/A' }}')" data-id="{{ loan.id }}">
+          <div class="loan-select-card"
+               onclick="selectLoan(this, {{ loan.id }}, '{{ loan.reference_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}', '{{ loan.next_due.strftime('%b %d, %Y') if loan.next_due else 'N/A' }}')"
+               data-id="{{ loan.id }}">
             <div class="loan-card-ref">{{ loan.reference_no }}</div>
             <div class="loan-card-type">{{ loan.type_name }}</div>
             <div class="loan-card-row">
@@ -129,7 +138,7 @@
             {% endif %}
           </div>
           {% else %}
-          <div class="no-loans" style="grid-column:1/-1">
+          <div class="no-loans">
             <div class="no-loans-icon">💳</div>
             <h3>No Active Loans</h3>
             <p>You don't have any active loans requiring payment.</p>
@@ -139,8 +148,8 @@
       </div>
 
       <!-- PAYMENT FORM (hidden until loan selected) -->
-      <div id="sectionPaymentForm" style="display:none;">
-        <form method="POST" action="{{ url_for('borrower.make_payment', loan_id=active_loans[0].id) if active_loans else '#' }}" enctype="multipart/form-data" id="paymentForm">
+      <div id="sectionPaymentForm" class="hidden">
+        <form method="POST" action="#" enctype="multipart/form-data" id="paymentForm">
           <input type="hidden" name="loan_id" id="hiddenLoanId" />
           <input type="hidden" name="payment_method" id="hiddenMethod" value="gcash" />
 
@@ -151,14 +160,15 @@
                 <h3>Payment Details</h3>
                 <p id="selectedLoanLabel">Fill in your payment information</p>
               </div>
-              <button type="button" onclick="resetSelection()" style="font-size:12px;color:var(--mint-dark);background:var(--mint-light);border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:600;">Change Loan</button>
+              <button type="button" onclick="resetSelection()">Change Loan</button>
             </div>
             <div class="card-body">
               <div class="form-grid">
                 <div class="form-group">
                   <label for="paymentAmount">Payment Amount (₱)</label>
-                  <input type="number" class="form-control" id="paymentAmount" name="amount_paid" step="0.01" min="1" placeholder="0.00" required oninput="updateSummary()" />
-                  <span class="form-hint" id="amountHint">Monthly due: ₱<span id="dueAmountHint">0.00</span></span>
+                  <input type="number" class="form-control" id="paymentAmount" name="amount_paid"
+                         step="0.01" min="1" placeholder="0.00" required oninput="updateSummary()" />
+                  <span class="form-hint">Monthly due: ₱<span id="dueAmountHint">0.00</span></span>
                 </div>
                 <div class="form-group">
                   <label for="paymentDate">Date of Payment</label>
@@ -166,12 +176,14 @@
                 </div>
                 <div class="form-group full">
                   <label for="referenceNum">Reference / Transaction Number</label>
-                  <input type="text" class="form-control" id="referenceNum" name="reference_number" placeholder="e.g. GCash Ref No. 1234567890" required />
+                  <input type="text" class="form-control" id="referenceNum" name="reference_number"
+                         placeholder="e.g. GCash Ref No. 1234567890" required />
                   <span class="form-hint">Found in your GCash / Maya transaction history</span>
                 </div>
                 <div class="form-group full">
                   <label for="paymentNotes">Notes (Optional)</label>
-                  <textarea class="form-control" id="paymentNotes" name="notes" rows="2" placeholder="Any additional information…" style="resize:vertical;"></textarea>
+                  <textarea class="form-control" id="paymentNotes" name="notes"
+                            rows="2" placeholder="Any additional information…"></textarea>
                 </div>
               </div>
             </div>
@@ -187,67 +199,75 @@
             </div>
             <div class="card-body">
               <div class="method-tabs">
-                <div class="method-tab active" onclick="setMethod('gcash',this)"><span class="method-icon">💙</span> GCash</div>
-                <div class="method-tab" onclick="setMethod('maya',this)"><span class="method-icon">💚</span> Maya</div>
-                <div class="method-tab" onclick="setMethod('bank',this)"><span class="method-icon">🏦</span> Bank Transfer</div>
-                <div class="method-tab" onclick="setMethod('cash',this)"><span class="method-icon">💵</span> Cash / Manual</div>
-              </div>
-
-              <!-- QR Display per method -->
-              <div id="qrSection">
-                <div class="qr-display">
-                  <div class="qr-code" id="qrCodeBox">
-                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" id="qrSvg">
-                      <rect x="5" y="5" width="35" height="35" fill="none" stroke="#0f2027" stroke-width="4" rx="3"/>
-                      <rect x="12" y="12" width="21" height="21" fill="#0f2027" rx="2"/>
-                      <rect x="60" y="5" width="35" height="35" fill="none" stroke="#0f2027" stroke-width="4" rx="3"/>
-                      <rect x="67" y="12" width="21" height="21" fill="#0f2027" rx="2"/>
-                      <rect x="5" y="60" width="35" height="35" fill="none" stroke="#0f2027" stroke-width="4" rx="3"/>
-                      <rect x="12" y="67" width="21" height="21" fill="#0f2027" rx="2"/>
-                      <rect x="46" y="5" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="46" y="14" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="5" y="46" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="14" y="46" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="46" y="46" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="55" y="46" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="64" y="46" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="73" y="46" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="82" y="46" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="46" y="55" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="55" y="55" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="64" y="55" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="73" y="55" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="82" y="55" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="46" y="64" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="55" y="64" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="64" y="64" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="73" y="64" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="82" y="64" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="46" y="73" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="55" y="73" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="64" y="73" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="73" y="73" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="82" y="73" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="46" y="82" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="55" y="82" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="64" y="82" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                      <rect x="73" y="82" width="7" height="7" fill="#0f2027" rx="1"/>
-                      <rect x="82" y="82" width="7" height="7" fill="#3ecfbe" rx="1"/>
-                    </svg>
-                  </div>
-                  <p id="qrMethodName"><strong>GCash</strong></p>
-                  <p id="qrAccountName" style="font-size:14px;font-weight:700;color:var(--gray-900);margin-top:4px;">Hiraya Lending Corp.</p>
-                  <p class="qr-acct" id="qrAccountNum">+63 912 345 6789</p>
-                  <p style="font-size:11px;color:var(--gray-400);margin-top:8px;">Scan with your <span id="qrAppLabel">GCash</span> app to pay</p>
+                <div class="method-tab active" onclick="setMethod('gcash',this)">
+                  <span class="method-icon">💙</span> GCash
+                </div>
+                <div class="method-tab" onclick="setMethod('maya',this)">
+                  <span class="method-icon">💚</span> Maya
+                </div>
+                <div class="method-tab" onclick="setMethod('bank',this)">
+                  <span class="method-icon">🏦</span> Bank Transfer
+                </div>
+                <div class="method-tab" onclick="setMethod('cash',this)">
+                  <span class="method-icon">💵</span> Cash / Manual
                 </div>
               </div>
 
-              <div id="cashSection" style="display:none;">
+              <div id="qrSection">
+                <div class="qr-display">
+                  <div class="qr-code" id="qrCodeBox">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="5"  y="5"  width="35" height="35" fill="none" stroke="#2c4a47" stroke-width="4" rx="3"/>
+                      <rect x="12" y="12" width="21" height="21" fill="#2c4a47" rx="2"/>
+                      <rect x="60" y="5"  width="35" height="35" fill="none" stroke="#2c4a47" stroke-width="4" rx="3"/>
+                      <rect x="67" y="12" width="21" height="21" fill="#2c4a47" rx="2"/>
+                      <rect x="5"  y="60" width="35" height="35" fill="none" stroke="#2c4a47" stroke-width="4" rx="3"/>
+                      <rect x="12" y="67" width="21" height="21" fill="#2c4a47" rx="2"/>
+                      <rect x="46" y="5"  width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="46" y="14" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="5"  y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="14" y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="46" y="46" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="55" y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="64" y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="73" y="46" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="82" y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="46" y="55" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="55" y="55" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="64" y="55" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="73" y="55" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="82" y="55" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="46" y="64" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="55" y="64" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="64" y="64" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="73" y="64" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="82" y="64" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="46" y="73" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="55" y="73" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="64" y="73" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="73" y="73" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="82" y="73" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="46" y="82" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="55" y="82" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="64" y="82" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                      <rect x="73" y="82" width="7" height="7" fill="#2c4a47" rx="1"/>
+                      <rect x="82" y="82" width="7" height="7" fill="#3ab5a0" rx="1"/>
+                    </svg>
+                  </div>
+                  <p id="qrMethodName"><strong>GCash</strong></p>
+                  <p id="qrAccountName">Hiraya Lending Corp.</p>
+                  <p class="qr-acct" id="qrAccountNum">+63 912 345 6789</p>
+                  <p id="qrHint">Scan with your <span id="qrAppLabel">GCash</span> app to pay</p>
+                </div>
+              </div>
+
+              <div id="cashSection" class="hidden">
                 <div class="cash-notice">
                   <p class="cash-notice-title">📍 Office Payment Instructions</p>
                   <p class="cash-notice-body">
-                    Please visit our office at <strong>Unit 3, ABC Building, Main Street</strong> during business hours (Mon–Fri, 8AM–5PM)
-                    and present your loan reference number to the cashier. You will receive an official receipt.
+                    Please visit our office at <strong>Unit 3, ABC Building, Main Street</strong>
+                    during business hours (Mon–Fri, 8AM–5PM) and present your loan reference number
+                    to the cashier. You will receive an official receipt.
                   </p>
                 </div>
               </div>
@@ -264,14 +284,15 @@
             </div>
             <div class="card-body">
               <div class="upload-zone" id="uploadZone">
-                <input type="file" name="payment_screenshot" id="proofFile" accept="image/*,.pdf" onchange="previewFile(this)" />
+                <input type="file" name="payment_screenshot" id="proofFile"
+                       accept="image/*,.pdf" onchange="previewFile(this)" />
                 <div class="upload-icon">📎</div>
                 <p>Drop your screenshot here or <strong>click to browse</strong></p>
                 <span>PNG, JPG, JPEG, PDF — max 5MB</span>
               </div>
               <div class="upload-preview" id="uploadPreview">
                 <img src="" alt="Preview" class="preview-thumb" id="previewThumb" />
-                <div class="preview-info">
+                <div>
                   <div class="preview-name" id="previewName"></div>
                   <div class="preview-size" id="previewSize"></div>
                 </div>
@@ -306,13 +327,11 @@
           </div>
 
           <button type="submit" class="btn-primary" id="submitBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
             Submit Payment for Verification
           </button>
-
-          <p style="text-align:center;font-size:12px;color:var(--gray-400);margin-top:12px;">
-            Your payment will be reviewed within 1–2 business days. You'll be notified via email once confirmed.
-          </p>
         </form>
       </div>
 
@@ -326,150 +345,15 @@
     <div class="modal-check">✅</div>
     <h3>Payment Submitted!</h3>
     <p>Your payment has been successfully submitted and is awaiting verification by our team.</p>
-    <div class="modal-ref" id="modalRef">REF-2025-001234</div>
-    <p style="font-size:12px;color:var(--gray-400);margin-bottom:20px;">You'll receive an email confirmation once reviewed.</p>
+    <div class="modal-ref" id="modalRef">—</div>
+    <p>You'll receive a notification once reviewed.</p>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="document.getElementById('successModal').classList.remove('show')">Close</button>
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-primary" style="text-decoration:none;">View My Loans</a>
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-primary">View My Loans</a>
     </div>
   </div>
 </div>
 
-<script>
-  let selectedLoanData = null;
-  let currentMethod = 'gcash';
-
-  const methodDetails = {
-    gcash: { name: 'GCash',         account: 'Hiraya Lending Corp.', num: '+63 912 345 6789',                  app: 'GCash'   },
-    maya:  { name: 'Maya',          account: 'Hiraya Lending Corp.', num: '09187654321',                       app: 'Maya'    },
-    bank:  { name: 'BDO Bank Transfer', account: 'Hiraya Lending Corp.', num: 'Account No: 0012-3456-7890 | BDO', app: 'banking' },
-    cash:  { name: 'Cash / Manual', account: '',                     num: '',                                   app: ''        },
-  };
-
-  function selectLoan(el, id, ref, amount, type, due) {
-    document.querySelectorAll('.loan-select-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-
-    selectedLoanData = { id, ref, amount, type, due };
-
-    // ✅ ADD THIS LINE
-    document.getElementById('paymentForm').action = `/borrower/payments/make/${id}`;
-
-    document.getElementById('hiddenLoanId').value = id;
-    document.getElementById('paymentAmount').value = amount > 0 ? amount.toFixed(2) : '';
-    document.getElementById('dueAmountHint').textContent = amount > 0 ? amount.toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '0.00';
-    document.getElementById('selectedLoanLabel').textContent = ref + ' — ' + type;
-
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('paymentDate').value = today;
-
-    updateSummary();
-
-    document.getElementById('sectionPaymentForm').style.display = 'block';
-    document.getElementById('sectionPaymentForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    setStep(2);
-  }
-
-  function resetSelection() {
-    selectedLoanData = null;
-    document.querySelectorAll('.loan-select-card').forEach(c => c.classList.remove('selected'));
-    document.getElementById('sectionPaymentForm').style.display = 'none';
-    document.getElementById('sectionSelectLoan').scrollIntoView({ behavior: 'smooth' });
-    setStep(1);
-  }
-
-  function setMethod(method, el) {
-    currentMethod = method;
-    document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('hiddenMethod').value = method;
-
-    const d = methodDetails[method];
-    const isQR = method !== 'cash';
-
-    document.getElementById('qrSection').style.display = isQR ? 'block' : 'none';
-    document.getElementById('cashSection').style.display = isQR ? 'none' : 'block';
-
-    if (isQR) {
-      document.getElementById('qrMethodName').innerHTML = '<strong>' + d.name + '</strong>';
-      document.getElementById('qrAccountName').textContent = d.account;
-      document.getElementById('qrAccountNum').textContent = d.num;
-      document.getElementById('qrAppLabel').textContent = d.app;
-    }
-
-    document.getElementById('summaryMethod').textContent = d.name;
-  }
-
-  function updateSummary() {
-    if (!selectedLoanData) return;
-    const amt = parseFloat(document.getElementById('paymentAmount').value) || 0;
-    document.getElementById('summaryRef').textContent = selectedLoanData.ref;
-    document.getElementById('summaryType').textContent = selectedLoanData.type;
-    document.getElementById('summaryDue').textContent = selectedLoanData.due;
-    document.getElementById('summaryAmount').textContent = '₱' + amt.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  function setStep(active) {
-    const steps = document.querySelectorAll('.step');
-    const lines = document.querySelectorAll('.step-line');
-    steps.forEach((s, i) => {
-      s.classList.remove('done', 'active', 'todo');
-      if (i + 1 < active) s.classList.add('done');
-      else if (i + 1 === active) s.classList.add('active');
-      else s.classList.add('todo');
-    });
-    lines.forEach((l, i) => {
-      l.classList.toggle('done', i + 1 < active);
-    });
-  }
-
-  function previewFile(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const thumb = document.getElementById('previewThumb');
-    document.getElementById('previewName').textContent = file.name;
-    document.getElementById('previewSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = e => { thumb.src = e.target.result; };
-      reader.readAsDataURL(file);
-    } else {
-      thumb.src = '';
-      thumb.style.display = 'none';
-    }
-    document.getElementById('uploadPreview').classList.add('show');
-    setStep(3);
-  }
-
-  function removeFile() {
-    document.getElementById('proofFile').value = '';
-    document.getElementById('uploadPreview').classList.remove('show');
-    document.getElementById('previewThumb').style.display = 'block';
-    setStep(2);
-  }
-
-  // Drag-and-drop
-  const zone = document.getElementById('uploadZone');
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('dragover');
-    const dt = e.dataTransfer;
-    if (dt.files.length) {
-      document.getElementById('proofFile').files = dt.files;
-      previewFile(document.getElementById('proofFile'));
-    }
-  });
-
-  // Init
-  setStep(1);
-
-  // Flash messages from Flask — auto-hide after 4s
-  setTimeout(() => {
-    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
-  }, 4000);
-</script>
+<script src="{{ url_for('borrower.static', filename='make_payment.js') }}"></script>
 </body>
 </html>

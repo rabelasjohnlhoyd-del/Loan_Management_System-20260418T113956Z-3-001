@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment History — Hiraya</title>
-  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_payment.css') }}"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_payment.css') }}" />
 </head>
 <body>
+
 <div class="app-wrap">
 
   <!-- SIDEBAR -->
@@ -14,9 +18,13 @@
     <div class="sidebar-header">
       <div class="sidebar-brand">
         <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Management System</span></div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
       </div>
     </div>
+
     <div class="sidebar-user">
       <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
       <div class="s-user-info">
@@ -24,6 +32,7 @@
         <div class="s-role-badge">Borrower</div>
       </div>
     </div>
+
     <nav class="sidebar-nav">
       <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
@@ -38,6 +47,7 @@
         <span class="nav-icon nav-icon--docs"></span>Documents
       </a>
     </nav>
+
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
         <button type="submit" class="nav-item sidebar-logout-btn">
@@ -70,41 +80,37 @@
       {% if payments %}
       <div class="card">
         <div class="card-header">
-          <h3>All Payments</h3>
-          <span style="font-size:12px;color:#9ca3af;">{{ payments|length }} record(s)</span>
+          <div>
+            <h3>All Payments</h3>
+            <p>{{ payments|length }} record(s)</p>
+          </div>
         </div>
-        <div class="card-body" style="padding:0;">
-          <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+        <div class="card-body" style="padding: 0;">
+          <table class="history-table">
             <thead>
-              <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
-                <th style="padding:12px 16px;text-align:left;color:#6b7280;font-weight:600;">Payment No.</th>
-                <th style="padding:12px 16px;text-align:left;color:#6b7280;font-weight:600;">Loan Ref</th>
-                <th style="padding:12px 16px;text-align:left;color:#6b7280;font-weight:600;">Loan Type</th>
-                <th style="padding:12px 16px;text-align:left;color:#6b7280;font-weight:600;">Amount</th>
-                <th style="padding:12px 16px;text-align:left;color:#6b7280;font-weight:600;">Method</th>
-                <th style="padding:12px 16px;text-align:left;color:#6b7280;font-weight:600;">Date</th>
-                <th style="padding:12px 16px;text-align:left;color:#6b7280;font-weight:600;">Status</th>
+              <tr>
+                <th>Payment No.</th>
+                <th>Loan Ref</th>
+                <th>Loan Type</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Date</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {% for p in payments %}
-              <tr style="border-bottom:1px solid #f3f4f6;">
-                <td style="padding:12px 16px;font-weight:600;">{{ p.payment_no or '—' }}</td>
-                <td style="padding:12px 16px;color:#6b7280;">{{ p.loan_ref }}</td>
-                <td style="padding:12px 16px;">{{ p.type_name }}</td>
-                <td style="padding:12px 16px;font-weight:700;color:#166534;">₱{{ '{:,.2f}'.format(p.amount_paid) }}</td>
-                <td style="padding:12px 16px;text-transform:capitalize;">{{ p.payment_method or '—' }}</td>
-                <td style="padding:12px 16px;color:#6b7280;">
-                  {{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}
-                </td>
-                <td style="padding:12px 16px;">
-                  {% if p.status == 'approved' %}
-                    <span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;">Approved</span>
-                  {% elif p.status == 'pending' %}
-                    <span style="background:#fef9c3;color:#854d0e;padding:4px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;">Pending</span>
-                  {% else %}
-                    <span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;">Rejected</span>
-                  {% endif %}
+              <tr>
+                <td><strong>{{ p.payment_no or '—' }}</strong></td>
+                <td>{{ p.loan_ref }}</td>
+                <td>{{ p.type_name }}</td>
+                <td><strong>₱{{ '{:,.2f}'.format(p.amount_paid) }}</strong></td>
+                <td style="text-transform: capitalize;">{{ p.payment_method or '—' }}</td>
+                <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
+                <td>
+                  <span class="pay-status pay-status--{{ p.status }}">
+                    {{ p.status | title }}
+                  </span>
                 </td>
               </tr>
               {% endfor %}
@@ -114,12 +120,11 @@
       </div>
 
       {% else %}
-      <div style="text-align:center;padding:80px 20px;color:#9ca3af;">
-        <div style="font-size:3rem;margin-bottom:16px;">🧾</div>
-        <h6 style="font-weight:700;color:#374151;margin-bottom:8px;">No Payment Records</h6>
-        <p style="font-size:0.88rem;">You haven't made any payments yet.</p>
-        <a href="{{ url_for('borrower.select_loan_to_pay') }}" 
-           style="display:inline-block;margin-top:16px;background:#16a34a;color:white;padding:10px 24px;border-radius:10px;text-decoration:none;font-weight:600;">
+      <div class="history-empty">
+        <div class="history-empty-icon">🧾</div>
+        <h3>No Payment Records</h3>
+        <p>You haven't made any payments yet.</p>
+        <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="btn-outline-mint">
           Make a Payment
         </a>
       </div>
@@ -128,5 +133,6 @@
     </main>
   </div>
 </div>
+
 </body>
 </html>

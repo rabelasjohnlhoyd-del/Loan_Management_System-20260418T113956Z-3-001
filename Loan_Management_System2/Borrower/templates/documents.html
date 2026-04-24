@@ -7,210 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --mint:       #3ecfbe;
-      --mint-dark:  #2ab3a3;
-      --mint-light: #e6faf8;
-      --sidebar-bg: #0f2027;
-      --sidebar-w:  240px;
-      --gray-50:    #f8fafc;
-      --gray-100:   #f1f5f9;
-      --gray-200:   #e2e8f0;
-      --gray-400:   #94a3b8;
-      --gray-600:   #475569;
-      --gray-800:   #1e293b;
-      --gray-900:   #0f172a;
-      --white:      #ffffff;
-      --danger:     #ef4444;
-      --success:    #22c55e;
-      --warning:    #f59e0b;
-      --blue:       #3b82f6;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', sans-serif; background: var(--gray-50); color: var(--gray-800); display: flex; min-height: 100vh; }
-
-    /* SIDEBAR — same as make_payment.html */
-    .sidebar {
-      width: var(--sidebar-w); background: linear-gradient(180deg, #0f2027 0%, #162a34 100%);
-      display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh;
-      z-index: 100; overflow-y: auto;
-    }
-    .sidebar-header { padding: 22px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); }
-    .sidebar-brand { display: flex; align-items: center; gap: 12px; }
-    .s-logo { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--mint), var(--mint-dark)); flex-shrink: 0; }
-    .sidebar-brand h2 { font-family: 'Sora', sans-serif; font-size: 18px; color: #fff; }
-    .sidebar-brand span { font-size: 10px; color: rgba(255,255,255,0.45); display: block; margin-top: 1px; }
-    .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin: 10px 10px 4px; border-radius: 10px; }
-    .s-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--mint), #1a8f85); display: flex; align-items: center; justify-content: center; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
-    .s-user-info h4 { font-size: 13px; font-weight: 600; color: #fff; }
-    .s-role-badge { display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; background: rgba(62,207,190,0.18); color: var(--mint); margin-top: 2px; }
-    .sidebar-nav { padding: 8px 10px; flex: 1; }
-    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.65); text-decoration: none; margin-bottom: 2px; transition: background 0.15s, color 0.15s; background: none; border: none; cursor: pointer; width: 100%; }
-    .nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
-    .nav-item.active { background: rgba(62,207,190,0.15); color: var(--mint); }
-    .nav-icon { width: 18px; height: 18px; flex-shrink: 0; background: currentColor; mask-size: contain; mask-repeat: no-repeat; mask-position: center; -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; }
-    .nav-icon--dashboard { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='7' height='7' rx='1'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='7' height='7' rx='1'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1'/%3E%3C/svg%3E"); }
-    .nav-icon--payment { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect x='2' y='5' width='20' height='14' rx='2'/%3E%3Cpath stroke-linecap='round' d='M2 10h20'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect x='2' y='5' width='20' height='14' rx='2'/%3E%3Cpath stroke-linecap='round' d='M2 10h20'/%3E%3C/svg%3E"); }
-    .nav-icon--history { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'/%3E%3C/svg%3E"); }
-    .nav-icon--docs { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/%3E%3C/svg%3E"); }
-    .nav-icon--logout { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1'/%3E%3C/svg%3E"); }
-    .sidebar-footer { padding: 10px; border-top: 1px solid rgba(255,255,255,0.07); }
-
-    .app-wrap { display: flex; width: 100%; }
-    .main-content { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
-    .topbar { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
-    .topbar h1 { font-family: 'Sora', sans-serif; font-size: 20px; color: var(--gray-900); }
-    .topbar p { font-size: 13px; color: var(--gray-400); margin-top: 2px; }
-    .topbar-right { display: flex; align-items: center; gap: 10px; }
-    .topbar-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--mint), #1a8f85); display: flex; align-items: center; justify-content: center; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #fff; text-decoration: none; }
-    .page-body { padding: 28px; flex: 1; }
-
-    /* TOOLBAR */
-    .toolbar {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
-    }
-    .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-    .filter-tab {
-      padding: 7px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
-      border: 1.5px solid var(--gray-200); background: var(--white); color: var(--gray-600);
-      cursor: pointer; transition: all 0.15s;
-    }
-    .filter-tab:hover { border-color: var(--mint); color: var(--gray-900); }
-    .filter-tab.active { background: var(--mint); border-color: var(--mint); color: #fff; }
-    .search-wrap { position: relative; }
-    .search-wrap input {
-      padding: 8px 14px 8px 36px; border-radius: 8px; border: 1.5px solid var(--gray-200);
-      font-family: 'DM Sans', sans-serif; font-size: 13.5px; width: 220px; outline: none;
-      transition: border-color 0.15s;
-    }
-    .search-wrap input:focus { border-color: var(--mint); }
-    .search-wrap::before {
-      content: '🔍'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-      font-size: 14px; pointer-events: none;
-    }
-
-    /* DOC GROUPS */
-    .doc-group { margin-bottom: 28px; }
-    .doc-group-title {
-      font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.6px; color: var(--gray-400);
-      margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-200);
-    }
-    .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-
-    /* DOC CARD */
-    .doc-card {
-      background: var(--white); border: 1.5px solid var(--gray-200); border-radius: 12px;
-      padding: 16px; display: flex; flex-direction: column; gap: 10px;
-      transition: border-color 0.15s, box-shadow 0.15s; cursor: pointer; position: relative;
-    }
-    .doc-card:hover { border-color: var(--mint); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-    .doc-card-top { display: flex; align-items: flex-start; gap: 12px; }
-    .doc-icon {
-      width: 42px; height: 48px; border-radius: 8px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center; font-size: 22px;
-      position: relative;
-    }
-    .doc-icon.pdf { background: #fef2f2; }
-    .doc-icon.img { background: #eff6ff; }
-    .doc-icon.xlsx { background: #f0fdf4; }
-    .doc-icon.docx { background: #eff6ff; }
-    .doc-icon-ext {
-      position: absolute; bottom: 4px; right: -2px;
-      font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 3px;
-      text-transform: uppercase; letter-spacing: 0.4px;
-    }
-    .doc-icon.pdf .doc-icon-ext { background: #ef4444; color: #fff; }
-    .doc-icon.img .doc-icon-ext { background: #3b82f6; color: #fff; }
-    .doc-icon.xlsx .doc-icon-ext { background: #22c55e; color: #fff; }
-    .doc-icon.docx .doc-icon-ext { background: #2563eb; color: #fff; }
-    .doc-info { flex: 1; min-width: 0; }
-    .doc-name { font-size: 13.5px; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .doc-meta { font-size: 11px; color: var(--gray-400); margin-top: 3px; }
-    .doc-badge {
-      display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
-      border-radius: 20px; font-size: 10.5px; font-weight: 600; align-self: flex-start;
-    }
-    .doc-badge.verified { background: #f0fdf4; color: #16a34a; }
-    .doc-badge.pending  { background: #fffbea; color: #d97706; }
-    .doc-badge.rejected { background: #fef2f2; color: #dc2626; }
-    .doc-badge.generated { background: var(--mint-light); color: var(--mint-dark); }
-    .doc-actions { display: flex; gap: 6px; margin-top: 4px; }
-    .doc-btn {
-      flex: 1; padding: 7px; border-radius: 7px; border: 1.5px solid var(--gray-200);
-      font-size: 12px; font-weight: 600; cursor: pointer; background: var(--white);
-      color: var(--gray-600); transition: all 0.15s; text-align: center; text-decoration: none;
-      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
-    }
-    .doc-btn:hover { border-color: var(--mint); color: var(--mint-dark); background: var(--mint-light); }
-    .doc-btn.primary { background: var(--mint); border-color: var(--mint); color: #fff; }
-    .doc-btn.primary:hover { background: var(--mint-dark); border-color: var(--mint-dark); }
-
-    /* UPLOAD CARD */
-    .doc-upload-card {
-      background: var(--white); border: 2px dashed var(--gray-200); border-radius: 12px;
-      padding: 24px 16px; display: flex; flex-direction: column; align-items: center;
-      gap: 8px; cursor: pointer; transition: all 0.2s;
-    }
-    .doc-upload-card:hover { border-color: var(--mint); background: var(--mint-light); }
-    .doc-upload-card input { display: none; }
-    .doc-upload-card .upload-circle { width: 48px; height: 48px; border-radius: 50%; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 22px; }
-    .doc-upload-card p { font-size: 13px; font-weight: 600; color: var(--gray-600); text-align: center; }
-    .doc-upload-card span { font-size: 11px; color: var(--gray-400); text-align: center; }
-
-    /* STATS BANNER */
-    .doc-stats {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;
-    }
-    .doc-stat-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: 10px; padding: 14px 16px; }
-    .doc-stat-card .val { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; color: var(--gray-900); }
-    .doc-stat-card .lbl { font-size: 11.5px; color: var(--gray-400); margin-top: 2px; }
-
-    /* EMPTY STATE */
-    .docs-empty { text-align: center; padding: 48px 24px; background: var(--white); border-radius: 14px; border: 1px solid var(--gray-200); }
-    .docs-empty-icon { font-size: 48px; margin-bottom: 12px; }
-    .docs-empty h3 { font-family: 'Sora', sans-serif; font-size: 16px; color: var(--gray-900); margin-bottom: 6px; }
-    .docs-empty p { font-size: 13px; color: var(--gray-400); }
-
-    /* TOAST */
-    .toast {
-      position: fixed; bottom: 24px; right: 24px; background: var(--gray-900); color: #fff;
-      padding: 12px 18px; border-radius: 10px; font-size: 13.5px; font-weight: 500;
-      display: flex; align-items: center; gap: 8px; z-index: 300;
-      transform: translateY(80px); opacity: 0; transition: all 0.3s cubic-bezier(.34,1.56,.64,1);
-    }
-    .toast.show { transform: translateY(0); opacity: 1; }
-
-    /* MODAL */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
-    .modal-overlay.show { display: flex; }
-    .modal { background: var(--white); border-radius: 16px; padding: 28px; max-width: 480px; width: 92%; animation: popIn 0.2s ease; }
-    @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .modal h3 { font-family: 'Sora', sans-serif; font-size: 16px; color: var(--gray-900); margin-bottom: 6px; }
-    .modal p { font-size: 13px; color: var(--gray-600); margin-bottom: 16px; line-height: 1.6; }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
-    .btn-cancel { padding: 9px 18px; border-radius: 8px; border: 1.5px solid var(--gray-200); font-size: 13px; font-weight: 600; cursor: pointer; background: var(--white); color: var(--gray-600); }
-    .btn-upload-confirm { padding: 9px 18px; border-radius: 8px; border: none; background: var(--mint); font-size: 13px; font-weight: 700; font-family: 'Sora', sans-serif; cursor: pointer; color: #fff; }
-
-    /* UPLOAD MODAL ZONE */
-    .modal-upload-zone {
-      border: 2px dashed var(--gray-300); border-radius: 10px; padding: 20px;
-      text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 14px;
-      position: relative; background: var(--gray-50);
-    }
-    .modal-upload-zone:hover { border-color: var(--mint); background: var(--mint-light); }
-    .modal-upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-    .modal-form-group { margin-bottom: 14px; }
-    .modal-form-group label { font-size: 12px; font-weight: 600; color: var(--gray-600); display: block; margin-bottom: 6px; }
-    .modal-form-group select, .modal-form-group input[type=text] {
-      width: 100%; padding: 9px 12px; border: 1.5px solid var(--gray-200); border-radius: 8px;
-      font-family: 'DM Sans', sans-serif; font-size: 13.5px; outline: none;
-      transition: border-color 0.15s;
-    }
-    .modal-form-group select:focus, .modal-form-group input[type=text]:focus { border-color: var(--mint); }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='documents.css') }}" />
 </head>
 <body>
 
@@ -221,9 +18,13 @@
     <div class="sidebar-header">
       <div class="sidebar-brand">
         <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Management System</span></div>
+        <div>
+          <h2>Hiraya</h2>
+          <span>Management System</span>
+        </div>
       </div>
     </div>
+
     <div class="sidebar-user">
       <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
       <div class="s-user-info">
@@ -231,15 +32,27 @@
         <div class="s-role-badge">Borrower</div>
       </div>
     </div>
+
     <nav class="sidebar-nav">
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item"><span class="nav-icon nav-icon--payment"></span>Make a Payment</a>
-      <a href="{{ url_for('loans.my_applications') }}" class="nav-item"><span class="nav-icon nav-icon--history"></span>Payment History</a>
-      <a href="#" class="nav-item active"><span class="nav-icon nav-icon--docs"></span>Documents</a>
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
+        <span class="nav-icon nav-icon--payment"></span>Make a Payment
+      </a>
+      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
+        <span class="nav-icon nav-icon--history"></span>Payment History
+      </a>
+      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--docs"></span>Documents
+      </a>
     </nav>
+
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
+        <button type="submit" class="nav-item sidebar-logout-btn">
+          <span class="nav-icon nav-icon--logout"></span>Sign Out
+        </button>
       </form>
     </div>
   </aside>
@@ -252,10 +65,12 @@
         <p>Your loan documents, receipts, and uploaded files</p>
       </div>
       <div class="topbar-right">
-        <button class="doc-btn primary" onclick="openUploadModal()" style="padding:8px 16px;border-radius:8px;font-size:13px;">
-          ＋ Upload Document
+        <button class="btn-upload-topbar" onclick="openUploadModal()">
+          + Upload Document
         </button>
-        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</a>
+        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
+          {{ session.user_name[0]|upper if session.user_name else 'U' }}
+        </a>
       </div>
     </header>
 
@@ -264,19 +79,25 @@
       <!-- STATS -->
       <div class="doc-stats">
         <div class="doc-stat-card">
-          <div class="val" id="statTotal">{{ documents|length if documents else 0 }}</div>
+          <div class="val">{{ documents|length if documents else 0 }}</div>
           <div class="lbl">Total Documents</div>
         </div>
         <div class="doc-stat-card">
-          <div class="val" style="color:var(--success)">{{ documents|selectattr('status','eq','verified')|list|length if documents else 0 }}</div>
+          <div class="val" style="color: var(--success);">
+            {{ documents|selectattr('status','eq','verified')|list|length if documents else 0 }}
+          </div>
           <div class="lbl">Verified</div>
         </div>
         <div class="doc-stat-card">
-          <div class="val" style="color:var(--warning)">{{ documents|selectattr('status','eq','pending')|list|length if documents else 0 }}</div>
+          <div class="val" style="color: var(--warning);">
+            {{ documents|selectattr('status','eq','pending')|list|length if documents else 0 }}
+          </div>
           <div class="lbl">Pending Review</div>
         </div>
         <div class="doc-stat-card">
-          <div class="val" style="color:var(--mint-dark)">{{ generated_docs|length if generated_docs else 0 }}</div>
+          <div class="val" style="color: var(--mint-dark);">
+            {{ generated_docs|length if generated_docs else 0 }}
+          </div>
           <div class="lbl">Generated Reports</div>
         </div>
       </div>
@@ -291,11 +112,12 @@
           <button class="filter-tab" onclick="filterDocs('report', this)">Reports</button>
         </div>
         <div class="search-wrap">
-          <input type="text" placeholder="Search documents…" oninput="searchDocs(this.value)" id="docSearch" />
+          <input type="text" placeholder="Search documents…"
+                 oninput="searchDocs(this.value)" id="docSearch" />
         </div>
       </div>
 
-      <!-- ── GROUP 1: Identity & KYC ── -->
+      <!-- GROUP 1: Identity & KYC -->
       <div class="doc-group" data-cat="id">
         <div class="doc-group-title">🪪 Identity & KYC</div>
         <div class="doc-grid">
@@ -303,17 +125,22 @@
           {% if user.id_document_path %}
           <div class="doc-card" data-cat="id" data-name="government id">
             <div class="doc-card-top">
-              <div class="doc-icon img">🪪<span class="doc-icon-ext">{{ user.id_document_path.split('.')[-1]|upper }}</span></div>
+              <div class="doc-icon img">
+                🪪
+                <span class="doc-icon-ext">{{ user.id_document_path.split('.')[-1]|upper }}</span>
+              </div>
               <div class="doc-info">
                 <div class="doc-name">Government-Issued ID</div>
                 <div class="doc-meta">Uploaded {{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}</div>
               </div>
             </div>
             <span class="doc-badge {% if user.id_verification_status == 'verified' %}verified{% elif user.id_verification_status == 'pending' %}pending{% else %}rejected{% endif %}">
-              {% if user.id_verification_status == 'verified' %}✓ Verified{% elif user.id_verification_status == 'pending' %}⏳ Pending{% else %}✗ Rejected{% endif %}
+              {% if user.id_verification_status == 'verified' %}✓ Verified
+              {% elif user.id_verification_status == 'pending' %}⏳ Pending
+              {% else %}✗ Rejected{% endif %}
             </span>
             <div class="doc-actions">
-              <a href="{{ url_for('loans.view_doc', filename=user.selfie_path) }}" target="_blank" class="doc-btn">👁 View</a>
+              <a href="{{ url_for('loans.view_doc', filename=user.id_document_path) }}" target="_blank" class="doc-btn">👁 View</a>
               <a href="{{ url_for('borrower.static', filename='uploads/' + user.id_document_path) }}" download class="doc-btn">⬇ Download</a>
             </div>
           </div>
@@ -337,7 +164,6 @@
           </div>
           {% endif %}
 
-          <!-- Upload more KYC docs -->
           <label class="doc-upload-card" onclick="openUploadModal('id')">
             <div class="upload-circle">📎</div>
             <p>Upload KYC Document</p>
@@ -346,10 +172,10 @@
         </div>
       </div>
 
-      <!-- ── GROUP 2: Loan Documents ── -->
+      <!-- GROUP 2: Loan Documents -->
       <div class="doc-group" data-cat="loan">
         <div class="doc-group-title">📄 Loan Documents</div>
-        <div class="doc-grid" id="loanDocGrid">
+        <div class="doc-grid">
           {% for loan in loans %}
           <div class="doc-card" data-cat="loan" data-name="{{ loan.reference_no|lower }} loan agreement">
             <div class="doc-card-top">
@@ -366,73 +192,77 @@
             </div>
           </div>
           {% else %}
-          <div class="docs-empty" style="grid-column:1/-1; padding:24px;">
-            <div class="docs-empty-icon" style="font-size:32px">📄</div>
-            <p style="font-size:13px;color:var(--gray-400)">No loan documents yet. Apply for a loan to generate your agreement.</p>
+          <div class="docs-empty">
+            <div class="docs-empty-icon">📄</div>
+            <p>No loan documents yet. Apply for a loan to generate your agreement.</p>
           </div>
           {% endfor %}
 
           {% for loan in loans %}
-          {% if loan.documents %}
-          {% for doc in loan.documents %}
-          <div class="doc-card" data-cat="loan" data-name="{{ doc.filename|lower }}">
-            <div class="doc-card-top">
-              <div class="doc-icon {% if doc.filename.endswith('.pdf') %}pdf{% else %}img{% endif %}">
-                {% if doc.filename.endswith('.pdf') %}📋{% else %}🖼{% endif %}
-                <span class="doc-icon-ext">{{ doc.filename.split('.')[-1]|upper }}</span>
+            {% if loan.documents %}
+              {% for doc in loan.documents %}
+              <div class="doc-card" data-cat="loan" data-name="{{ doc.filename|lower }}">
+                <div class="doc-card-top">
+                  <div class="doc-icon {% if doc.filename.endswith('.pdf') %}pdf{% else %}img{% endif %}">
+                    {% if doc.filename.endswith('.pdf') %}📋{% else %}🖼{% endif %}
+                    <span class="doc-icon-ext">{{ doc.filename.split('.')[-1]|upper }}</span>
+                  </div>
+                  <div class="doc-info">
+                    <div class="doc-name">{{ doc.doc_type | replace('_',' ') | title }}</div>
+                    <div class="doc-meta">{{ loan.reference_no }} · {{ doc.uploaded_at.strftime('%b %d, %Y') if doc.uploaded_at else '—' }}</div>
+                  </div>
+                </div>
+                <span class="doc-badge {{ doc.status }}">
+                  {% if doc.status == 'verified' %}✓ Verified
+                  {% elif doc.status == 'pending' %}⏳ Pending
+                  {% else %}✗ Rejected{% endif %}
+                </span>
+                <div class="doc-actions">
+                  <a href="{{ url_for('loans.view_doc', doc_id=doc.id) }}" target="_blank" class="doc-btn">👁 View</a>
+                  <a href="{{ url_for('loans.download_doc', doc_id=doc.id) }}" download class="doc-btn">⬇ Save</a>
+                </div>
               </div>
-              <div class="doc-info">
-                <div class="doc-name">{{ doc.doc_type | replace('_',' ') | title }}</div>
-                <div class="doc-meta">{{ loan.reference_no }} · {{ doc.uploaded_at.strftime('%b %d, %Y') if doc.uploaded_at else '—' }}</div>
-              </div>
-            </div>
-            <span class="doc-badge {{ doc.status }}">
-              {% if doc.status == 'verified' %}✓ Verified{% elif doc.status == 'pending' %}⏳ Pending{% else %}✗ Rejected{% endif %}
-            </span>
-            <div class="doc-actions">
-              <a href="{{ url_for('loans.view_doc', doc_id=doc.id) }}" target="_blank" class="doc-btn">👁 View</a>
-              <a href="{{ url_for('loans.download_doc', doc_id=doc.id) }}" download class="doc-btn">⬇ Save</a>
-            </div>
-          </div>
-          {% endfor %}
-          {% endif %}
+              {% endfor %}
+            {% endif %}
           {% endfor %}
         </div>
       </div>
 
-      <!-- ── GROUP 3: Payment Proofs ── -->
+      <!-- GROUP 3: Payment Proofs -->
       <div class="doc-group" data-cat="payment">
         <div class="doc-group-title">💳 Payment Proofs</div>
         <div class="doc-grid">
           {% for payment in payments %}
-          {% if payment.screenshot_path %}
-          <div class="doc-card" data-cat="payment" data-name="payment proof {{ payment.reference_number|lower }}">
-            <div class="doc-card-top">
-              <div class="doc-icon img">🧾<span class="doc-icon-ext">IMG</span></div>
-              <div class="doc-info">
-                <div class="doc-name">Payment Proof</div>
-                <div class="doc-meta">₱{{ "{:,.2f}".format(payment.amount_paid) }} · {{ payment.payment_date.strftime('%b %d, %Y') if payment.payment_date else '—' }}</div>
+            {% if payment.screenshot_path %}
+            <div class="doc-card" data-cat="payment" data-name="payment proof {{ payment.reference_number|lower }}">
+              <div class="doc-card-top">
+                <div class="doc-icon img">🧾<span class="doc-icon-ext">IMG</span></div>
+                <div class="doc-info">
+                  <div class="doc-name">Payment Proof</div>
+                  <div class="doc-meta">₱{{ "{:,.2f}".format(payment.amount_paid) }} · {{ payment.payment_date.strftime('%b %d, %Y') if payment.payment_date else '—' }}</div>
+                </div>
+              </div>
+              <span class="doc-badge {% if payment.status == 'completed' %}verified{% elif payment.status == 'pending' %}pending{% else %}rejected{% endif %}">
+                {% if payment.status == 'completed' %}✓ Verified
+                {% elif payment.status == 'pending' %}⏳ Reviewing
+                {% else %}✗ Rejected{% endif %}
+              </span>
+              <div class="doc-actions">
+                <a href="{{ url_for('loans.view_payment_proof', payment_id=payment.id) }}" target="_blank" class="doc-btn">👁 View</a>
+                <a href="{{ url_for('loans.download_receipt', payment_id=payment.id) }}" class="doc-btn primary">🧾 Receipt</a>
               </div>
             </div>
-            <span class="doc-badge {% if payment.status == 'completed' %}verified{% elif payment.status == 'pending' %}pending{% else %}rejected{% endif %}">
-              {% if payment.status == 'completed' %}✓ Verified{% elif payment.status == 'pending' %}⏳ Reviewing{% else %}✗ Rejected{% endif %}
-            </span>
-            <div class="doc-actions">
-              <a href="{{ url_for('loans.view_payment_proof', payment_id=payment.id) }}" target="_blank" class="doc-btn">👁 View</a>
-              <a href="{{ url_for('loans.download_receipt', payment_id=payment.id) }}" class="doc-btn primary">🧾 Receipt</a>
-            </div>
-          </div>
-          {% endif %}
+            {% endif %}
           {% else %}
-          <div class="docs-empty" style="grid-column:1/-1; padding:24px;">
-            <div class="docs-empty-icon" style="font-size:32px">🧾</div>
-            <p style="font-size:13px;color:var(--gray-400)">No payment proofs uploaded yet.</p>
+          <div class="docs-empty">
+            <div class="docs-empty-icon">🧾</div>
+            <p>No payment proofs uploaded yet.</p>
           </div>
           {% endfor %}
         </div>
       </div>
 
-      <!-- ── GROUP 4: Generated Reports ── -->
+      <!-- GROUP 4: Generated Reports -->
       <div class="doc-group" data-cat="report">
         <div class="doc-group-title">📊 Generated Reports & Statements</div>
         <div class="doc-grid">
@@ -452,9 +282,7 @@
               <a href="{{ url_for('loans.amortization_pdf', loan_id=loan.id) }}" download class="doc-btn primary">⬇ Export PDF</a>
             </div>
           </div>
-          {% endfor %}
 
-          {% for loan in loans %}
           <div class="doc-card" data-cat="report" data-name="payment history statement {{ loan.reference_no|lower }}">
             <div class="doc-card-top">
               <div class="doc-icon pdf">📋<span class="doc-icon-ext">PDF</span></div>
@@ -469,14 +297,13 @@
               <a href="{{ url_for('loans.payment_history_pdf', loan_id=loan.id) }}" download class="doc-btn primary">⬇ Export PDF</a>
             </div>
           </div>
+          {% else %}
+          <div class="docs-empty">
+            <div class="docs-empty-icon">📊</div>
+            <p>Reports will appear here once you have active loans.</p>
+          </div>
           {% endfor %}
 
-          {% if not loans %}
-          <div class="docs-empty" style="grid-column:1/-1; padding:24px;">
-            <div class="docs-empty-icon" style="font-size:32px">📊</div>
-            <p style="font-size:13px;color:var(--gray-400)">Reports will appear here once you have active loans.</p>
-          </div>
-          {% endif %}
         </div>
       </div>
 
@@ -489,7 +316,7 @@
   <div class="modal">
     <h3>📎 Upload Document</h3>
     <p>Upload a document to attach to your account or a specific loan.</p>
-    <form method="POST" action="{{ url_for('borrower.upload_document') }}" enctype="multipart/form-data"></form>
+    <form method="POST" action="{{ url_for('borrower.upload_document') }}" enctype="multipart/form-data">
       <div class="modal-form-group">
         <label>Document Type</label>
         <select name="doc_type" id="uploadDocType">
@@ -502,7 +329,7 @@
           <option value="other">Other</option>
         </select>
       </div>
-      <div class="modal-form-group" id="loanLinkGroup">
+      <div class="modal-form-group">
         <label>Link to Loan (Optional)</label>
         <select name="loan_id">
           <option value="">— Not linked to a specific loan —</option>
@@ -512,10 +339,12 @@
         </select>
       </div>
       <div class="modal-upload-zone" id="modalUploadZone">
-        <input type="file" name="document" id="modalFile" accept=".pdf,.jpg,.jpeg,.png" onchange="previewModalFile(this)" required />
-        <div style="font-size:28px;margin-bottom:6px" id="modalUploadIcon">📎</div>
-        <p style="font-size:13px;color:var(--gray-600);font-weight:600" id="modalUploadText">Click or drop file here</p>
-        <span style="font-size:11px;color:var(--gray-400)">PDF, JPG, PNG — max 10MB</span>
+        <input type="file" name="document" id="modalFile"
+               accept=".pdf,.jpg,.jpeg,.png"
+               onchange="previewModalFile(this)" required />
+        <div id="modalUploadIcon">📎</div>
+        <p id="modalUploadText">Click or drop file here</p>
+        <span>PDF, JPG, PNG — max 10MB</span>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" onclick="closeUploadModal()">Cancel</button>
@@ -528,60 +357,6 @@
 <!-- TOAST -->
 <div class="toast" id="toast">✅ <span id="toastMsg">Done!</span></div>
 
-<script>
-  function openUploadModal(cat) {
-    if (cat) document.getElementById('uploadDocType').value = cat === 'id' ? 'id' : '';
-    document.getElementById('uploadModal').classList.add('show');
-  }
-  function closeUploadModal() {
-    document.getElementById('uploadModal').classList.remove('show');
-  }
-  document.getElementById('uploadModal').addEventListener('click', function(e) {
-    if (e.target === this) closeUploadModal();
-  });
-
-  function previewModalFile(input) {
-    const file = input.files[0];
-    if (!file) return;
-    document.getElementById('modalUploadIcon').textContent = file.type.startsWith('image') ? '🖼' : '📄';
-    document.getElementById('modalUploadText').textContent = file.name;
-  }
-
-  function filterDocs(cat, btn) {
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-
-    const groups = document.querySelectorAll('.doc-group');
-    groups.forEach(g => {
-      if (cat === 'all' || g.dataset.cat === cat) g.style.display = '';
-      else g.style.display = 'none';
-    });
-  }
-
-  function searchDocs(q) {
-    const query = q.toLowerCase();
-    document.querySelectorAll('.doc-card').forEach(card => {
-      const name = card.dataset.name || '';
-      card.style.display = (!query || name.includes(query)) ? '' : 'none';
-    });
-  }
-
-  function showToast(msg) {
-    document.getElementById('toastMsg').textContent = msg;
-    const t = document.getElementById('toast');
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  }
-
-  // Demo: attach download clicks
-  document.querySelectorAll('.doc-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      if (this.textContent.includes('Receipt') || this.textContent.includes('Export')) {
-        // Let Flask handle it — just a visual feedback
-        showToast('Preparing document…');
-      }
-    });
-  });
-</script>
+<script src="{{ url_for('borrower.static', filename='documents.js') }}"></script>
 </body>
 </html>
