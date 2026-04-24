@@ -238,7 +238,10 @@ def application_detail(app_id):
             flash('Application not found.', 'danger')
             return redirect(url_for('super_admin.admin_applications'))
 
-        cursor.execute("SELECT * FROM application_documents WHERE application_id = %s", (app_id,))
+        cursor.execute(
+            "SELECT * FROM application_documents WHERE application_id = %s",
+            (app_id,)
+        )
         docs = cursor.fetchall()
 
         from Loan_Management_System2.Loans.routes import calculate_monthly_payment
@@ -248,13 +251,29 @@ def application_detail(app_id):
             app['term_months'] or 0
         )
 
+        # stats para sa nav badges
+        cursor.execute(
+            "SELECT COUNT(*) AS cnt FROM loan_applications WHERE status IN ('submitted','under_review')"
+        )
+        pending_apps = cursor.fetchone()['cnt']
+        cursor.execute("SELECT COUNT(*) AS cnt FROM payments WHERE status='pending'")
+        pending_pays = cursor.fetchone()['cnt']
+        stats = {
+            'pending_applications': pending_apps,
+            'pending_payments': pending_pays,
+        }
+
         cursor.close()
         conn.close()
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('super_admin.admin_applications'))
 
-    return render_template('application_detail.html', app=app, docs=docs, monthly_payment=monthly)
+    return render_template('application_detail.html',
+                           app=app,
+                           docs=docs,
+                           monthly_payment=monthly,
+                           stats=stats)
 
 
 # ─────────────────────────────────────────────

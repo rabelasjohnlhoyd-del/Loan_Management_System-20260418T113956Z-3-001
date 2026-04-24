@@ -65,10 +65,10 @@
 
   /* ── Animated stat counters ── */
   function animateCounter(card) {
-    const el       = card.querySelector('.stat-value');
+    const el = card.querySelector('.stat-value');
     if (!el) return;
     const target   = parseInt(card.dataset.count, 10) || 0;
-    const prefix   = card.dataset.prefix  || '';
+    const prefix   = card.dataset.prefix || '';
     const fmt      = card.dataset.format;
     const duration = 900;
     const start    = performance.now();
@@ -87,18 +87,32 @@
     requestAnimationFrame(step);
   }
 
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (!entry.isIntersecting) return;
-      setTimeout(() => {
-        entry.target.classList.add('visible');
-        animateCounter(entry.target);
-      }, i * 100);
-      observer.unobserve(entry.target);
-    });
-  }, { threshold: 0.2 });
+  /* ── Stat card entrance animation ──
+     Works for cards WITH data-animate (IntersectionObserver)
+     AND cards WITHOUT it (simple staggered timeout fallback)      */
+  const animatedCards = document.querySelectorAll('.stat-card[data-animate]');
+  const plainCards    = document.querySelectorAll('.stat-card:not([data-animate])');
 
-  document.querySelectorAll('.stat-card[data-animate]').forEach(c => observer.observe(c));
+  if (animatedCards.length) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (!entry.isIntersecting) return;
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+          animateCounter(entry.target);
+        }, i * 100);
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.2 });
+
+    animatedCards.forEach(c => observer.observe(c));
+  }
+
+  if (plainCards.length) {
+    plainCards.forEach((card, i) => {
+      setTimeout(() => card.classList.add('visible'), i * 120);
+    });
+  }
 
   /* ── Table search ── */
   const appSearch = document.getElementById('appSearch');
@@ -144,18 +158,18 @@
   });
 
   function applyRowAction(row, newStatus) {
-    const badge    = row?.querySelector('.badge');
-    const actCell  = row?.querySelector('td:last-child');
+    const badge   = row?.querySelector('.badge');
+    const actCell = row?.querySelector('td:last-child');
 
     if (badge) {
-      badge.className  = `badge badge--${newStatus}`;
+      badge.className   = `badge badge--${newStatus}`;
       badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
     }
     if (actCell) {
       actCell.innerHTML = `<button class="tbl-btn tbl-btn--view" data-action="view">View</button>`;
     }
 
-    const pending = appTable?.querySelectorAll('.badge--pending, .badge--submitted').length || 0;
+    const pending  = appTable?.querySelectorAll('.badge--pending, .badge--submitted').length || 0;
     const appBadge = document.getElementById('appBadge');
     if (appBadge) appBadge.textContent = pending;
     if (pending === 0) document.getElementById('pendingAlert')?.classList.add('hidden');
@@ -171,7 +185,6 @@
     const list = document.getElementById('activityList');
     if (!list) return;
 
-    // Remove empty state if present
     list.querySelector('.activity-empty')?.remove();
 
     const item = document.createElement('div');
@@ -184,20 +197,23 @@
         <span class="activity-time">Just now</span>
       </div>`;
     list.prepend(item);
-    requestAnimationFrame(() => { item.style.opacity = '1'; item.style.transform = 'translateY(0)'; });
+    requestAnimationFrame(() => {
+      item.style.opacity   = '1';
+      item.style.transform = 'translateY(0)';
+    });
 
     const items = list.querySelectorAll('.activity-item');
     if (items.length > 8) items[items.length - 1].remove();
   }
 
   /* ── Modal ── */
-  const overlay    = document.getElementById('modalOverlay');
-  const modalTitle = document.getElementById('modalTitle');
-  const modalBody  = document.getElementById('modalBody');
-  const modalClose = document.getElementById('modalClose');
-  const modalCancel= document.getElementById('modalCancel');
-  const modalConfirm=document.getElementById('modalConfirm');
-  let onConfirm    = null;
+  const overlay     = document.getElementById('modalOverlay');
+  const modalTitle  = document.getElementById('modalTitle');
+  const modalBody   = document.getElementById('modalBody');
+  const modalClose  = document.getElementById('modalClose');
+  const modalCancel = document.getElementById('modalCancel');
+  const modalConfirm= document.getElementById('modalConfirm');
+  let onConfirm     = null;
 
   function openModal(title, body, confirmLabel, cb) {
     if (modalTitle) modalTitle.textContent = title;
