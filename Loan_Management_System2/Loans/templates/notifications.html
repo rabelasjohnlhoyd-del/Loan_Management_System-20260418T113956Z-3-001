@@ -48,16 +48,16 @@
 
     <nav class="sidebar-nav">
       {% if session.role == 'borrower' %}
-            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
+      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-            <a href="#" class="nav-item">
+      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
         <span class="nav-icon nav-icon--payment"></span>Make a Payment
       </a>
-            <a href="#" class="nav-item">
+      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
         <span class="nav-icon nav-icon--history"></span>Payment History
       </a>
-            <a href="#" class="nav-item">
+      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
         <span class="nav-icon nav-icon--docs"></span>Documents
       </a>
       {% else %}

@@ -154,7 +154,7 @@ Admin Profile Page
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3ab5a0 0%, #2a9080 100%);
+  background: linear-gradient(175deg, var(--primary-dark) 0%, var(--primary-darker) 100%);
   color: #ffffff;
   font-family: 'Sora', sans-serif;
   font-weight: 700;
@@ -163,7 +163,7 @@ Admin Profile Page
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 16px rgba(42, 144, 128, 0.28);
+  box-shadow: 0 4px 16px rgba(30, 110, 122, 0.35);
 }
 
 .profile-name {
@@ -244,8 +244,8 @@ Admin Profile Page
 }
 .btn-back:hover {
   background: #e6f7f4;
-  color: #2a9080;
-  border-color: #b2e4db;
+  color: #2a8f9d;
+  border-color: #a8dde3;
 }
 .btn-back-icon {
   width: 14px;

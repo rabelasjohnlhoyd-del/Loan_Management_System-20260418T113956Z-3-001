@@ -39,7 +39,7 @@
   --r-sm:           6px;
   --r-md:           10px;
   --r-lg:           14px;
-  --sidebar-w:      250px;
+  --sidebar-w:      240px;
   --font:           'DM Sans', system-ui, sans-serif;
   --font-h:         'Sora', system-ui, sans-serif;
 }
@@ -56,7 +56,7 @@ html, body {
    SIDEBAR — identical to dashboard_admin.css
    ================================================================ */
 .sidebar {
-  width: var(--sidebar-w);
+  width: 250px;
   min-height: 100vh;
   background: linear-gradient(175deg, var(--primary-dark) 0%, var(--primary-darker) 100%);
   display: flex; flex-direction: column;
@@ -278,7 +278,7 @@ html, body {
 .topbar {
   position: sticky; top: 0; z-index: 50;
   background: var(--white); border-bottom: 1px solid var(--border);
-  padding: 0 28px; height: 64px;
+  padding: 16px 28px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .topbar-left { display: flex; flex-direction: column; justify-content: center; }

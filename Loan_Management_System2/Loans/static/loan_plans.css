@@ -143,14 +143,14 @@ body {
 .sidebar-user {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px; margin: 0px 10px 8px;
-  background: rgba(255,255,255,.08); border-radius: var(--r-md);
+  background: rgba(255,255,255,.08); border-radius: 10px;
 }
 
 .sidebar-user:hover { background: rgba(255, 255, 255, 0.12); }
 
 .sidebar-user.open {
   background: rgba(255, 255, 255, 0.12);
-  border-radius: var(--r-md) var(--r-md) 0 0;
+  border-radius: 10px 10px;
 }
 
 .s-avatar {
@@ -216,7 +216,7 @@ body {
   flex-direction: column;
   background: rgba(0, 0, 0, 0.20);
   margin: 0 10px;
-  border-radius: 0 0 var(--r-md) var(--r-md);
+  border-radius: 0 0 10px 10px;
   overflow: hidden;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -308,8 +308,8 @@ body {
 
 .nav-icon {
   display: inline-block;
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   background: currentColor;
   mask-size: contain;
@@ -432,8 +432,7 @@ button { font-family: inherit; }
   z-index: 50;
   background: #fff;
   border-bottom: 1px solid var(--border);
-  padding: 0 28px;
-  height: 64px;
+  padding: 16px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -17,7 +17,7 @@
   --success:      #16a34a;
   --danger:       #dc2626;
   --warning:      #d97706;
-  --sidebar-w:    230px;
+  --sidebar-w:    240px;
   --font:         'DM Sans', system-ui, sans-serif;
   --font-h:       'Sora', system-ui, sans-serif;
 }
@@ -97,7 +97,7 @@ body {
 .sidebar-user {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px; margin: 0px 10px 8px;
-  background: rgba(255,255,255,.08); border-radius: var(--r-md);
+  background: rgba(255,255,255,.08); border-radius: 10px;
 }
 
 .s-avatar {
@@ -177,8 +177,8 @@ body {
 
 .nav-icon {
   display: inline-block;
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   background: currentColor;
   mask-size: contain;
@@ -311,8 +311,8 @@ body {
 
 .topbar-left p {
   font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 1px;
+  color: #9bbcb7;
+  margin-top: 2px;
 }
 
 .topbar-right {
@@ -435,7 +435,7 @@ body {
 }
 
 .sc-value--date {
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .sc-sub {

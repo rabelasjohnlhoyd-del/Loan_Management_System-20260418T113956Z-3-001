@@ -64,7 +64,6 @@ body {
   font-family: 'DM Sans', sans-serif;
   background: var(--gray-100);
   color: var(--gray-800);
-  min-height: 100vh;
 }
 
 a {
@@ -145,7 +144,7 @@ button {
 .sidebar-user {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px; margin: 0px 10px 8px;
-  background: rgba(255,255,255,.08); border-radius: var(--r-md);
+  background: rgba(255,255,255,.08); border-radius: 10px;
 }
 
 .s-avatar {
@@ -207,7 +206,7 @@ button {
 
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: var(--r-sm);
+  padding: 9px 12px; border-radius: 6px;
   color: rgba(255,255,255,.68); font-size: 13px; font-weight: 500;
   text-decoration: none; cursor: pointer;
   background: none; border: none; width: 100%; text-align: left;

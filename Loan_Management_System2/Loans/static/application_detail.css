@@ -38,19 +38,15 @@
   --r-sm:           6px;
   --r-md:           10px;
   --r-lg:           14px;
-  --sidebar-w:      230px;
+  --sidebar-w:      240px;
   --font:           'DM Sans', system-ui, sans-serif;
   --font-h:         'Sora', system-ui, sans-serif;
 }
 
 html, body {
-  height: 100%;
   font-family: var(--font);
   background: var(--bg-base);
   color: var(--text-body);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
 }
 
 a { text-decoration: none; color: inherit; }
@@ -98,7 +94,7 @@ button { font-family: inherit; }
 .sidebar-user {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px; margin: 0px 10px 8px;
-  background: rgba(255,255,255,.08); border-radius: var(--r-md);
+  background: rgba(255,255,255,.08); border-radius: 10px;
 }
 .s-avatar {
   width: 34px; height: 34px; border-radius: 50%;
@@ -142,7 +138,7 @@ button { font-family: inherit; }
 .nav-item.active { background: rgba(255,255,255,.15); color: var(--white); font-weight: 600; }
 
 .nav-icon {
-  display: inline-block; width: 17px; height: 17px; flex-shrink: 0;
+  display: inline-block; width: 18px; height: 18px; flex-shrink: 0;
   background: currentColor;
   mask-size: contain; mask-repeat: no-repeat; mask-position: center;
   -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
@@ -227,15 +223,19 @@ button { font-family: inherit; }
 .topbar {
   position: sticky; top: 0; z-index: 50;
   background: var(--white); border-bottom: 1px solid var(--border);
-  padding: 0 28px; height: 64px;
+  padding: 16px 28px;
   display: flex; align-items: center; justify-content: space-between;
 }
-.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-left { align-items: center; gap: 12px; }
 .topbar-left h1 {
   font-family: var(--font-h); font-size: 18px; font-weight: 700;
-  color: var(--text-h); line-height: 1.2;
+  color: #2c4a47; line-height: 1.2;
 }
-.topbar-left p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.topbar-left p {
+  font-size: 12px;
+  color: #9bbcb7;
+  margin-top: 2px;
+}
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 
 .topbar-avatar {
@@ -298,7 +298,7 @@ button { font-family: inherit; }
 }
 .loan-summary-item {
   background: var(--bg-base); border: 1px solid var(--border-lt);
-  border-radius: var(--r-md); padding: 12px 14px;
+  border-radius: 10px; padding: 12px 14px;
 }
 .lsi-label {
   font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500;
@@ -358,7 +358,7 @@ button { font-family: inherit; }
 .flash-stack { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
 .flash-msg {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; border-radius: var(--r-md); font-size: 13px;
+  padding: 12px 16px; border-radius: 10px; font-size: 13px;
 }
 .flash-msg.success { background: var(--success-bg); color: #15803d; }
 .flash-msg.danger  { background: var(--danger-bg);  color: #b91c1c; }

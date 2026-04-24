@@ -37,7 +37,7 @@
   --r-sm:           6px;
   --r-md:           10px;
   --r-lg:           14px;
-  --sidebar-w:      230px;
+  --sidebar-w:      240px;
   --font:           'DM Sans', system-ui, sans-serif;
   --font-h:         'Sora', system-ui, sans-serif;
 }
@@ -212,10 +212,15 @@ body {
 
 /* TOPBAR */
 .topbar {
-  position: sticky; top: 0; z-index: 50;
-  background: var(--white); border-bottom: 1px solid var(--border);
-  padding: 0 28px; height: 64px;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 .topbar-left { display: flex; align-items: center; gap: 12px; }
 .menu-btn {
@@ -382,8 +387,11 @@ body {
   border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden;
 }
 .card-header {
-  padding: 16px 20px; border-bottom: 1px solid var(--border-lt);
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--gray-200);
 }
 .card-header h3 { font-family: var(--font-h); font-size: 14px; font-weight: 700; color: var(--text-h); }
 .card-header p  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
@@ -432,8 +440,8 @@ body {
 .tbl-btn--approve:hover { background: #bbf7d0; }
 .tbl-btn--reject  { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
 .tbl-btn--reject:hover  { background: #fecaca; }
-.tbl-btn--view    { background: var(--bg-base); color: var(--text-body); border-color: var(--border); }
-.tbl-btn--view:hover    { background: var(--border); }
+.tbl-btn--view    { background: #ffffff; color: #2a8f9d; border-color: #a8dde3;text-decoration: none; transition: border-color .15s, background .15s, transform .15s;}
+.tbl-btn--view:hover    { background: #a8dde328; }
 
 /* QUICK ACTIONS */
 .quick-actions { display: flex; flex-direction: column; gap: 10px; }
@@ -519,10 +527,9 @@ body {
 .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
 .btn-outline { background: #fff; color: var(--primary-dark); border-color: var(--primary-mid); }
-.btn-outline:hover { background: var(--primary-light); }
-.btn-ghost   { background: transparent; color: var(--text-body); border-color: var(--border); }
-.btn-ghost:hover  { background: var(--bg-base); }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-outline:hover { background: #2a8f9d; }
+.btn-ghost   { background: #3aa7b5; color: #f1f5f9; border-color: #e5e9ed; }
+.btn-ghost:hover  { background: #2a8f9d; }
 
 /* FLASH MESSAGES */
 .flash-stack { margin-bottom: 16px; }

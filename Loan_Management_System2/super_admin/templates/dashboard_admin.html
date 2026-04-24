@@ -147,10 +147,6 @@
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
 
-      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
-      </a>
-
       <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
         <span class="nav-icon nav-icon--clock"></span>Applications
         {% if stats and stats.get('pending_applications', 0) > 0 %}

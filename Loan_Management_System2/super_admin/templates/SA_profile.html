@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
-  <link rel="stylesheet" href="{{ url_for('auth.static', filename='SA_profile.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='SA_profile.css') }}"/>
 </head>
 <body>
 
@@ -55,9 +55,6 @@
       <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
-      </a>
       <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
         <span class="nav-icon nav-icon--clock"></span>Applications
         {% if stats and stats.get('pending_applications', 0) > 0 %}
@@ -103,8 +100,9 @@
         </div>
       </div>
       <div class="topbar-right">
-        <a href="{{ url_for('auth.dashboard') }}" class="btn btn-ghost btn-sm">
-          ← Back to Dashboard
+        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
+          <span class="btn-back-icon"></span>
+          Back to Dashboard
         </a>
       </div>
     </header>

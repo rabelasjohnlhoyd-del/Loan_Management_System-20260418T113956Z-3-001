@@ -131,7 +131,7 @@ button {
 .sidebar-user {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px; margin: 0px 10px 8px;
-  background: rgba(255,255,255,.08); border-radius: var(--r-md);
+  background: rgba(255,255,255,.08); border-radius: 10px;
 }
 
 .s-avatar {
@@ -213,8 +213,8 @@ button {
 /* Nav icons */
 .nav-icon {
   display: inline-block;
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   background: currentColor;
   mask-size: contain;
@@ -339,7 +339,7 @@ button {
 
 .topbar-left p {
   font-size: 12px;
-  color: var(--gray-400);
+  color: #9bbcb7;
   display: flex;
   align-items: center;
   gap: 6px;

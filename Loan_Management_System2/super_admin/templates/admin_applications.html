@@ -115,43 +115,39 @@
       </a>
     </div>
 
-    <nav class="sidebar-nav">
+<nav class="sidebar-nav">
 
-      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
+  <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+    <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+  </a>
 
-      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
-      </a>
+  <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item active">
+    <span class="nav-icon nav-icon--clock"></span>Applications
+    {% if stats and stats.get('pending_applications', 0) > 0 %}
+    <span class="nav-badge">{{ stats.pending_applications }}</span>
+    {% endif %}
+  </a>
 
-      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item active">
-        <span class="nav-icon nav-icon--clock"></span>Applications
-        {% if stats and stats.get('pending_applications', 0) > 0 %}
-        <span class="nav-badge">{{ stats.pending_applications }}</span>
-        {% endif %}
-      </a>
+  <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+    <span class="nav-icon nav-icon--applications"></span>All Loans
+  </a>
 
-      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
-        <span class="nav-icon nav-icon--applications"></span>All Loans
-      </a>
+  <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+    <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+  </a>
 
-      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
-      </a>
+  <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
+    <span class="nav-icon nav-icon--loans"></span>Payment Verification
+    {% if stats and stats.get('pending_payments', 0) > 0 %}
+    <span class="nav-badge">{{ stats.pending_payments }}</span>
+    {% endif %}
+  </a>
 
-      <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loans"></span>Payment Verification
-        {% if stats and stats.get('pending_payments', 0) > 0 %}
-        <span class="nav-badge">{{ stats.pending_payments }}</span>
-        {% endif %}
-      </a>
+  <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+    <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
+  </a>
 
-      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
-        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
-      </a>
-
-    </nav>
+</nav>
 
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">

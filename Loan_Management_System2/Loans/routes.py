@@ -437,7 +437,7 @@ def application_detail(app_id):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('loans.my_applications'))
 
-    return render_template('application_detail.html',
+    return render_template('B_application_detail.html',
                            app=app, docs=docs, monthly_payment=monthly)
 
 

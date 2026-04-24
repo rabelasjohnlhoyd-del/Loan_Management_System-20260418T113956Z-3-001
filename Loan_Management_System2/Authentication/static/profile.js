@@ -28,8 +28,37 @@ function initActiveNav() {
   });
 }
 
+// ── USER DROPDOWN TOGGLE ──
+function initUserDropdown() {
+  const toggle   = document.getElementById('userDropdownToggle');
+  const dropdown = document.getElementById('userDropdown');
+
+  if (!toggle || !dropdown) return;
+
+  // Force pointer cursor and correct stacking via JS
+  toggle.style.cursor   = 'pointer';
+  toggle.style.position = 'relative';
+  toggle.style.zIndex   = '200';
+
+  toggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const isOpen = dropdown.classList.contains('open');
+    dropdown.classList.toggle('open', !isOpen);
+    toggle.classList.toggle('open', !isOpen);
+  });
+
+  // Close when clicking outside
+  document.addEventListener('click', function (e) {
+    if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.remove('open');
+      toggle.classList.remove('open');
+    }
+  });
+}
+
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', () => {
   initFlash();
   initActiveNav();
+  initUserDropdown();
 });

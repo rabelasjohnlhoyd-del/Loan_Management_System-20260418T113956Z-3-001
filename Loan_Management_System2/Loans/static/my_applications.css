@@ -14,7 +14,7 @@
   --text-heading: #1a2332;
   --text-body:    #4a5568;
   --text-muted:   #94a3b8;
-  --sidebar-w:    230px;
+  --sidebar-w:    240px;
   --font:         'DM Sans', system-ui, sans-serif;
   --font-h:       'Sora', system-ui, sans-serif;
 }
@@ -147,7 +147,7 @@ padding: 20px 18px 16px;
 .sidebar-user {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px; margin: 0px 10px 8px;
-  background: rgba(255,255,255,.08); border-radius: var(--r-md);
+  background: rgba(255,255,255,.08); border-radius: 10px;
 }
 
 .s-avatar {
@@ -232,8 +232,8 @@ padding: 20px 18px 16px;
 
 .nav-icon {
   display: inline-block;
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   background: currentColor;
   mask-size: contain;
@@ -363,8 +363,7 @@ button { font-family: inherit; }
   z-index: 50;
   background: #fff;
   border-bottom: 1px solid var(--border);
-  padding: 0 28px;
-  height: 64px;
+  padding: 16px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -380,7 +379,8 @@ button { font-family: inherit; }
 
 .topbar-left p {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #9bbcb7;
+  margin-top: 2px;
 }
 
 .topbar-right {

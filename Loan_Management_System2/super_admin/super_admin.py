@@ -5,6 +5,10 @@ import io
 from Loan_Management_System2 import db_config, mail
 from flask_mail import Message
 import mysql.connector
+from Loan_Management_System2.Loans.routes import calculate_monthly_payment
+from Loan_Management_System2.Loans.routes import generate_reference, calculate_monthly_payment, build_amortization
+from functools import wraps
+import bcrypt
 
 super_admin_bp = Blueprint('super_admin', __name__,template_folder='templates',static_folder='static',static_url_path='/admin/static')
 
@@ -15,7 +19,7 @@ def is_logged_in():
     return session.get('logged_in', False)
 
 def login_required(f):
-    from functools import wraps
+    
     @wraps(f)
     def decorated(*args, **kwargs):
         if not is_logged_in():
@@ -25,7 +29,6 @@ def login_required(f):
     return decorated
 
 def role_required(*roles):
-    from functools import wraps
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
@@ -244,7 +247,6 @@ def application_detail(app_id):
         )
         docs = cursor.fetchall()
 
-        from Loan_Management_System2.Loans.routes import calculate_monthly_payment
         monthly = calculate_monthly_payment(
             float(app['amount_requested'] or 0),
             float(app['interest_rate'] or 0),
@@ -269,7 +271,7 @@ def application_detail(app_id):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('super_admin.admin_applications'))
 
-    return render_template('application_detail.html',
+    return render_template('SA_application_detail.html',
                            app=app,
                            docs=docs,
                            monthly_payment=monthly,
@@ -660,9 +662,6 @@ def verify_borrower_id(borrower_id):
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer')
 def review_application(app_id):
-    from Loan_Management_System2.Loans.routes import (
-        generate_reference, calculate_monthly_payment, build_amortization
-    )
 
     action           = request.form.get('action')
     rejection_reason = request.form.get('rejection_reason', '').strip()
@@ -1017,7 +1016,6 @@ def create_user():
             return redirect(url_for('super_admin.create_user'))
 
         try:
-            import bcrypt
             hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
             conn   = get_db()
