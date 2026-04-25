@@ -6,8 +6,65 @@
   <title>Make a Payment — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <link rel="stylesheet" href="{{ url_for('borrower.static', filename='make_payment.css') }}" />
+  <style>
+    /* ── User dropdown ── */
+    .sidebar-user {
+      cursor: pointer; position: relative; user-select: none;
+    }
+    .sidebar-user .s-chevron {
+      margin-left: auto; width: 14px; height: 14px; flex-shrink: 0;
+      background: rgba(255,255,255,0.55);
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+      transition: transform 0.2s ease;
+    }
+    .sidebar-user.open .s-chevron { transform: rotate(180deg); background: rgba(255,255,255,0.9); }
+    .sidebar-user:hover { background: rgba(255,255,255,0.13); }
+    .sidebar-user.open  { background: rgba(255,255,255,0.13); border-radius: 10px 10px 0 0; }
+
+    .user-dropdown {
+      display: none; flex-direction: column;
+      background: rgba(0,0,0,0.18); margin: 0 10px;
+      border-radius: 0 0 10px 10px; overflow: hidden;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .user-dropdown.open { display: flex; }
+    .user-dropdown a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; font-size: 13px; font-weight: 500;
+      color: rgba(255,255,255,0.80); text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .user-dropdown a:hover { background: rgba(255,255,255,0.10); color: #fff; }
+    .user-dropdown .dd-icon {
+      width: 15px; height: 15px; flex-shrink: 0;
+      background: currentColor;
+      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+      opacity: 0.75;
+    }
+    .dd-icon--profile {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
+    }
+    .dd-icon--loans {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'/%3E%3C/svg%3E");
+    }
+    .dd-icon--applications {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+    }
+    .dd-icon--loan-types {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'/%3E%3C/svg%3E");
+    }
+  </style>
 </head>
 <body>
 
@@ -25,12 +82,28 @@
       </div>
     </div>
 
-    <div class="sidebar-user">
+    <div class="sidebar-user" id="userDropdownToggle">
       <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
       <div class="s-user-info">
         <h4>{{ session.user_name }}</h4>
         <div class="s-role-badge">Borrower</div>
       </div>
+      <span class="s-chevron"></span>
+    </div>
+
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('borrower.profile') }}">
+        <span class="dd-icon dd-icon--profile"></span>My Profile
+      </a>
+      <a href="{{ url_for('loans.my_loans') }}">
+        <span class="dd-icon dd-icon--loans"></span>My Loans
+      </a>
+      <a href="{{ url_for('loans.my_applications') }}">
+        <span class="dd-icon dd-icon--applications"></span>My Applications
+      </a>
+      <a href="{{ url_for('loans.loan_types') }}">
+        <span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans
+      </a>
     </div>
 
     <nav class="sidebar-nav">
@@ -62,7 +135,7 @@
     <header class="topbar">
       <div>
         <h1>Make a Payment</h1>
-        <p>Submit your payment proof for verification</p>
+        <p>Complete your payment in a few steps</p>
       </div>
       <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
         {{ session.user_name[0]|upper if session.user_name else 'U' }}
@@ -77,7 +150,7 @@
         {% endfor %}
       {% endwith %}
 
-      <!-- STEP INDICATOR -->
+      <!-- STEP INDICATOR — 5 steps na -->
       <div class="steps">
         <div class="step active" id="step1">
           <div class="step-num">1</div>
@@ -86,30 +159,45 @@
         <div class="step-line" id="line1"></div>
         <div class="step todo" id="step2">
           <div class="step-num">2</div>
-          <div class="step-label">Payment Details</div>
+          <div class="step-label">Payment Method</div>
         </div>
         <div class="step-line" id="line2"></div>
         <div class="step todo" id="step3">
           <div class="step-num">3</div>
-          <div class="step-label">Upload Proof</div>
+          <div class="step-label">Pay via QR</div>
         </div>
         <div class="step-line" id="line3"></div>
         <div class="step todo" id="step4">
           <div class="step-num">4</div>
-          <div class="step-label">Confirm</div>
+          <div class="step-label">Confirmation</div>
+        </div>
+        <div class="step-line" id="line4"></div>
+        <div class="step todo" id="step5">
+          <div class="step-num">5</div>
+          <div class="step-label">E-Receipt</div>
         </div>
       </div>
 
-      <!-- STEP 1: SELECT LOAN -->
-      <div id="sectionSelectLoan">
-        <p class="section-title">Choose a Loan to Pay</p>
-        <div class="loan-select-grid" id="loanCards">
+      <!-- ══════════════════════════════════════════
+           STEP 1: SELECT LOAN
+      ══════════════════════════════════════════ -->
+      <div id="sectionSelectLoan" class="page-section">
+        <div class="section-header">
+          <h2 class="section-heading">Choose a Loan to Pay</h2>
+          <p class="section-sub">Select which loan you'd like to make a payment for</p>
+        </div>
+        <div class="loan-select-grid">
           {% for loan in active_loans %}
           <div class="loan-select-card"
                onclick="selectLoan(this, {{ loan.id }}, '{{ loan.reference_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}', '{{ loan.next_due.strftime('%b %d, %Y') if loan.next_due else 'N/A' }}')"
                data-id="{{ loan.id }}">
-            <div class="loan-card-ref">{{ loan.reference_no }}</div>
-            <div class="loan-card-type">{{ loan.type_name }}</div>
+            <div class="loan-card-top">
+              <div>
+                <div class="loan-card-ref">{{ loan.reference_no }}</div>
+                <div class="loan-card-type">{{ loan.type_name }}</div>
+              </div>
+              <div class="loan-card-check">✓</div>
+            </div>
             <div class="loan-card-row">
               <div class="loan-card-stat">
                 <div class="loan-card-stat-val">₱{{ "{:,.0f}".format(loan.outstanding_balance) }}</div>
@@ -117,7 +205,7 @@
               </div>
               <div class="loan-card-divider"></div>
               <div class="loan-card-stat">
-                <div class="loan-card-stat-val">₱{{ "{:,.0f}".format(loan.next_amount or 0) }}</div>
+                <div class="loan-card-stat-val highlight">₱{{ "{:,.0f}".format(loan.next_amount or 0) }}</div>
                 <div class="loan-card-stat-lbl">Due Amount</div>
               </div>
               <div class="loan-card-divider"></div>
@@ -147,213 +235,416 @@
         </div>
       </div>
 
-      <!-- PAYMENT FORM (hidden until loan selected) -->
-      <div id="sectionPaymentForm" class="hidden">
-        <form method="POST" action="#" enctype="multipart/form-data" id="paymentForm">
-          <input type="hidden" name="loan_id" id="hiddenLoanId" />
-          <input type="hidden" name="payment_method" id="hiddenMethod" value="gcash" />
-
-          <!-- PAYMENT DETAILS -->
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h3>Payment Details</h3>
-                <p id="selectedLoanLabel">Fill in your payment information</p>
-              </div>
-              <button type="button" onclick="resetSelection()">Change Loan</button>
-            </div>
-            <div class="card-body">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="paymentAmount">Payment Amount (₱)</label>
-                  <input type="number" class="form-control" id="paymentAmount" name="amount_paid"
-                         step="0.01" min="1" placeholder="0.00" required oninput="updateSummary()" />
-                  <span class="form-hint">Monthly due: ₱<span id="dueAmountHint">0.00</span></span>
-                </div>
-                <div class="form-group">
-                  <label for="paymentDate">Date of Payment</label>
-                  <input type="date" class="form-control" id="paymentDate" name="payment_date" required />
-                </div>
-                <div class="form-group full">
-                  <label for="referenceNum">Reference / Transaction Number</label>
-                  <input type="text" class="form-control" id="referenceNum" name="reference_number"
-                         placeholder="e.g. GCash Ref No. 1234567890" required />
-                  <span class="form-hint">Found in your GCash / Maya transaction history</span>
-                </div>
-                <div class="form-group full">
-                  <label for="paymentNotes">Notes (Optional)</label>
-                  <textarea class="form-control" id="paymentNotes" name="notes"
-                            rows="2" placeholder="Any additional information…"></textarea>
-                </div>
-              </div>
-            </div>
+      <!-- ══════════════════════════════════════════
+           STEP 2: SELECT PAYMENT METHOD
+      ══════════════════════════════════════════ -->
+      <div id="sectionStep2" class="page-section hidden">
+        <div class="section-header">
+          <div>
+            <h2 class="section-heading">Choose Payment Method</h2>
+            <p class="section-sub">How would you like to pay?</p>
           </div>
+          <button class="btn-back" onclick="backToStep1()">← Change Loan</button>
+        </div>
 
-          <!-- PAYMENT METHOD -->
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h3>Payment Method</h3>
-                <p>Choose how you paid and scan the QR code</p>
-              </div>
+        <div class="method-grid">
+          <div class="method-card" onclick="selectMethod('gcash', this)" data-method="gcash">
+            <div class="method-card-icon" style="background:#e8f4ff; color:#0070e0">💙</div>
+            <div class="method-card-info">
+              <div class="method-card-name">GCash</div>
+              <div class="method-card-desc">Scan QR to pay via GCash</div>
             </div>
-            <div class="card-body">
-              <div class="method-tabs">
-                <div class="method-tab active" onclick="setMethod('gcash',this)">
-                  <span class="method-icon">💙</span> GCash
-                </div>
-                <div class="method-tab" onclick="setMethod('maya',this)">
-                  <span class="method-icon">💚</span> Maya
-                </div>
-                <div class="method-tab" onclick="setMethod('bank',this)">
-                  <span class="method-icon">🏦</span> Bank Transfer
-                </div>
-                <div class="method-tab" onclick="setMethod('cash',this)">
-                  <span class="method-icon">💵</span> Cash / Manual
-                </div>
-              </div>
-
-              <div id="qrSection">
-                <div class="qr-display">
-                  <div class="qr-code" id="qrCodeBox">
-                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="5"  y="5"  width="35" height="35" fill="none" stroke="#2c4a47" stroke-width="4" rx="3"/>
-                      <rect x="12" y="12" width="21" height="21" fill="#2c4a47" rx="2"/>
-                      <rect x="60" y="5"  width="35" height="35" fill="none" stroke="#2c4a47" stroke-width="4" rx="3"/>
-                      <rect x="67" y="12" width="21" height="21" fill="#2c4a47" rx="2"/>
-                      <rect x="5"  y="60" width="35" height="35" fill="none" stroke="#2c4a47" stroke-width="4" rx="3"/>
-                      <rect x="12" y="67" width="21" height="21" fill="#2c4a47" rx="2"/>
-                      <rect x="46" y="5"  width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="46" y="14" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="5"  y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="14" y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="46" y="46" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="55" y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="64" y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="73" y="46" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="82" y="46" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="46" y="55" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="55" y="55" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="64" y="55" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="73" y="55" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="82" y="55" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="46" y="64" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="55" y="64" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="64" y="64" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="73" y="64" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="82" y="64" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="46" y="73" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="55" y="73" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="64" y="73" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="73" y="73" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="82" y="73" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="46" y="82" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="55" y="82" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="64" y="82" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                      <rect x="73" y="82" width="7" height="7" fill="#2c4a47" rx="1"/>
-                      <rect x="82" y="82" width="7" height="7" fill="#3ab5a0" rx="1"/>
-                    </svg>
-                  </div>
-                  <p id="qrMethodName"><strong>GCash</strong></p>
-                  <p id="qrAccountName">Hiraya Lending Corp.</p>
-                  <p class="qr-acct" id="qrAccountNum">+63 912 345 6789</p>
-                  <p id="qrHint">Scan with your <span id="qrAppLabel">GCash</span> app to pay</p>
-                </div>
-              </div>
-
-              <div id="cashSection" class="hidden">
-                <div class="cash-notice">
-                  <p class="cash-notice-title">📍 Office Payment Instructions</p>
-                  <p class="cash-notice-body">
-                    Please visit our office at <strong>Unit 3, ABC Building, Main Street</strong>
-                    during business hours (Mon–Fri, 8AM–5PM) and present your loan reference number
-                    to the cashier. You will receive an official receipt.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <div class="method-card-check">✓</div>
           </div>
-
-          <!-- UPLOAD PROOF -->
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h3>Upload Payment Screenshot</h3>
-                <p>Attach proof of payment for verification</p>
-              </div>
+          <div class="method-card" onclick="selectMethod('maya', this)" data-method="maya">
+            <div class="method-card-icon" style="background:#e8f9ee; color:#00b140">💚</div>
+            <div class="method-card-info">
+              <div class="method-card-name">Maya</div>
+              <div class="method-card-desc">Scan QR to pay via Maya</div>
             </div>
-            <div class="card-body">
-              <div class="upload-zone" id="uploadZone">
-                <input type="file" name="payment_screenshot" id="proofFile"
-                       accept="image/*,.pdf" onchange="previewFile(this)" />
-                <div class="upload-icon">📎</div>
-                <p>Drop your screenshot here or <strong>click to browse</strong></p>
-                <span>PNG, JPG, JPEG, PDF — max 5MB</span>
-              </div>
-              <div class="upload-preview" id="uploadPreview">
-                <img src="" alt="Preview" class="preview-thumb" id="previewThumb" />
-                <div>
-                  <div class="preview-name" id="previewName"></div>
-                  <div class="preview-size" id="previewSize"></div>
-                </div>
-                <span class="preview-remove" onclick="removeFile()">✕</span>
-              </div>
-            </div>
+            <div class="method-card-check">✓</div>
           </div>
-
-          <!-- PAYMENT SUMMARY -->
-          <div class="summary-box">
-            <h4>📋 Payment Summary</h4>
-            <div class="summary-row">
-              <span class="summary-label">Loan Reference</span>
-              <span class="summary-value" id="summaryRef">—</span>
+          <div class="method-card" onclick="selectMethod('bank', this)" data-method="bank">
+            <div class="method-card-icon" style="background:#e8eeff; color:#003087">🏦</div>
+            <div class="method-card-info">
+              <div class="method-card-name">BDO Bank Transfer</div>
+              <div class="method-card-desc">Transfer to BDO account</div>
             </div>
-            <div class="summary-row">
-              <span class="summary-label">Loan Type</span>
-              <span class="summary-value" id="summaryType">—</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Payment Method</span>
-              <span class="summary-value" id="summaryMethod">GCash</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Due Date</span>
-              <span class="summary-value" id="summaryDue">—</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label"><strong>Amount to Pay</strong></span>
-              <span class="summary-value" id="summaryAmount">₱0.00</span>
-            </div>
+            <div class="method-card-check">✓</div>
           </div>
+          <div class="method-card" onclick="selectMethod('cash', this)" data-method="cash">
+            <div class="method-card-icon" style="background:#eaf8f5; color:#2a9080">💵</div>
+            <div class="method-card-info">
+              <div class="method-card-name">Cash / Walk-in</div>
+              <div class="method-card-desc">Pay at the Hiraya office</div>
+            </div>
+            <div class="method-card-check">✓</div>
+          </div>
+        </div>
 
-          <button type="submit" class="btn-primary" id="submitBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-            </svg>
-            Submit Payment for Verification
-          </button>
-        </form>
+        <button class="btn-continue" id="btnContinueToQR" disabled onclick="proceedToStep3()">
+          Continue
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </button>
       </div>
+
+      <!-- ══════════════════════════════════════════
+           STEP 3: QR CODE + PAY
+      ══════════════════════════════════════════ -->
+      <div id="sectionStep3" class="page-section hidden">
+        <div class="section-header">
+          <div>
+            <h2 class="section-heading">Scan &amp; Pay</h2>
+            <p class="section-sub">Scan the QR code using your app, then tap "I've Paid"</p>
+          </div>
+          <button class="btn-back" onclick="backToStep2()">← Change Method</button>
+        </div>
+
+        <form method="POST" action="#" id="paymentForm" style="display:none">
+          <input type="hidden" name="loan_id"          id="hiddenLoanId" />
+          <input type="hidden" name="payment_method"   id="hiddenMethod" />
+          <input type="hidden" name="reference_number" id="hiddenRef" />
+          <input type="hidden" name="amount_paid"      id="hiddenAmount" />
+          <input type="hidden" name="payment_date"     id="hiddenDate" />
+          <input type="hidden" name="notes"            value="" />
+        </form>
+
+        <div class="qr-layout">
+          <div class="qr-card">
+            <div class="qr-card-header">
+              <span class="qr-method-badge" id="qrMethodBadge">💙 GCash</span>
+              <span class="qr-label">Payment QR Code</span>
+            </div>
+            <div id="qrCodeWrap" class="qr-code-wrap">
+              <canvas id="qrCanvas"></canvas>
+              <div class="qr-scan-hint" id="qrScanHint">
+                <span>📱</span> Open your app and scan
+              </div>
+            </div>
+            <div id="cashInstructions" class="cash-instructions" style="display:none">
+              <div class="cash-icon">🏢</div>
+              <p class="cash-title">Walk-in Payment</p>
+              <p class="cash-body">Visit our office and present your reference number to the cashier.</p>
+            </div>
+            <div class="qr-account-info">
+              <div class="qr-account-name" id="qrAccountName">Hiraya Lending</div>
+              <div class="qr-account-num"  id="qrAccountNum">+63 917 000 1234</div>
+            </div>
+          </div>
+
+          <div class="qr-details">
+            <div class="qr-detail-card">
+              <h3 class="qr-detail-title">Payment Details</h3>
+              <div class="qr-detail-row">
+                <span class="qr-detail-label">Loan Reference</span>
+                <span class="qr-detail-val" id="qrLoanRef">—</span>
+              </div>
+              <div class="qr-detail-row">
+                <span class="qr-detail-label">Loan Type</span>
+                <span class="qr-detail-val" id="qrLoanType">—</span>
+              </div>
+              <div class="qr-detail-row">
+                <span class="qr-detail-label">Due Date</span>
+                <span class="qr-detail-val" id="qrDueDate">—</span>
+              </div>
+              <div class="qr-detail-row highlight-row">
+                <span class="qr-detail-label">Amount to Pay</span>
+                <span class="qr-detail-val amount" id="qrAmount">₱0.00</span>
+              </div>
+              <div class="qr-detail-row">
+                <span class="qr-detail-label">Reference No.</span>
+                <span class="qr-detail-val mono" id="qrRefNum">—</span>
+              </div>
+            </div>
+
+            <div class="qr-instructions">
+              <p class="qr-step"><span class="qr-step-num">1</span> Open your payment app</p>
+              <p class="qr-step"><span class="qr-step-num">2</span> Scan the QR code</p>
+              <p class="qr-step"><span class="qr-step-num">3</span> Confirm the amount shown</p>
+              <p class="qr-step"><span class="qr-step-num">4</span> Complete payment in your app</p>
+              <p class="qr-step"><span class="qr-step-num">5</span> Tap "I've Paid" below</p>
+            </div>
+
+            <button class="btn-paid" id="btnIvePaid" onclick="submitPayment()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              I've Paid — Notify Admin
+            </button>
+            <p class="paid-disclaimer">Only tap this after completing payment in your app.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           STEP 4: PENDING CONFIRMATION
+      ══════════════════════════════════════════ -->
+      <div id="sectionStep4" class="page-section hidden">
+        <div class="pending-screen">
+          <div class="receipt-header">
+            <div class="receipt-check-icon">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h2 class="pending-title">Payment Submitted!</h2>
+            <p class="pending-desc">Awaiting admin verification. You'll receive your official e-receipt once confirmed.</p>
+          </div>
+
+          <div class="receipt-body">
+            <div class="pending-ref-box">
+              <span class="pending-ref-label">Payment Reference</span>
+              <span class="pending-ref-val" id="pendingRef">—</span>
+            </div>
+
+            <div class="receipt-table">
+              <div class="receipt-row">
+                <span class="receipt-label">Loan Reference</span>
+                <span class="receipt-val" id="receiptLoanRef">—</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Payment Method</span>
+                <span class="receipt-val" id="receiptMethod">—</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Date Submitted</span>
+                <span class="receipt-val" id="receiptDate">—</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Transaction Ref</span>
+                <span class="receipt-val mono" id="receiptTxnRef">—</span>
+              </div>
+              <div class="receipt-row highlight-row">
+                <span class="receipt-label">Amount Paid</span>
+                <span class="receipt-val amount" id="receiptAmount">₱0.00</span>
+              </div>
+            </div>
+
+            <!-- LIVE STATUS TIMELINE -->
+            <div class="pending-timeline" id="liveTimeline">
+              <div class="timeline-item done" id="tl-submitted">
+                <div class="tl-dot"></div>
+                <div class="tl-content">
+                  <div class="tl-title">Payment Submitted</div>
+                  <div class="tl-sub">Just now</div>
+                </div>
+              </div>
+              <div class="timeline-item pending" id="tl-verification">
+                <div class="tl-dot"></div>
+                <div class="tl-content">
+                  <div class="tl-title">Admin Verification</div>
+                  <div class="tl-sub" id="tl-verification-sub">Usually within 1–2 business hours</div>
+                </div>
+              </div>
+              <div class="timeline-item todo" id="tl-receipt">
+                <div class="tl-dot"></div>
+                <div class="tl-content">
+                  <div class="tl-title">Official E-Receipt Issued</div>
+                  <div class="tl-sub" id="tl-receipt-sub">After admin confirmation</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- APPROVED BANNER — "View E-Receipt" ngayon ay inline na, hindi redirect -->
+            <div id="receiptIssuedBanner" class="status-banner success-banner" style="display:none">
+              <div class="banner-icon">✅</div>
+              <div class="banner-text">
+                <div class="banner-title">Payment Confirmed!</div>
+                <div class="banner-sub">Your official e-receipt is ready.</div>
+              </div>
+              <!-- onclick lang — walang href redirect -->
+              <button type="button" class="banner-btn" id="btnViewEReceipt" onclick="loadAndShowReceipt()">
+                View E-Receipt →
+              </button>
+            </div>
+
+            <!-- REJECTED BANNER -->
+            <div id="receiptRejectedBanner" class="status-banner danger-banner" style="display:none">
+              <div class="banner-icon">❌</div>
+              <div class="banner-text">
+                <div class="banner-title">Payment Rejected</div>
+                <div class="banner-sub">Please contact our office or resubmit your payment.</div>
+              </div>
+            </div>
+
+            <div class="pending-actions" id="pendingActions">
+              <a href="{{ url_for('borrower.payment_history') }}" class="btn-secondary">View Payment History</a>
+              <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-primary-outline">Go to Dashboard</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           STEP 5: INLINE E-RECEIPT
+           Lahat ng content ay pina-populate ng JS
+           mula sa /borrower/payments/receipt-data/<pay_no>
+      ══════════════════════════════════════════ -->
+      <div id="sectionStep5" class="page-section hidden">
+
+        <!-- Loading state -->
+        <div id="receiptLoading" class="er-loading">
+          <div class="er-loading-spinner"></div>
+          <p>Loading your e-receipt…</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="receiptError" class="er-error" style="display:none">
+          <div class="er-error-icon">⚠️</div>
+          <p id="receiptErrorMsg">Could not load receipt. Please try again.</p>
+          <button class="btn-back" style="margin-top:12px" onclick="loadAndShowReceipt()">Retry</button>
+        </div>
+
+        <!-- Actual receipt card (hidden until data is fetched) -->
+        <div id="erCard" class="er-wrap" style="display:none">
+
+          <!-- Top actions inside the step -->
+          <div class="er-top-actions">
+            <button type="button" class="btn-back" onclick="backToStep4()">← Back</button>
+            <button type="button" class="er-btn-print" onclick="printReceipt()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
+              </svg>
+              Print / Save PDF
+            </button>
+          </div>
+
+          <!-- Receipt card — same design as e_receipt.html -->
+          <div class="er-card" id="erPrintArea">
+
+            <!-- Header -->
+            <div class="er-header">
+              <div class="er-logo">
+                <div class="er-logo-icon">$</div>
+                <div class="er-logo-name">Hiraya Lending</div>
+              </div>
+              <div class="er-check-circle">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h2 class="er-title">Official E-Receipt</h2>
+              <p class="er-subtitle">Payment successfully verified by Hiraya Lending</p>
+              <div class="er-pay-no-banner">
+                <div class="er-pay-no-label">Payment Reference</div>
+                <div class="er-pay-no-val" id="erPayNo">—</div>
+              </div>
+            </div>
+
+            <!-- Amount -->
+            <div class="er-amount-section">
+              <div class="er-amount-label">Amount Paid</div>
+              <div class="er-amount-val" id="erAmountVal">₱0.00</div>
+            </div>
+
+            <!-- Dashed divider -->
+            <div class="er-divider"><div class="er-divider-line"></div></div>
+
+            <!-- Details -->
+            <div class="er-details">
+
+              <!-- Payment Info -->
+              <div class="er-detail-group">
+                <div class="er-detail-group-title">Payment Information</div>
+                <div class="er-detail-row">
+                  <span class="er-detail-label">Status</span>
+                  <span class="er-detail-val er-status-approved">✓ Approved</span>
+                </div>
+                <div class="er-detail-row">
+                  <span class="er-detail-label">Payment Method</span>
+                  <span class="er-detail-val" id="erMethodBadge">—</span>
+                </div>
+                <div class="er-detail-row">
+                  <span class="er-detail-label">Transaction Reference</span>
+                  <span class="er-detail-val er-mono" id="erTxnRef">—</span>
+                </div>
+                <div class="er-detail-row">
+                  <span class="er-detail-label">Payment Date</span>
+                  <span class="er-detail-val" id="erPaymentDate">—</span>
+                </div>
+                <div class="er-detail-row">
+                  <span class="er-detail-label">Date Verified</span>
+                  <span class="er-detail-val" id="erDateVerified">—</span>
+                </div>
+              </div>
+
+              <!-- Loan Info -->
+              <div class="er-detail-group">
+                <div class="er-detail-group-title">Loan Information</div>
+                <div class="er-detail-row">
+                  <span class="er-detail-label">Loan Reference</span>
+                  <span class="er-detail-val" id="erLoanRef">—</span>
+                </div>
+                <div class="er-detail-row">
+                  <span class="er-detail-label">Loan Type</span>
+                  <span class="er-detail-val" id="erLoanType">—</span>
+                </div>
+              </div>
+
+              <!-- Borrower Info -->
+              <div class="er-detail-group">
+                <div class="er-detail-group-title">Borrower Information</div>
+                <div class="er-detail-row">
+                  <span class="er-detail-label">Name</span>
+                  <span class="er-detail-val" id="erBorrowerName">—</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Dashed divider -->
+            <div class="er-divider"><div class="er-divider-line"></div></div>
+
+            <!-- Footer -->
+            <div class="er-footer">
+              <p>This is an official electronic receipt issued by <strong>Hiraya Lending Management System</strong>.<br>
+              Please keep this for your records. For inquiries, contact our office.</p>
+            </div>
+
+          </div><!-- /er-card -->
+        </div><!-- /er-wrap -->
+      </div>
+      <!-- ══ END STEP 5 ══ -->
 
     </main>
   </div>
 </div>
 
-<!-- SUCCESS MODAL -->
-<div class="modal-overlay" id="successModal">
-  <div class="modal">
-    <div class="modal-check">✅</div>
-    <h3>Payment Submitted!</h3>
-    <p>Your payment has been successfully submitted and is awaiting verification by our team.</p>
-    <div class="modal-ref" id="modalRef">—</div>
-    <p>You'll receive a notification once reviewed.</p>
-    <div class="modal-actions">
-      <button class="btn-secondary" onclick="document.getElementById('successModal').classList.remove('show')">Close</button>
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-primary">View My Loans</a>
-    </div>
-  </div>
-</div>
+<script src="{{ url_for('borrower.static', filename='make_payment.js') }}?v={{ range(10000,99999)|random }}"></script>
+<script>
+  /* ── Auto-show Step 4 on redirect from POST ── */
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === '1') {
+      document.addEventListener('DOMContentLoaded', function () {
+        window.showStep4(
+          params.get('ref')    || '',
+          params.get('amount') || '0',
+          params.get('method') || ''
+        );
+      });
+    }
+  })();
 
-<script src="{{ url_for('borrower.static', filename='make_payment.js') }}"></script>
+  /* ── User dropdown toggle ── */
+  (function () {
+    var toggle   = document.getElementById('userDropdownToggle');
+    var dropdown = document.getElementById('userDropdown');
+    if (!toggle || !dropdown) return;
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+      toggle.classList.toggle('open');
+    });
+    document.addEventListener('click', function (e) {
+      if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+        toggle.classList.remove('open');
+      }
+    });
+  })();
+</script>
 </body>
 </html>

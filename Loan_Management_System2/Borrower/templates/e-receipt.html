@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Receipt {{ payment.payment_no }} — Hiraya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f2f7f6;
+      color: #1a3330;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    /* ── PAGE LAYOUT ── */
+    .page-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 32px 16px 48px;
+    }
+
+    /* ── TOP ACTIONS ── */
+    .top-actions {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .btn-back {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px;
+      border: 1.5px solid #e0edeb;
+      background: #fff; color: #4a6b67;
+      font-size: 13px; font-weight: 600;
+      transition: all 0.15s;
+    }
+    .btn-back:hover { border-color: #3ab5a0; color: #2a9080; }
+    .btn-print {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: 8px;
+      background: linear-gradient(135deg, #3ab5a0, #2a9080);
+      color: #fff; font-size: 13px; font-weight: 700;
+      box-shadow: 0 4px 12px rgba(58,181,160,0.25);
+      transition: all 0.15s;
+    }
+    .btn-print:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(58,181,160,0.35); }
+
+    /* ── RECEIPT CARD ── */
+    .receipt-card {
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid #e0edeb;
+      overflow: hidden;
+      box-shadow: 0 6px 24px rgba(26,51,48,0.09);
+    }
+
+    /* Header */
+    .receipt-header {
+      background: linear-gradient(135deg, #2a9080 0%, #1e6e60 100%);
+      padding: 28px 32px 24px;
+      text-align: center;
+      position: relative;
+    }
+    .receipt-logo {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .receipt-logo-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px;
+      color: #fff;
+    }
+    .receipt-logo-name {
+      font-family: 'Sora', sans-serif; font-size: 16px;
+      font-weight: 700; color: #fff;
+    }
+    .receipt-check {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+    .receipt-header h1 {
+      font-family: 'Sora', sans-serif; font-size: 20px;
+      font-weight: 800; color: #fff; margin-bottom: 4px;
+    }
+    .receipt-header p {
+      font-size: 13px; color: rgba(255,255,255,0.75);
+    }
+
+    /* Payment No Banner */
+    .pay-no-banner {
+      background: rgba(0,0,0,0.15);
+      margin: 16px 0 0;
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+    .pay-no-label {
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.6);
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .pay-no-val {
+      font-family: monospace; font-size: 15px;
+      font-weight: 700; color: #fff; letter-spacing: 1px;
+    }
+
+    /* Amount Highlight */
+    .amount-section {
+      background: #eaf8f5;
+      border-bottom: 1px solid #c8deda;
+      padding: 20px 32px;
+      text-align: center;
+    }
+    .amount-label {
+      font-size: 11px; font-weight: 700; color: #8aaeaa;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+    }
+    .amount-val {
+      font-family: 'Sora', sans-serif; font-size: 36px;
+      font-weight: 800; color: #1e6e60;
+    }
+
+    /* Details Table */
+    .receipt-details { padding: 0 32px; }
+    .detail-group {
+      padding: 18px 0;
+      border-bottom: 1px solid #e0edeb;
+    }
+    .detail-group:last-child { border-bottom: none; }
+    .detail-group-title {
+      font-size: 10.5px; font-weight: 700; color: #8aaeaa;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .detail-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+    }
+    .detail-label { font-size: 13px; color: #4a6b67; }
+    .detail-val { font-size: 13px; font-weight: 600; color: #1a3330; text-align: right; }
+    .detail-val.mono { font-family: monospace; font-size: 12px; color: #4a6b67; }
+    .detail-val.status-approved {
+      color: #15803d; background: #f0fdf4;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+    }
+
+    /* Method badge */
+    .method-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+    }
+    .method-gcash { background: #e8f4ff; color: #0070e0; }
+    .method-maya  { background: #e8f9ee; color: #00b140; }
+    .method-bank  { background: #e8eeff; color: #003087; }
+    .method-cash  { background: #eaf8f5; color: #2a9080; }
+
+    /* Footer */
+    .receipt-footer {
+      background: #f8fffe;
+      border-top: 1px solid #e0edeb;
+      padding: 18px 32px;
+      text-align: center;
+    }
+    .receipt-footer p {
+      font-size: 11.5px; color: #8aaeaa; line-height: 1.6;
+    }
+    .receipt-footer strong { color: #4a6b67; }
+
+    /* Divider dots */
+    .receipt-divider {
+      display: flex; align-items: center;
+      margin: 0 -1px;
+      position: relative;
+    }
+    .receipt-divider::before,
+    .receipt-divider::after {
+      content: '';
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #f2f7f6;
+      border: 1px solid #e0edeb;
+      flex-shrink: 0;
+    }
+    .receipt-divider::before { margin-left: -10px; }
+    .receipt-divider::after  { margin-left: auto; margin-right: -10px; }
+    .receipt-divider-line {
+      flex: 1;
+      border-top: 2px dashed #e0edeb;
+      margin: 0 8px;
+    }
+
+    /* Print styles */
+    @media print {
+      body { background: #fff; }
+      .page-wrap { padding: 0; }
+      .top-actions { display: none; }
+      .receipt-card { box-shadow: none; border: 1px solid #ccc; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- TOP ACTIONS -->
+  <div class="top-actions">
+    <a href="{{ url_for('borrower.payment_history') }}" class="btn-back">
+      ← Back to Payment History
+    </a>
+    <button class="btn-print" onclick="window.print()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
+      </svg>
+      Print / Save PDF
+    </button>
+  </div>
+
+  <!-- RECEIPT CARD -->
+  <div class="receipt-card">
+
+    <!-- Header -->
+    <div class="receipt-header">
+      <div class="receipt-logo">
+        <div class="receipt-logo-icon">$</div>
+        <div class="receipt-logo-name">Hiraya Lending</div>
+      </div>
+      <div class="receipt-check">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h1>Official E-Receipt</h1>
+      <p>Payment successfully verified by Hiraya Lending</p>
+      <div class="pay-no-banner">
+        <div class="pay-no-label">Payment Reference</div>
+        <div class="pay-no-val">{{ payment.payment_no }}</div>
+      </div>
+    </div>
+
+    <!-- Amount -->
+    <div class="amount-section">
+      <div class="amount-label">Amount Paid</div>
+      <div class="amount-val">₱{{ "{:,.2f}".format(payment.amount_paid) }}</div>
+    </div>
+
+    <!-- Dashed divider -->
+    <div class="receipt-divider">
+      <div class="receipt-divider-line"></div>
+    </div>
+
+    <!-- Details -->
+    <div class="receipt-details">
+
+      <!-- Payment Info -->
+      <div class="detail-group">
+        <div class="detail-group-title">Payment Information</div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-val status-approved">✓ Approved</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Payment Method</span>
+          <span class="detail-val">
+            {% if payment.payment_method == 'gcash' %}
+              <span class="method-badge method-gcash">💙 GCash</span>
+            {% elif payment.payment_method == 'maya' %}
+              <span class="method-badge method-maya">💚 Maya</span>
+            {% elif payment.payment_method == 'bank' %}
+              <span class="method-badge method-bank">🏦 BDO Transfer</span>
+            {% else %}
+              <span class="method-badge method-cash">💵 Cash / Walk-in</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Transaction Reference</span>
+          <span class="detail-val mono">{{ payment.reference_number or '—' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Payment Date</span>
+          <span class="detail-val">
+            {% if payment.payment_date %}
+              {{ payment.payment_date.strftime('%B %d, %Y') if payment.payment_date is not string else payment.payment_date }}
+            {% else %}—{% endif %}
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Date Verified</span>
+          <span class="detail-val">{{ payment.updated_at.strftime('%B %d, %Y %I:%M %p') if payment.updated_at else '—' }}</span>
+        </div>
+      </div>
+
+      <!-- Loan Info -->
+      <div class="detail-group">
+        <div class="detail-group-title">Loan Information</div>
+        <div class="detail-row">
+          <span class="detail-label">Loan Reference</span>
+          <span class="detail-val">{{ payment.loan_ref or '—' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Loan Type</span>
+          <span class="detail-val">{{ payment.type_name or '—' }}</span>
+        </div>
+      </div>
+
+      <!-- Borrower Info -->
+      <div class="detail-group">
+        <div class="detail-group-title">Borrower Information</div>
+        <div class="detail-row">
+          <span class="detail-label">Name</span>
+          <span class="detail-val">{{ payment.borrower_name or session.user_name }}</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dashed divider -->
+    <div class="receipt-divider">
+      <div class="receipt-divider-line"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="receipt-footer">
+      <p>This is an official electronic receipt issued by <strong>Hiraya Lending Management System</strong>.<br>
+      Please keep this for your records. For inquiries, contact our office.</p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

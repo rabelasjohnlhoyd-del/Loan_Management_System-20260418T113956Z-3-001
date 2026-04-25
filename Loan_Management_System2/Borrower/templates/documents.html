@@ -6,7 +6,7 @@
   <title>Documents — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('borrower.static', filename='documents.css') }}" />
 </head>
 <body>
@@ -24,7 +24,6 @@
         </div>
       </div>
     </div>
-
     <div class="sidebar-user">
       <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
       <div class="s-user-info">
@@ -32,7 +31,6 @@
         <div class="s-role-badge">Borrower</div>
       </div>
     </div>
-
     <nav class="sidebar-nav">
       <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
@@ -47,7 +45,6 @@
         <span class="nav-icon nav-icon--docs"></span>Documents
       </a>
     </nav>
-
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
         <button type="submit" class="nav-item sidebar-logout-btn">
@@ -66,7 +63,7 @@
       </div>
       <div class="topbar-right">
         <button class="btn-upload-topbar" onclick="openUploadModal()">
-          + Upload Document
+          <span class="plus-icon">+</span> Upload Document
         </button>
         <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
           {{ session.user_name[0]|upper if session.user_name else 'U' }}
@@ -79,177 +76,234 @@
       <!-- STATS -->
       <div class="doc-stats">
         <div class="doc-stat-card">
-          <div class="val">{{ documents|length if documents else 0 }}</div>
-          <div class="lbl">Total Documents</div>
+          <div class="stat-icon stat-icon--total"></div>
+          <div>
+            <div class="val">{{ documents|length if documents else 0 }}</div>
+            <div class="lbl">Total Documents</div>
+          </div>
         </div>
         <div class="doc-stat-card">
-          <div class="val" style="color: var(--success);">
-            {{ documents|selectattr('status','eq','verified')|list|length if documents else 0 }}
+          <div class="stat-icon stat-icon--verified"></div>
+          <div>
+            <div class="val success">
+              {{ documents|selectattr('status','eq','verified')|list|length if documents else 0 }}
+            </div>
+            <div class="lbl">Verified</div>
           </div>
-          <div class="lbl">Verified</div>
         </div>
         <div class="doc-stat-card">
-          <div class="val" style="color: var(--warning);">
-            {{ documents|selectattr('status','eq','pending')|list|length if documents else 0 }}
+          <div class="stat-icon stat-icon--pending"></div>
+          <div>
+            <div class="val warning">
+              {{ documents|selectattr('status','eq','pending')|list|length if documents else 0 }}
+            </div>
+            <div class="lbl">Pending Review</div>
           </div>
-          <div class="lbl">Pending Review</div>
         </div>
         <div class="doc-stat-card">
-          <div class="val" style="color: var(--mint-dark);">
-            {{ generated_docs|length if generated_docs else 0 }}
+          <div class="stat-icon stat-icon--report"></div>
+          <div>
+            <div class="val mint">{{ generated_docs|length if generated_docs else 0 }}</div>
+            <div class="lbl">Generated Reports</div>
           </div>
-          <div class="lbl">Generated Reports</div>
         </div>
       </div>
 
       <!-- TOOLBAR -->
       <div class="toolbar">
-        <div class="filter-tabs">
-          <button class="filter-tab active" onclick="filterDocs('all', this)">All</button>
-          <button class="filter-tab" onclick="filterDocs('id', this)">ID & KYC</button>
-          <button class="filter-tab" onclick="filterDocs('loan', this)">Loan Docs</button>
-          <button class="filter-tab" onclick="filterDocs('payment', this)">Payment Proofs</button>
-          <button class="filter-tab" onclick="filterDocs('report', this)">Reports</button>
+        <!-- Filter tabs with counts -->
+        <div class="filter-tabs" id="filterTabs">
+          <button class="filter-tab active" data-cat="all" onclick="filterDocs('all', this)">
+            All <span class="tab-count" id="count-all">0</span>
+          </button>
+          <button class="filter-tab" data-cat="id" onclick="filterDocs('id', this)">
+            ID &amp; KYC <span class="tab-count" id="count-id">0</span>
+          </button>
+          <button class="filter-tab" data-cat="loan" onclick="filterDocs('loan', this)">
+            Loan Docs <span class="tab-count" id="count-loan">0</span>
+          </button>
+          <button class="filter-tab" data-cat="payment" onclick="filterDocs('payment', this)">
+            Payment Proofs <span class="tab-count" id="count-payment">0</span>
+          </button>
+          <button class="filter-tab" data-cat="report" onclick="filterDocs('report', this)">
+            Reports <span class="tab-count" id="count-report">0</span>
+          </button>
         </div>
-        <div class="search-wrap">
-          <input type="text" placeholder="Search documents…"
-                 oninput="searchDocs(this.value)" id="docSearch" />
+
+        <div class="toolbar-right">
+          <!-- Sort dropdown -->
+          <select class="sort-select" id="sortSelect" onchange="sortDocs(this.value)">
+            <option value="default">Sort: Default</option>
+            <option value="name-asc">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="status">By Status</option>
+          </select>
+
+          <!-- Status filter -->
+          <select class="sort-select" id="statusFilter" onchange="filterByStatus(this.value)">
+            <option value="all">All Status</option>
+            <option value="verified">Verified</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+            <option value="generated">Generated</option>
+          </select>
+
+          <!-- Search -->
+          <div class="search-wrap">
+            <span class="search-icon-svg"></span>
+            <input type="text" placeholder="Search documents…"
+                   oninput="searchDocs(this.value)" id="docSearch" />
+          </div>
         </div>
       </div>
 
       <!-- GROUP 1: Identity & KYC -->
-      <div class="doc-group" data-cat="id">
-        <div class="doc-group-title">🪪 Identity & KYC</div>
-        <div class="doc-grid">
+      <div class="doc-group" data-cat="id" id="group-id">
+        <div class="doc-group-header">
+          <div class="doc-group-title">
+            <span class="group-icon">🪪</span>
+            <span>Identity &amp; KYC</span>
+          </div>
+          <div class="group-count" id="gcount-id">0 document(s)</div>
+        </div>
+        <div class="doc-grid" id="grid-id">
 
           {% if user.id_document_path %}
-          <div class="doc-card" data-cat="id" data-name="government id">
-            <div class="doc-card-top">
-              <div class="doc-icon img">
-                🪪
-                <span class="doc-icon-ext">{{ user.id_document_path.split('.')[-1]|upper }}</span>
-              </div>
-              <div class="doc-info">
-                <div class="doc-name">Government-Issued ID</div>
-                <div class="doc-meta">Uploaded {{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}</div>
-              </div>
+          <div class="doc-card" data-cat="id" data-name="government id" data-status="{% if user.id_verification_status == 'verified' %}verified{% elif user.id_verification_status == 'pending' %}pending{% else %}rejected{% endif %}" data-date="{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}">
+            <div class="doc-card-preview {% if user.id_document_path.endswith(('.jpg','.jpeg','.png','.gif')) %}is-image{% endif %}"
+                 {% if user.id_document_path.endswith(('.jpg','.jpeg','.png','.gif')) %}
+                 onclick="openLightbox('{{ url_for('loans.view_doc', filename=user.id_document_path) }}', 'Government-Issued ID')"
+                 title="Click to preview"
+                 {% endif %}>
+              <div class="doc-type-badge pdf">{{ user.id_document_path.split('.')[-1]|upper }}</div>
+              <div class="doc-preview-icon">🪪</div>
+              {% if user.id_document_path.endswith(('.jpg','.jpeg','.png','.gif')) %}
+              <div class="preview-hint">👁 Click to preview</div>
+              {% endif %}
             </div>
-            <span class="doc-badge {% if user.id_verification_status == 'verified' %}verified{% elif user.id_verification_status == 'pending' %}pending{% else %}rejected{% endif %}">
-              {% if user.id_verification_status == 'verified' %}✓ Verified
-              {% elif user.id_verification_status == 'pending' %}⏳ Pending
-              {% else %}✗ Rejected{% endif %}
-            </span>
-            <div class="doc-actions">
-              <a href="{{ url_for('loans.view_doc', filename=user.id_document_path) }}" target="_blank" class="doc-btn">👁 View</a>
-              <a href="{{ url_for('borrower.static', filename='uploads/' + user.id_document_path) }}" download class="doc-btn">⬇ Download</a>
+            <div class="doc-card-body">
+              <div class="doc-name">Government-Issued ID</div>
+              <div class="doc-meta">Uploaded {{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}</div>
+              <span class="doc-badge {% if user.id_verification_status == 'verified' %}verified{% elif user.id_verification_status == 'pending' %}pending{% else %}rejected{% endif %}">
+                {% if user.id_verification_status == 'verified' %}✓ Verified
+                {% elif user.id_verification_status == 'pending' %}⏳ Pending
+                {% else %}✗ Rejected{% endif %}
+              </span>
+            </div>
+            <div class="doc-card-actions">
+              <a href="{{ url_for('loans.view_doc', filename=user.id_document_path) }}" target="_blank" class="doc-btn">View</a>
+              <a href="{{ url_for('borrower.static', filename='uploads/' + user.id_document_path) }}" download class="doc-btn primary">Download</a>
             </div>
           </div>
           {% endif %}
 
           {% if user.selfie_path %}
-          <div class="doc-card" data-cat="id" data-name="selfie photo">
-            <div class="doc-card-top">
-              <div class="doc-icon img">🤳<span class="doc-icon-ext">JPG</span></div>
-              <div class="doc-info">
-                <div class="doc-name">Selfie Photo</div>
-                <div class="doc-meta">Uploaded {{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}</div>
-              </div>
+          <div class="doc-card" data-cat="id" data-name="selfie photo" data-status="{% if user.id_verification_status == 'verified' %}verified{% else %}pending{% endif %}" data-date="{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}">
+            <div class="doc-card-preview is-image"
+                 onclick="openLightbox('{{ url_for('loans.view_doc', filename=user.selfie_path) }}', 'Selfie Photo')"
+                 title="Click to preview">
+              <div class="doc-type-badge img">JPG</div>
+              <div class="doc-preview-icon">🤳</div>
+              <div class="preview-hint">👁 Click to preview</div>
             </div>
-            <span class="doc-badge {% if user.id_verification_status == 'verified' %}verified{% else %}pending{% endif %}">
-              {% if user.id_verification_status == 'verified' %}✓ Verified{% else %}⏳ Pending{% endif %}
-            </span>
-            <div class="doc-actions">
-              <a href="{{ url_for('loans.view_doc', filename=user.selfie_path) }}" target="_blank" class="doc-btn">👁 View</a>
+            <div class="doc-card-body">
+              <div class="doc-name">Selfie Photo</div>
+              <div class="doc-meta">Uploaded {{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}</div>
+              <span class="doc-badge {% if user.id_verification_status == 'verified' %}verified{% else %}pending{% endif %}">
+                {% if user.id_verification_status == 'verified' %}✓ Verified{% else %}⏳ Pending{% endif %}
+              </span>
+            </div>
+            <div class="doc-card-actions">
+              <a href="{{ url_for('loans.view_doc', filename=user.selfie_path) }}" target="_blank" class="doc-btn">View</a>
             </div>
           </div>
           {% endif %}
 
-          <label class="doc-upload-card" onclick="openUploadModal('id')">
+          <div class="doc-upload-card" onclick="openUploadModal('id')">
             <div class="upload-circle">📎</div>
             <p>Upload KYC Document</p>
             <span>e.g. Barangay clearance, COE</span>
-          </label>
+          </div>
+
         </div>
       </div>
 
       <!-- GROUP 2: Loan Documents -->
-      <div class="doc-group" data-cat="loan">
-        <div class="doc-group-title">📄 Loan Documents</div>
-        <div class="doc-grid">
+      <div class="doc-group" data-cat="loan" id="group-loan">
+        <div class="doc-group-header">
+          <div class="doc-group-title">
+            <span class="group-icon">📄</span>
+            <span>Loan Documents</span>
+          </div>
+          <div class="group-count" id="gcount-loan">0 document(s)</div>
+        </div>
+        <div class="doc-grid" id="grid-loan">
+
           {% for loan in loans %}
-          <div class="doc-card" data-cat="loan" data-name="{{ loan.reference_no|lower }} loan agreement">
-            <div class="doc-card-top">
-              <div class="doc-icon pdf">📄<span class="doc-icon-ext">PDF</span></div>
-              <div class="doc-info">
-                <div class="doc-name">Loan Agreement</div>
-                <div class="doc-meta">{{ loan.reference_no }} · {{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</div>
-              </div>
+          <div class="doc-card" data-cat="loan" data-name="{{ loan.loan_no|lower if loan.loan_no else '' }} loan agreement" data-status="generated" data-date="{{ loan.created_at.strftime('%Y-%m-%d') if loan.created_at else '' }}">
+            <div class="doc-card-preview">
+              <div class="doc-type-badge pdf">PDF</div>
+              <div class="doc-preview-icon">📄</div>
             </div>
-            <span class="doc-badge generated">⚙ System Generated</span>
-            <div class="doc-actions">
-              <a href="{{ url_for('loans.download_agreement', loan_id=loan.id) }}" target="_blank" class="doc-btn">👁 View</a>
-              <a href="{{ url_for('loans.download_agreement', loan_id=loan.id) }}" download class="doc-btn primary">⬇ Download</a>
+            <div class="doc-card-body">
+              <div class="doc-name">Loan Agreement</div>
+              <div class="doc-meta">{{ loan.loan_no }} · {{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</div>
+              <span class="doc-badge generated">⚙ System Generated</span>
+            </div>
+            <div class="doc-card-actions">
+              <a href="{{ url_for('loans.download_agreement', loan_id=loan.id) }}" target="_blank" class="doc-btn">View</a>
+              <a href="{{ url_for('loans.download_agreement', loan_id=loan.id) }}" download class="doc-btn primary">Download</a>
             </div>
           </div>
           {% else %}
           <div class="docs-empty">
             <div class="docs-empty-icon">📄</div>
-            <p>No loan documents yet. Apply for a loan to generate your agreement.</p>
+            <p>No loan documents yet.</p>
           </div>
           {% endfor %}
 
-          {% for loan in loans %}
-            {% if loan.documents %}
-              {% for doc in loan.documents %}
-              <div class="doc-card" data-cat="loan" data-name="{{ doc.filename|lower }}">
-                <div class="doc-card-top">
-                  <div class="doc-icon {% if doc.filename.endswith('.pdf') %}pdf{% else %}img{% endif %}">
-                    {% if doc.filename.endswith('.pdf') %}📋{% else %}🖼{% endif %}
-                    <span class="doc-icon-ext">{{ doc.filename.split('.')[-1]|upper }}</span>
-                  </div>
-                  <div class="doc-info">
-                    <div class="doc-name">{{ doc.doc_type | replace('_',' ') | title }}</div>
-                    <div class="doc-meta">{{ loan.reference_no }} · {{ doc.uploaded_at.strftime('%b %d, %Y') if doc.uploaded_at else '—' }}</div>
-                  </div>
-                </div>
-                <span class="doc-badge {{ doc.status }}">
-                  {% if doc.status == 'verified' %}✓ Verified
-                  {% elif doc.status == 'pending' %}⏳ Pending
-                  {% else %}✗ Rejected{% endif %}
-                </span>
-                <div class="doc-actions">
-                  <a href="{{ url_for('loans.view_doc', doc_id=doc.id) }}" target="_blank" class="doc-btn">👁 View</a>
-                  <a href="{{ url_for('loans.download_doc', doc_id=doc.id) }}" download class="doc-btn">⬇ Save</a>
-                </div>
-              </div>
-              {% endfor %}
-            {% endif %}
-          {% endfor %}
         </div>
       </div>
 
       <!-- GROUP 3: Payment Proofs -->
-      <div class="doc-group" data-cat="payment">
-        <div class="doc-group-title">💳 Payment Proofs</div>
-        <div class="doc-grid">
+      <div class="doc-group" data-cat="payment" id="group-payment">
+        <div class="doc-group-header">
+          <div class="doc-group-title">
+            <span class="group-icon">💳</span>
+            <span>Payment Proofs</span>
+          </div>
+          <div class="group-count" id="gcount-payment">0 document(s)</div>
+        </div>
+        <div class="doc-grid" id="grid-payment">
+
           {% for payment in payments %}
             {% if payment.screenshot_path %}
-            <div class="doc-card" data-cat="payment" data-name="payment proof {{ payment.reference_number|lower }}">
-              <div class="doc-card-top">
-                <div class="doc-icon img">🧾<span class="doc-icon-ext">IMG</span></div>
-                <div class="doc-info">
-                  <div class="doc-name">Payment Proof</div>
-                  <div class="doc-meta">₱{{ "{:,.2f}".format(payment.amount_paid) }} · {{ payment.payment_date.strftime('%b %d, %Y') if payment.payment_date else '—' }}</div>
-                </div>
+            <div class="doc-card"
+                 data-cat="payment"
+                 data-name="payment proof {{ payment.reference_number|lower if payment.reference_number else '' }}"
+                 data-status="{% if payment.status == 'approved' %}verified{% elif payment.status == 'pending' %}pending{% else %}rejected{% endif %}"
+                 data-date="{{ payment.payment_date.strftime('%Y-%m-%d') if payment.payment_date else '' }}">
+              <div class="doc-card-preview is-image"
+                   onclick="openLightbox('{{ url_for('loans.view_payment_proof', payment_id=payment.id) }}', 'Payment Proof — ₱{{ '{:,.2f}'.format(payment.amount_paid) }}')"
+                   title="Click to preview">
+                <div class="doc-type-badge img">IMG</div>
+                <div class="doc-preview-icon">🧾</div>
+                <div class="preview-hint">👁 Click to preview</div>
               </div>
-              <span class="doc-badge {% if payment.status == 'completed' %}verified{% elif payment.status == 'pending' %}pending{% else %}rejected{% endif %}">
-                {% if payment.status == 'completed' %}✓ Verified
-                {% elif payment.status == 'pending' %}⏳ Reviewing
-                {% else %}✗ Rejected{% endif %}
-              </span>
-              <div class="doc-actions">
-                <a href="{{ url_for('loans.view_payment_proof', payment_id=payment.id) }}" target="_blank" class="doc-btn">👁 View</a>
-                <a href="{{ url_for('loans.download_receipt', payment_id=payment.id) }}" class="doc-btn primary">🧾 Receipt</a>
+              <div class="doc-card-body">
+                <div class="doc-name">Payment Proof</div>
+                <div class="doc-meta">₱{{ "{:,.2f}".format(payment.amount_paid) }} · {{ payment.payment_date.strftime('%b %d, %Y') if payment.payment_date else '—' }}</div>
+                <span class="doc-badge {% if payment.status == 'approved' %}verified{% elif payment.status == 'pending' %}pending{% else %}rejected{% endif %}">
+                  {% if payment.status == 'approved' %}✓ Approved
+                  {% elif payment.status == 'pending' %}⏳ Reviewing
+                  {% else %}✗ Rejected{% endif %}
+                </span>
+              </div>
+              <div class="doc-card-actions">
+                <a href="{{ url_for('loans.view_payment_proof', payment_id=payment.id) }}" target="_blank" class="doc-btn">View</a>
+                <a href="{{ url_for('loans.download_receipt', payment_id=payment.id) }}" class="doc-btn primary">Receipt</a>
               </div>
             </div>
             {% endif %}
@@ -259,52 +313,68 @@
             <p>No payment proofs uploaded yet.</p>
           </div>
           {% endfor %}
+
         </div>
       </div>
 
       <!-- GROUP 4: Generated Reports -->
-      <div class="doc-group" data-cat="report">
-        <div class="doc-group-title">📊 Generated Reports & Statements</div>
-        <div class="doc-grid">
+      <div class="doc-group" data-cat="report" id="group-report">
+        <div class="doc-group-header">
+          <div class="doc-group-title">
+            <span class="group-icon">📊</span>
+            <span>Generated Reports &amp; Statements</span>
+          </div>
+          <div class="group-count" id="gcount-report">0 document(s)</div>
+        </div>
+        <div class="doc-grid" id="grid-report">
 
           {% for loan in loans %}
-          <div class="doc-card" data-cat="report" data-name="amortization schedule {{ loan.reference_no|lower }}">
-            <div class="doc-card-top">
-              <div class="doc-icon xlsx">📊<span class="doc-icon-ext">PDF</span></div>
-              <div class="doc-info">
-                <div class="doc-name">Amortization Schedule</div>
-                <div class="doc-meta">{{ loan.reference_no }} · {{ loan.type_name }}</div>
-              </div>
+          <div class="doc-card" data-cat="report" data-name="amortization schedule {{ loan.loan_no|lower if loan.loan_no else '' }}" data-status="generated" data-date="{{ loan.created_at.strftime('%Y-%m-%d') if loan.created_at else '' }}">
+            <div class="doc-card-preview">
+              <div class="doc-type-badge xlsx">PDF</div>
+              <div class="doc-preview-icon">📊</div>
             </div>
-            <span class="doc-badge generated">⚙ Generated on Request</span>
-            <div class="doc-actions">
-              <a href="{{ url_for('loans.amortization_pdf', loan_id=loan.id) }}" target="_blank" class="doc-btn">👁 Preview</a>
-              <a href="{{ url_for('loans.amortization_pdf', loan_id=loan.id) }}" download class="doc-btn primary">⬇ Export PDF</a>
+            <div class="doc-card-body">
+              <div class="doc-name">Amortization Schedule</div>
+              <div class="doc-meta">{{ loan.loan_no }} · {{ loan.type_name }}</div>
+              <span class="doc-badge generated">⚙ Generated on Request</span>
+            </div>
+            <div class="doc-card-actions">
+              <a href="{{ url_for('loans.amortization_pdf', loan_id=loan.id) }}" target="_blank" class="doc-btn">Preview</a>
+              <a href="{{ url_for('loans.amortization_pdf', loan_id=loan.id) }}" download class="doc-btn primary">Export PDF</a>
             </div>
           </div>
 
-          <div class="doc-card" data-cat="report" data-name="payment history statement {{ loan.reference_no|lower }}">
-            <div class="doc-card-top">
-              <div class="doc-icon pdf">📋<span class="doc-icon-ext">PDF</span></div>
-              <div class="doc-info">
-                <div class="doc-name">Payment History Statement</div>
-                <div class="doc-meta">{{ loan.reference_no }} · All payments</div>
-              </div>
+          <div class="doc-card" data-cat="report" data-name="payment history statement {{ loan.loan_no|lower if loan.loan_no else '' }}" data-status="generated" data-date="{{ loan.created_at.strftime('%Y-%m-%d') if loan.created_at else '' }}">
+            <div class="doc-card-preview">
+              <div class="doc-type-badge pdf">PDF</div>
+              <div class="doc-preview-icon">📋</div>
             </div>
-            <span class="doc-badge generated">⚙ Generated on Request</span>
-            <div class="doc-actions">
-              <a href="{{ url_for('loans.payment_history_pdf', loan_id=loan.id) }}" target="_blank" class="doc-btn">👁 Preview</a>
-              <a href="{{ url_for('loans.payment_history_pdf', loan_id=loan.id) }}" download class="doc-btn primary">⬇ Export PDF</a>
+            <div class="doc-card-body">
+              <div class="doc-name">Payment History Statement</div>
+              <div class="doc-meta">{{ loan.loan_no }} · All payments</div>
+              <span class="doc-badge generated">⚙ Generated on Request</span>
+            </div>
+            <div class="doc-card-actions">
+              <a href="{{ url_for('loans.payment_history_pdf', loan_id=loan.id) }}" target="_blank" class="doc-btn">Preview</a>
+              <a href="{{ url_for('loans.payment_history_pdf', loan_id=loan.id) }}" download class="doc-btn primary">Export PDF</a>
             </div>
           </div>
           {% else %}
           <div class="docs-empty">
             <div class="docs-empty-icon">📊</div>
-            <p>Reports will appear here once you have active loans.</p>
+            <p>Reports will appear once you have active loans.</p>
           </div>
           {% endfor %}
 
         </div>
+      </div>
+
+      <!-- No results state -->
+      <div class="docs-no-results hidden" id="noResults">
+        <div class="no-results-icon">🔍</div>
+        <h3>No documents found</h3>
+        <p>Try adjusting your search or filter.</p>
       </div>
 
     </main>
@@ -314,8 +384,11 @@
 <!-- UPLOAD MODAL -->
 <div class="modal-overlay" id="uploadModal">
   <div class="modal">
-    <h3>📎 Upload Document</h3>
-    <p>Upload a document to attach to your account or a specific loan.</p>
+    <div class="modal-header">
+      <h3>Upload Document</h3>
+      <button class="modal-close" onclick="closeUploadModal()">✕</button>
+    </div>
+    <p>Attach a document to your account or a specific loan.</p>
     <form method="POST" action="{{ url_for('borrower.upload_document') }}" enctype="multipart/form-data">
       <div class="modal-form-group">
         <label>Document Type</label>
@@ -330,11 +403,11 @@
         </select>
       </div>
       <div class="modal-form-group">
-        <label>Link to Loan (Optional)</label>
+        <label>Link to Loan <span class="optional">(Optional)</span></label>
         <select name="loan_id">
           <option value="">— Not linked to a specific loan —</option>
           {% for loan in loans %}
-          <option value="{{ loan.id }}">{{ loan.reference_no }} — {{ loan.type_name }}</option>
+          <option value="{{ loan.id }}">{{ loan.loan_no }} — {{ loan.type_name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -342,7 +415,7 @@
         <input type="file" name="document" id="modalFile"
                accept=".pdf,.jpg,.jpeg,.png"
                onchange="previewModalFile(this)" required />
-        <div id="modalUploadIcon">📎</div>
+        <div id="modalUploadIcon" class="modal-upload-emoji">📎</div>
         <p id="modalUploadText">Click or drop file here</p>
         <span>PDF, JPG, PNG — max 10MB</span>
       </div>
@@ -351,6 +424,23 @@
         <button type="submit" class="btn-upload-confirm">Upload Document</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
+  <div class="lightbox-inner" onclick="event.stopPropagation()">
+    <div class="lightbox-header">
+      <span class="lightbox-title" id="lightboxTitle"></span>
+      <div class="lightbox-controls">
+        <a class="lightbox-open-btn" id="lightboxOpenBtn" target="_blank">Open in new tab ↗</a>
+        <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+      </div>
+    </div>
+    <div class="lightbox-body">
+      <img id="lightboxImg" src="" alt="" />
+      <div class="lightbox-loading" id="lightboxLoading">Loading preview…</div>
+    </div>
   </div>
 </div>
 

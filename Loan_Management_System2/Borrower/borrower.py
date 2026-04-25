@@ -320,11 +320,21 @@ def make_payment(loan_id):
                 payment_date, screenshot_path, notes
             ))
             conn.commit()
+
+            # Get the loan reference number to pass to Step 4
+            cursor2 = conn.cursor(dictionary=True)
+            cursor2.execute("SELECT loan_no FROM loans WHERE id = %s", (loan_id,))
+            loan_row = cursor2.fetchone()
+            loan_ref = loan_row['loan_no'] if loan_row else ''
+            cursor2.close()
+
             cursor.close()
             conn.close()
 
-            flash(f'Payment submitted! Ref: {pay_no}. Awaiting verification.', 'success')
-            return redirect(url_for('borrower.borrower_dashboard'))
+            return redirect(
+                url_for('borrower.select_loan_to_pay') +
+                f'?success=1&ref={pay_no}&amount={amount_paid}&method={payment_method}&loan_ref={loan_ref}'
+            )
 
         except Exception as e:
             flash(f'Error processing payment: {str(e)}', 'danger')
@@ -335,7 +345,147 @@ def make_payment(loan_id):
                            today=datetime.date.today())
 
 
-# 5.3 PAYMENT HISTORY
+# 5.3 PAYMENT STATUS (polling endpoint)
+@borrower_bp.route('/payments/status/<string:pay_no>')
+@login_required
+def payment_status(pay_no):
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT status FROM payments
+            WHERE payment_no = %s AND borrower_id = %s
+        """, (pay_no, session['user_id']))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return jsonify({'status': row['status']})
+        return jsonify({'status': 'not_found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# 5.4 VIEW E-RECEIPT
+@borrower_bp.route('/payments/receipt/<string:pay_no>')
+@login_required
+@role_required('borrower')
+def view_receipt(pay_no):
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT p.*,
+                   l.loan_no AS loan_ref,
+                   lt.name   AS type_name,
+                   u.full_name AS borrower_name
+            FROM payments p
+            JOIN loans l      ON p.loan_id      = l.id
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            JOIN users u       ON p.borrower_id  = u.id
+            WHERE p.payment_no  = %s
+              AND p.borrower_id = %s
+              AND p.status IN ('approved', 'completed')
+        """, (pay_no, session['user_id']))
+        payment = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not payment:
+            flash('Receipt not found or payment not yet confirmed.', 'warning')
+            return redirect(url_for('borrower.payment_history'))
+
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('borrower.payment_history'))
+
+    return render_template('e_receipt.html', payment=payment)
+
+# ================================================================
+# IDAGDAG ITO SA borrower.py — pagkatapos ng view_receipt route (5.4)
+# Bagong Section 5.4b: RECEIPT DATA (JSON endpoint para sa inline fetch)
+# ================================================================
+
+# ================================================================
+# IDAGDAG ITO SA borrower.py — pagkatapos ng view_receipt route (5.4)
+# Bagong Section 5.4b: RECEIPT DATA (JSON endpoint para sa inline fetch)
+# ================================================================
+
+@borrower_bp.route('/payments/receipt-data/<string:pay_no>')
+@login_required
+@role_required('borrower')
+def receipt_data(pay_no):
+    """
+    Returns receipt details as JSON.
+    Ginagamit ng make_payment.html Step 5 para i-fetch ang receipt
+    inline — nang hindi nire-redirect ang user sa ibang page.
+
+    Fixes:
+    - updated_at → verified_at  (actual column sa payments table)
+    - status IN added 'verified' (actual enum value sa DB)
+    - date_verified now uses verified_at
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT p.payment_no,
+                   p.amount_paid,
+                   p.payment_method,
+                   p.reference_number,
+                   p.payment_date,
+                   p.verified_at,
+                   p.status,
+                   l.loan_no   AS loan_ref,
+                   lt.name     AS type_name,
+                   u.full_name AS borrower_name
+            FROM payments p
+            JOIN loans l       ON p.loan_id      = l.id
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            JOIN users u       ON p.borrower_id  = u.id
+            WHERE p.payment_no  = %s
+              AND p.borrower_id = %s
+              AND p.status IN ('approved', 'verified', 'completed')
+        """, (pay_no, session['user_id']))
+        payment = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not payment:
+            return jsonify({'error': 'not_found'}), 404
+
+        def fmt_date(d):
+            if d is None:
+                return None
+            if hasattr(d, 'strftime'):
+                return d.strftime('%B %d, %Y')
+            return str(d)
+
+        def fmt_datetime(d):
+            if d is None:
+                return None
+            if hasattr(d, 'strftime'):
+                return d.strftime('%B %d, %Y %I:%M %p')
+            return str(d)
+
+        return jsonify({
+            'payment_no':       payment['payment_no'],
+            'amount_paid':      float(payment['amount_paid']),
+            'payment_method':   payment['payment_method'],
+            'reference_number': payment['reference_number'] or '',
+            'payment_date':     fmt_date(payment['payment_date']),
+            'date_verified':    fmt_datetime(payment['verified_at']),
+            'loan_ref':         payment['loan_ref'] or '',
+            'type_name':        payment['type_name'] or '',
+            'borrower_name':    payment['borrower_name'] or '',
+            'status':           payment['status'],
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# 5.5 PAYMENT HISTORY
 @borrower_bp.route('/payments/history')
 @login_required
 @role_required('borrower')
@@ -389,14 +539,12 @@ def my_documents():
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # 1. Get User Data (Need created_at for the "Uploaded on" labels)
         cursor.execute("""
             SELECT id_document_path, selfie_path, id_verification_status, created_at
             FROM users WHERE id = %s
         """, (session['user_id'],))
         user_data = cursor.fetchone()
 
-        # 2. Get Application Documents (Requirements uploaded during application)
         cursor.execute("""
             SELECT ad.*, la.reference_no, la.status as app_status
             FROM application_documents ad
@@ -405,7 +553,6 @@ def my_documents():
         """, (session['user_id'],))
         app_docs = cursor.fetchall()
 
-        # 3. Get Active Loans (To generate Agreement PDFs and Amortization schedules)
         cursor.execute("""
             SELECT l.*, lt.name AS type_name
             FROM loans l
@@ -414,7 +561,6 @@ def my_documents():
         """, (session['user_id'],))
         loans = cursor.fetchall()
 
-        # 4. Get Payments (To show Payment Proof screenshots)
         cursor.execute("""
             SELECT * FROM payments
             WHERE borrower_id = %s AND screenshot_path IS NOT NULL
@@ -442,7 +588,6 @@ def my_documents():
 @login_required
 @role_required('borrower')
 def upload_document():
-    """Upload an additional supporting document linked to a loan application."""
     app_id   = request.form.get('application_id')
     doc_type = request.form.get('document_type', 'requirement')
     file     = request.files.get('document')
