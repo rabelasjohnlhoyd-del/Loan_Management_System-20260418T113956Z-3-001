@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_payment.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('borrower.static', filename='payment_history.css') }}" />
 </head>
 <body>
 
@@ -78,48 +78,207 @@
       {% endwith %}
 
       {% if payments %}
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h3>All Payments</h3>
-            <p>{{ payments|length }} record(s)</p>
+
+      <!-- SUMMARY STATS (now 5 cards — added Rejected) -->
+      <div class="ph-stats">
+        <div class="ph-stat-card">
+          <div class="ph-stat-icon ph-stat-icon--mint"></div>
+          <div class="ph-stat-info">
+            <div class="ph-stat-val">
+              ₱{{ '{:,.2f}'.format(payments | sum(attribute='amount_paid')) }}
+            </div>
+            <div class="ph-stat-lbl">Total Amount Paid</div>
           </div>
         </div>
-        <div class="card-body" style="padding: 0;">
-          <table class="history-table">
+        <div class="ph-stat-card">
+          <div class="ph-stat-icon ph-stat-icon--blue"></div>
+          <div class="ph-stat-info">
+            <div class="ph-stat-val">{{ payments | length }}</div>
+            <div class="ph-stat-lbl">Total Payments</div>
+          </div>
+        </div>
+        <div class="ph-stat-card">
+          <div class="ph-stat-icon ph-stat-icon--green"></div>
+          <div class="ph-stat-info">
+            <div class="ph-stat-val">
+              {{ payments | selectattr('status', 'eq', 'approved') | list | length }}
+            </div>
+            <div class="ph-stat-lbl">Approved</div>
+          </div>
+        </div>
+        <div class="ph-stat-card">
+          <div class="ph-stat-icon ph-stat-icon--yellow"></div>
+          <div class="ph-stat-info">
+            <div class="ph-stat-val">
+              {{ payments | selectattr('status', 'eq', 'pending') | list | length }}
+            </div>
+            <div class="ph-stat-lbl">Pending Review</div>
+          </div>
+        </div>
+        <!-- NEW: Rejected stat card -->
+        <div class="ph-stat-card">
+          <div class="ph-stat-icon ph-stat-icon--red"></div>
+          <div class="ph-stat-info">
+            <div class="ph-stat-val">
+              {{ payments | selectattr('status', 'eq', 'rejected') | list | length }}
+            </div>
+            <div class="ph-stat-lbl">Rejected</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE CARD -->
+      <div class="card">
+        <div class="card-header ph-card-header">
+          <div>
+            <h3>Payment Records</h3>
+            <p id="recordCount">{{ payments|length }} record(s)</p>
+          </div>
+          <div class="ph-toolbar">
+
+            <!-- Status filter -->
+            <select class="ph-select" id="filterStatus" onchange="applyFilters()">
+              <option value="">All Status</option>
+              <option value="approved">Approved</option>
+              <option value="pending">Pending</option>
+              <option value="rejected">Rejected</option>
+            </select>
+
+            <!-- NEW: Date range filter -->
+            <div class="ph-date-range">
+              <input type="date" class="ph-date-input" id="dateFrom"
+                     onchange="applyFilters()" title="From date" />
+              <span class="ph-date-sep">—</span>
+              <input type="date" class="ph-date-input" id="dateTo"
+                     onchange="applyFilters()" title="To date" />
+              <button class="ph-date-clear" onclick="clearDateFilter()" title="Clear date filter">✕</button>
+            </div>
+
+            <!-- Search -->
+            <div class="ph-search-wrap">
+              <span class="ph-search-icon"></span>
+              <input type="text" class="ph-search" id="searchInput"
+                     placeholder="Search payments..." oninput="applyFilters()" />
+            </div>
+
+            <!-- NEW: Print button -->
+            <button class="ph-print-btn" onclick="printHistory()" title="Print payment history">
+              <span class="ph-print-icon"></span>
+              Print
+            </button>
+
+            <!-- Export CSV -->
+            <button class="ph-export-btn" onclick="exportCSV()" title="Export to CSV">
+              <span class="ph-export-icon"></span>
+              Export CSV
+            </button>
+
+          </div>
+        </div>
+
+        <div class="card-body card-body--flush">
+          <table class="history-table" id="historyTable">
             <thead>
               <tr>
-                <th>Payment No.</th>
-                <th>Loan Ref</th>
-                <th>Loan Type</th>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Date</th>
-                <th>Status</th>
+                <!-- NEW: Sortable column headers (data-col = column index) -->
+                <th class="th-sort" data-col="0">Payment No. <span class="sort-icon">↕</span></th>
+                <th class="th-sort" data-col="1">Loan Ref <span class="sort-icon">↕</span></th>
+                <th class="th-sort" data-col="2">Loan Type <span class="sort-icon">↕</span></th>
+                <th class="th-sort" data-col="3">Amount <span class="sort-icon">↕</span></th>
+                <th class="th-sort" data-col="4">Method <span class="sort-icon">↕</span></th>
+                <th class="th-sort" data-col="5">Date <span class="sort-icon">↕</span></th>
+                <th class="th-sort" data-col="6">Status <span class="sort-icon">↕</span></th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="historyBody">
               {% for p in payments %}
-              <tr>
-                <td><strong>{{ p.payment_no or '—' }}</strong></td>
+              <tr class="ph-row"
+                  data-status="{{ p.status }}"
+                  data-date="{{ p.payment_date.strftime('%Y-%m-%d') if p.payment_date else '' }}"
+                  data-search="{{ ((p.payment_no or '') ~ ' ' ~ p.loan_ref ~ ' ' ~ p.type_name ~ ' ' ~ (p.payment_method or ''))|lower }}">
+
+                <td class="td-ref">{{ p.payment_no or '---' }}</td>
                 <td>{{ p.loan_ref }}</td>
                 <td>{{ p.type_name }}</td>
-                <td><strong>₱{{ '{:,.2f}'.format(p.amount_paid) }}</strong></td>
-                <td style="text-transform: capitalize;">{{ p.payment_method or '—' }}</td>
-                <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
+
+                <!-- NEW: Amount with breakdown tooltip -->
+                <td class="td-amount"
+                    data-tippy="
+                      Principal: ₱{{ '{:,.2f}'.format(p.principal_paid) if p.principal_paid is defined else 'N/A' }}
+                      | Interest: ₱{{ '{:,.2f}'.format(p.interest_paid) if p.interest_paid is defined else 'N/A' }}
+                      | Penalty: ₱{{ '{:,.2f}'.format(p.penalty_paid) if p.penalty_paid is defined else 'N/A' }}
+                    ">
+                  ₱{{ '{:,.2f}'.format(p.amount_paid) }}
+                  <span class="td-amount-info">ℹ</span>
+                </td>
+
+                <td class="td-capitalize">{{ p.payment_method or '---' }}</td>
+                <td data-raw-date="{{ p.payment_date.strftime('%Y-%m-%d') if p.payment_date else '' }}">
+                  {{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '---' }}
+                </td>
+
                 <td>
                   <span class="pay-status pay-status--{{ p.status }}">
                     {{ p.status | title }}
                   </span>
+                  <!-- NEW: Rejected reason tooltip — only shows when rejected and reason exists -->
+                  {% if p.status == 'rejected' and p.rejection_reason %}
+                  <span class="reject-reason-icon"
+                        data-tippy="{{ p.rejection_reason }}"
+                        title="{{ p.rejection_reason }}">
+                    ?
+                  </span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <div class="ph-actions">
+                    <a href="{{ url_for('loans.view_payment_proof', payment_id=p.id) }}"
+                       target="_blank"
+                       class="ph-action-btn ph-action-btn--view"
+                       title="View Receipt">
+                      <span class="ph-btn-icon ph-btn-icon--view"></span>
+                    </a>
+                    <a href="{{ url_for('loans.download_receipt', payment_id=p.id) }}"
+                       class="ph-action-btn ph-action-btn--download"
+                       title="Download Receipt">
+                      <span class="ph-btn-icon ph-btn-icon--download"></span>
+                    </a>
+                  </div>
                 </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
+
+          <!-- No results after filter -->
+          <div class="ph-no-results hidden" id="noResults">
+            <div class="ph-no-results-icon"></div>
+            <p>No payments match your search or filter.</p>
+          </div>
+
+          <!-- NEW: Pagination controls -->
+          <div class="ph-pagination" id="paginationControls">
+            <span class="ph-pagination-info" id="paginationInfo"></span>
+            <div class="ph-pagination-btns">
+              <button class="ph-page-btn" id="btnPrev" onclick="changePage(-1)">← Prev</button>
+              <span class="ph-page-nums" id="pageNums"></span>
+              <button class="ph-page-btn" id="btnNext" onclick="changePage(1)">Next →</button>
+            </div>
+            <select class="ph-select ph-page-size" id="pageSize" onchange="changePageSize()">
+              <option value="10">10 / page</option>
+              <option value="25">25 / page</option>
+              <option value="50">50 / page</option>
+            </select>
+          </div>
+
         </div>
       </div>
 
       {% else %}
+
+      <!-- EMPTY STATE -->
       <div class="history-empty">
         <div class="history-empty-icon">🧾</div>
         <h3>No Payment Records</h3>
@@ -128,11 +287,20 @@
           Make a Payment
         </a>
       </div>
+
       {% endif %}
 
     </main>
   </div>
 </div>
 
+<!-- NEW: Print-only overlay (hidden on screen, visible on print) -->
+<div class="print-header" id="printHeader" style="display:none;">
+  <h2>Hiraya Management System</h2>
+  <h3>Payment History</h3>
+  <p id="printMeta"></p>
+</div>
+
+<script src="{{ url_for('borrower.static', filename='payment_history.js') }}"></script>
 </body>
 </html>

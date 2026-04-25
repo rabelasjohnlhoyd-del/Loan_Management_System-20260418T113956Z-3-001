@@ -344,11 +344,26 @@ def payment_history():
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT p.*, l.loan_no AS loan_ref, lt.name AS type_name
+            SELECT
+                p.*,
+                l.loan_no AS loan_ref,
+                lt.name   AS type_name,
+                COALESCE(SUM(a.principal_due), 0) AS principal_paid,
+                COALESCE(SUM(a.interest_due),  0) AS interest_paid,
+                COALESCE(
+                    (SELECT SUM(pen.penalty_amount)
+                     FROM penalties pen
+                     WHERE pen.loan_id = p.loan_id
+                       AND pen.is_paid = 1),
+                0) AS penalty_paid
             FROM payments p
-            JOIN loans l  ON p.loan_id = l.id
+            JOIN loans l       ON p.loan_id  = l.id
             JOIN loan_types lt ON l.loan_type_id = lt.id
+            LEFT JOIN amortization_schedule a
+                   ON a.loan_id = p.loan_id
+                  AND a.is_paid = 1
             WHERE p.borrower_id = %s
+            GROUP BY p.id
             ORDER BY p.created_at DESC
         """, (session['user_id'],))
         payments = cursor.fetchall()
