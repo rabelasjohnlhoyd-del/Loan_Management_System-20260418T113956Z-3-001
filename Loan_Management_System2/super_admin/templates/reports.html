@@ -12,6 +12,7 @@
 <body>
 <div class="app-wrap">
 
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-brand">
@@ -22,21 +23,38 @@
         </div>
       </div>
     </div>
-    <div class="sidebar-user">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+
+    <!-- USER BOX — dropdown trigger -->
+    <div class="sidebar-user" id="userDropdownToggle">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
       <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else '' }}</div>
+        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
       </div>
+      <span class="s-chevron"></span>
     </div>
+
+    <!-- USER DROPDOWN -->
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('super_admin.SA_profile') }}">
+        <span class="dd-icon dd-icon--profile"></span>My Profile
+      </a>
+      {% if session.role == 'super_admin' %}
+      <a href="{{ url_for('super_admin.manage_users') }}">
+        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+      </a>
+      {% endif %}
+      <a href="{{ url_for('super_admin.reports_page') }}">
+        <span class="dd-icon dd-icon--reports"></span>Reports
+      </a>
+      <a href="{{ url_for('super_admin.activity_logs') }}">
+        <span class="dd-icon dd-icon--activity"></span>Activity Logs
+      </a>
+    </div>
+
     <nav class="sidebar-nav">
-      <div class="nav-section-label">Overview</div>
       <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <div class="nav-section-label nav-section--spaced">Loan Management</div>
-      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
       </a>
       <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
         <span class="nav-icon nav-icon--clock"></span>Applications
@@ -44,35 +62,17 @@
       <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
         <span class="nav-icon nav-icon--applications"></span>All Loans
       </a>
-      <div class="nav-section-label nav-section--spaced">Borrowers</div>
       <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
         <span class="nav-icon nav-icon--borrowers"></span>Borrowers
       </a>
-      <div class="nav-section-label nav-section--spaced">Payments</div>
       <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
         <span class="nav-icon nav-icon--loans"></span>Payment Verification
       </a>
       <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
         <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
       </a>
-      <div class="nav-section-label nav-section--spaced">Reports</div>
-      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active">
-        <span class="nav-icon nav-icon--reports"></span>Reports
-      </a>
-      <a href="{{ url_for('super_admin.activity_logs') }}" class="nav-item">
-        <span class="nav-icon nav-icon--clock"></span>Activity Logs
-      </a>
-      {% if session.role == 'super_admin' %}
-      <div class="nav-section-label nav-section--spaced">Admin</div>
-      <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Manage Users
-      </a>
-      {% endif %}
-      <div class="nav-section-label nav-section--spaced">Account</div>
-      <a href="{{ url_for('super_admin.SA_profile') }}" class="nav-item">
-        <span class="nav-icon nav-icon--profile"></span>My Profile
-      </a>
     </nav>
+
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
         <button type="submit" class="nav-item sidebar-logout-btn">
@@ -96,10 +96,8 @@
     </header>
 
     <main class="page-body">
-
       <div class="reports-grid">
-
-        <!-- Loan Performance Report -->
+        <!-- Report Cards -->
         <div class="report-card">
           <div class="report-icon report-icon--blue">📊</div>
           <div class="report-info">
@@ -115,44 +113,39 @@
           </div>
         </div>
 
-        <!-- Amortization Schedule -->
         <div class="report-card">
           <div class="report-icon report-icon--green">📋</div>
           <div class="report-info">
             <h3>Amortization Schedule</h3>
-            <p>View full amortization breakdown for a specific loan — principal, interest, and balance per period.</p>
+            <p>View breakdown for a specific loan — principal, interest, and balance.</p>
             <form method="GET" id="amortForm" class="report-form">
               <div class="report-form-row">
-                <input type="text" id="loanIdInput" name="loan_id" class="form-input-sm"
-                       placeholder="Enter Loan ID or No."/>
+                <input type="text" id="loanIdInput" name="loan_id" class="form-input-sm" placeholder="Enter Loan ID"/>
               </div>
               <button type="button" class="btn btn-primary btn-sm" onclick="goAmort()">View Schedule</button>
             </form>
           </div>
         </div>
 
-        <!-- Borrower Payment History -->
         <div class="report-card">
           <div class="report-icon report-icon--purple">👤</div>
           <div class="report-info">
             <h3>Borrower Payment History</h3>
-            <p>Individual borrower statement — all payments, outstanding balance, and payment behavior.</p>
+            <p>Individual borrower statement — all payments and outstanding balance.</p>
             <form class="report-form">
               <div class="report-form-row">
-                <input type="text" id="borrowerIdInput" class="form-input-sm"
-                       placeholder="Enter Borrower ID"/>
+                <input type="text" id="borrowerIdInput" class="form-input-sm" placeholder="Enter Borrower ID"/>
               </div>
               <button type="button" class="btn btn-primary btn-sm" onclick="goBorrowerHistory()">View History</button>
             </form>
           </div>
         </div>
 
-        <!-- Record of Paid Loans -->
         <div class="report-card">
           <div class="report-icon report-icon--yellow">🏦</div>
           <div class="report-info">
             <h3>Record of Paid Loans</h3>
-            <p>Bank-note style summary of all fully paid loans — loan details, total paid, and interest earned.</p>
+            <p>Summary of all fully paid loans — loan details and interest earned.</p>
             <form method="GET" action="{{ url_for('super_admin.report_paid_loans') }}" class="report-form">
               <div class="report-form-row">
                 <input type="date" name="date_from" class="form-input-sm" placeholder="From"/>
@@ -162,10 +155,8 @@
             </form>
           </div>
         </div>
-
       </div>
 
-      <!-- Quick links to all loans for amortization -->
       <div class="card" style="margin-top:24px;">
         <div class="card-header">
           <h3>Quick Access — Recent Loans</h3>
@@ -173,28 +164,42 @@
         </div>
         <div class="card-body">
           <p style="font-size:13px; color:var(--text-muted);">
-            Select a loan from the
-            <a href="{{ url_for('super_admin.all_loans') }}" style="color:var(--primary);">All Loans</a>
-            page, then click its detail view to access the amortization schedule report directly.
+            Select a loan from the <a href="{{ url_for('super_admin.all_loans') }}" style="color:var(--primary);">All Loans</a> page for more details.
           </p>
         </div>
       </div>
-
     </main>
   </div>
 </div>
 
+<!-- At the bottom of reports.html -->
+<script src="{{ url_for('super_admin.static', filename='admin_common.js') }}"></script>
+
 <script>
   function goAmort() {
     const val = document.getElementById('loanIdInput').value.trim();
-    if (!val) { alert('Please enter a Loan ID.'); return; }
-    window.location.href = "{{ url_for('super_admin.report_amortization', loan_id=0) }}".replace('/0', '/' + val);
+    if (!val) { 
+      alert('Please enter a Loan ID.'); 
+      return; 
+    }
+    // Use 0 as a dummy integer so Flask doesn't crash
+    let url = "{{ url_for('super_admin.report_amortization', loan_id=0) }}";
+    // Replace the "0" at the end of the URL with the actual value
+    window.location.href = url.replace('/0', '/' + val);
   }
+
   function goBorrowerHistory() {
     const val = document.getElementById('borrowerIdInput').value.trim();
-    if (!val) { alert('Please enter a Borrower ID.'); return; }
-    window.location.href = "{{ url_for('super_admin.report_borrower_history', borrower_id=0) }}".replace('/0', '/' + val);
+    if (!val) { 
+      alert('Please enter a Borrower ID.'); 
+      return; 
+    }
+    // Use 0 as a dummy integer
+    let url = "{{ url_for('super_admin.report_borrower_history', borrower_id=0) }}";
+    // Replace the "0" at the end of the URL with the actual value
+    window.location.href = url.replace('/0', '/' + val);
   }
 </script>
+
 </body>
 </html>

@@ -12,6 +12,7 @@
 <body>
 <div class="app-wrap">
 
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-brand">
@@ -22,21 +23,38 @@
         </div>
       </div>
     </div>
-    <div class="sidebar-user">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+
+    <!-- USER BOX — dropdown trigger -->
+    <div class="sidebar-user" id="userDropdownToggle">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
       <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else '' }}</div>
+        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
       </div>
+      <span class="s-chevron"></span>
     </div>
+
+    <!-- USER DROPDOWN -->
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('super_admin.SA_profile') }}">
+        <span class="dd-icon dd-icon--profile"></span>My Profile
+      </a>
+      {% if session.role == 'super_admin' %}
+      <a href="{{ url_for('super_admin.manage_users') }}">
+        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+      </a>
+      {% endif %}
+      <a href="{{ url_for('super_admin.reports_page') }}">
+        <span class="dd-icon dd-icon--reports"></span>Reports
+      </a>
+      <a href="{{ url_for('super_admin.activity_logs') }}">
+        <span class="dd-icon dd-icon--activity"></span>Activity Logs
+      </a>
+    </div>
+
     <nav class="sidebar-nav">
-      <div class="nav-section-label">Overview</div>
       <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <div class="nav-section-label nav-section--spaced">Loan Management</div>
-      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
       </a>
       <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
         <span class="nav-icon nav-icon--clock"></span>Applications
@@ -44,32 +62,17 @@
       <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
         <span class="nav-icon nav-icon--applications"></span>All Loans
       </a>
-      <div class="nav-section-label nav-section--spaced">Borrowers</div>
       <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
         <span class="nav-icon nav-icon--borrowers"></span>Borrowers
       </a>
-      <div class="nav-section-label nav-section--spaced">Payments</div>
       <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
         <span class="nav-icon nav-icon--loans"></span>Payment Verification
       </a>
       <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item active">
         <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
       </a>
-      <div class="nav-section-label nav-section--spaced">Reports</div>
-      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item">
-        <span class="nav-icon nav-icon--reports"></span>Reports
-      </a>
-      {% if session.role == 'super_admin' %}
-      <div class="nav-section-label nav-section--spaced">Admin</div>
-      <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Manage Users
-      </a>
-      {% endif %}
-      <div class="nav-section-label nav-section--spaced">Account</div>
-      <a href="{{ url_for('super_admin.SA_profile') }}" class="nav-item">
-        <span class="nav-icon nav-icon--profile"></span>My Profile
-      </a>
     </nav>
+
     <div class="sidebar-footer">
       <form method="POST" action="{{ url_for('auth.logout') }}">
         <button type="submit" class="nav-item sidebar-logout-btn">
@@ -99,7 +102,6 @@
     </header>
 
     <main class="page-body">
-
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           <div class="flash-stack">
@@ -113,7 +115,6 @@
         {% endif %}
       {% endwith %}
 
-      <!-- Info box -->
       <div class="info-banner">
         <div class="info-banner-icon">ℹ</div>
         <div>
@@ -175,13 +176,9 @@
           {% endif %}
         </div>
       </div>
-
     </main>
   </div>
 </div>
-
-<script>
-  setTimeout(() => { document.querySelectorAll('.flash-msg').forEach(el => el.remove()); }, 5000);
-</script>
+<script src="{{ url_for('super_admin.static', filename='admin_common.js') }}"></script>
 </body>
 </html>

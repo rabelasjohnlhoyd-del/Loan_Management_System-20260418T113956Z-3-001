@@ -1,0 +1,116 @@
+/* activity_logs.css */
+@import url('dashboard_admin.css');
+
+/* ================================================================
+   SIDEBAR DROPDOWN (Matches Dashboard Reference)
+   ================================================================ */
+.sidebar-user {
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s;
+}
+
+.sidebar-user:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.sidebar-user.open {
+  background: rgba(255,255,255,0.12);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+}
+
+.s-chevron {
+  margin-left: auto;
+  width: 14px; height: 14px; flex-shrink: 0;
+  background: rgba(255,255,255,0.50);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-user.open .s-chevron {
+  transform: rotate(180deg);
+  background: rgba(255,255,255,0.9);
+}
+
+.user-dropdown {
+  display: none;
+  flex-direction: column;
+  background: rgba(0,0,0,0.20);
+  margin: 0 10px;
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.user-dropdown.open { 
+  display: flex; 
+}
+
+.user-dropdown a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,0.78); text-decoration: none;
+  transition: background .15s, color .15s;
+}
+
+.user-dropdown a:hover {
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+}
+
+/* Dropdown Icons */
+.dd-icon {
+  width: 15px; height: 15px; flex-shrink: 0;
+  background: currentColor;
+  mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+  opacity: 0.75;
+}
+
+.dd-icon--profile {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
+}
+
+.dd-icon--manage-users {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
+}
+
+.dd-icon--reports {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+}
+
+.dd-icon--activity {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E");
+}
+
+/* ================================================================
+   PAGE CONTENT (Activity Logs)
+   ================================================================ */
+.filter-bar {
+  display: flex; gap: 10px; margin-bottom: 20px; align-items: center;
+  background: var(--white); padding: 12px 16px; border-radius: var(--r-md); border: 1px solid var(--border);
+}
+
+.action-tag {
+  padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+
+/* Color coding based on action prefix */
+.action-tag--login, .action-tag--view { background: #e0f2fe; color: #0369a1; }
+.action-tag--create, .action-tag--approve { background: #dcfce7; color: #15803d; }
+.action-tag--update, .action-tag--edit { background: #fef3c7; color: #a16207; }
+.action-tag--delete, .action-tag--reject { background: #fee2e2; color: #b91c1c; }
+.action-tag--default { background: #f1f5f9; color: #475569; }
+
+.table-empty {
+  padding: 60px 20px; text-align: center; color: var(--text-muted);
+}
+
+.empty-sub { font-size: 13px; margin-top: 4px; }
