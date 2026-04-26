@@ -72,68 +72,242 @@ def role_required(*roles):
 @login_required
 @role_required('borrower')
 def borrower_dashboard():
-
-    recent_loans = []
-    stats = {'active_count': 0, 'total_outstanding': 0}
-    next_payment = {'next_due': None, 'next_amount': 0}
-    total_paid = 0
-
+ 
+    recent_loans    = []
+    stats           = {'active_count': 0, 'total_outstanding': 0}
+    next_payment    = {'next_due': None, 'next_amount': 0}
+    total_paid      = 0
+    overdue_loans   = []
+    due_soon_loans  = []
+    recent_activity = []
+ 
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
-
+        today  = datetime.date.today()
+ 
+        # ── 1. RECENT LOANS (with progress + standing) ────────────────────
+        # loans.status valid values: 'active','paid','defaulted','restructured','written_off'
+        # loans has next_due_date column built-in — no subquery needed for that
         cursor.execute("""
-            SELECT l.*, lt.name AS type_name, lp.plan_name
+            SELECT
+                l.id,
+                l.loan_no,
+                l.principal_amount,
+                l.outstanding_balance,
+                l.monthly_payment,
+                l.next_due_date,
+                l.status,
+                l.created_at,
+                lt.name      AS type_name,
+                lp.plan_name,
+ 
+                /* total confirmed payments for this loan */
+                COALESCE((
+                    SELECT SUM(p.amount_paid)
+                    FROM payments p
+                    WHERE p.loan_id = l.id
+                      AND p.status IN ('approved', 'verified')
+                ), 0) AS paid_amount,
+ 
+                /* days until next due (negative = overdue) */
+                DATEDIFF(l.next_due_date, CURDATE()) AS days_until_due
+ 
             FROM loans l
             JOIN loan_types lt ON l.loan_type_id = lt.id
-            JOIN loan_plans lp ON l.loan_plan_id = lp.id
+            JOIN loan_plans  lp ON l.loan_plan_id  = lp.id
             WHERE l.borrower_id = %s
             ORDER BY l.created_at DESC
             LIMIT 5
         """, (session['user_id'],))
-        recent_loans = cursor.fetchall()
-
+        raw_loans = cursor.fetchall()
+ 
+        for loan in raw_loans:
+            principal = float(loan.get('principal_amount') or 0)
+            paid      = float(loan.get('paid_amount') or 0)
+            days_due  = loan.get('days_until_due')  # int or None from DATEDIFF
+ 
+            # percent paid
+            loan['percent_paid'] = int((paid / principal * 100)) if principal > 0 else 0
+ 
+            # reference_no alias so HTML template works unchanged
+            loan['reference_no'] = loan['loan_no']
+ 
+            # standing + countdown chips
+            if loan['status'] == 'defaulted':
+                loan['standing']       = 'overdue'
+                loan['days_overdue']   = abs(int(days_due)) if days_due and days_due < 0 else 0
+                loan['days_until_due'] = None
+            elif days_due is not None and days_due < 0:
+                loan['standing']       = 'overdue'
+                loan['days_overdue']   = abs(int(days_due))
+                loan['days_until_due'] = None
+            elif days_due is not None and days_due <= 3:
+                loan['standing']       = 'risk'
+                loan['days_overdue']   = 0
+                loan['days_until_due'] = int(days_due)
+            else:
+                loan['standing']       = 'good'
+                loan['days_overdue']   = 0
+                loan['days_until_due'] = int(days_due) if days_due is not None else None
+ 
+            recent_loans.append(loan)
+ 
+        # ── 2. STATS ──────────────────────────────────────────────────────
         cursor.execute("""
-            SELECT COUNT(*) AS active_count,
-                   COALESCE(SUM(outstanding_balance), 0) AS total_outstanding
+            SELECT
+                COUNT(*)                               AS active_count,
+                COALESCE(SUM(outstanding_balance), 0)  AS total_outstanding
             FROM loans
-            WHERE borrower_id = %s AND status IN ('active', 'disbursed')
+            WHERE borrower_id = %s
+              AND status = 'active'
         """, (session['user_id'],))
         stats = cursor.fetchone() or {'active_count': 0, 'total_outstanding': 0}
-
+ 
+        # ── 3. NEXT PAYMENT DUE ───────────────────────────────────────────
+        # Use amortization_schedule for the exact next unpaid installment
         cursor.execute("""
-            SELECT MIN(a.due_date) AS next_due,
-                   SUM(a.total_due) AS next_amount
+            SELECT
+                MIN(a.due_date)  AS next_due,
+                SUM(a.total_due) AS next_amount
             FROM amortization_schedule a
             JOIN loans l ON a.loan_id = l.id
             WHERE l.borrower_id = %s
               AND l.status = 'active'
-              AND a.is_paid = 0
+              AND a.is_paid  = 0
               AND a.due_date >= CURDATE()
         """, (session['user_id'],))
         next_payment = cursor.fetchone() or {'next_due': None, 'next_amount': 0}
-
+ 
+        # ── 4. TOTAL PAID (all time) ──────────────────────────────────────
         cursor.execute("""
             SELECT COALESCE(SUM(p.amount_paid), 0) AS total_paid
             FROM payments p
             JOIN loans l ON p.loan_id = l.id
             WHERE l.borrower_id = %s
-              AND p.status = 'completed'
+              AND p.status IN ('approved', 'verified')
         """, (session['user_id'],))
-        paid_row = cursor.fetchone()
+        paid_row   = cursor.fetchone()
         total_paid = paid_row['total_paid'] if paid_row else 0
-
+ 
+        # ── 5. OVERDUE LOANS — red alert banners ─────────────────────────
+        # Unpaid amortization rows whose due_date has passed
+        cursor.execute("""
+            SELECT
+                l.id,
+                l.loan_no                 AS reference_no,
+                MIN(a.due_date)           AS due_date,
+                SUM(a.total_due)          AS overdue_amount
+            FROM amortization_schedule a
+            JOIN loans l ON a.loan_id = l.id
+            WHERE l.borrower_id = %s
+              AND l.status = 'active'
+              AND a.is_paid  = 0
+              AND a.due_date < CURDATE()
+            GROUP BY l.id, l.loan_no
+            ORDER BY due_date ASC
+        """, (session['user_id'],))
+        overdue_loans = cursor.fetchall()
+ 
+        # ── 6. DUE-SOON LOANS — yellow alert banners (within 5 days) ─────
+        cursor.execute("""
+            SELECT
+                l.id,
+                l.loan_no                              AS reference_no,
+                MIN(a.due_date)                        AS next_due,
+                SUM(a.total_due)                       AS next_amount,
+                DATEDIFF(MIN(a.due_date), CURDATE())   AS days_until_due
+            FROM amortization_schedule a
+            JOIN loans l ON a.loan_id = l.id
+            WHERE l.borrower_id = %s
+              AND l.status = 'active'
+              AND a.is_paid  = 0
+              AND a.due_date BETWEEN CURDATE()
+                                 AND DATE_ADD(CURDATE(), INTERVAL 5 DAY)
+            GROUP BY l.id, l.loan_no
+            ORDER BY next_due ASC
+        """, (session['user_id'],))
+        due_soon_loans = cursor.fetchall()
+ 
+        # ── 7. RECENT ACTIVITY FEED ───────────────────────────────────────
+        cursor.execute("""
+            SELECT
+                'payment_received'                             AS type,
+                CONCAT('Payment received — ', l.loan_no)      AS title,
+                CONCAT('₱', FORMAT(p.amount_paid, 2),
+                       ' via ', p.payment_method)             AS description,
+                p.created_at                                   AS event_at
+            FROM payments p
+            JOIN loans l ON p.loan_id = l.id
+            WHERE l.borrower_id = %s
+              AND p.status IN ('approved', 'verified')
+ 
+            UNION ALL
+ 
+            SELECT
+                CASE l.status
+                    WHEN 'active'       THEN 'loan_approved'
+                    WHEN 'paid'         THEN 'loan_closed'
+                    WHEN 'defaulted'    THEN 'payment_overdue'
+                    WHEN 'written_off'  THEN 'loan_rejected'
+                    ELSE 'general'
+                END                                            AS type,
+                CASE l.status
+                    WHEN 'active'      THEN CONCAT('Loan approved — ', l.loan_no)
+                    WHEN 'paid'        THEN CONCAT('Loan fully paid — ', l.loan_no)
+                    WHEN 'defaulted'   THEN CONCAT('Loan defaulted — ', l.loan_no)
+                    WHEN 'written_off' THEN CONCAT('Loan written off — ', l.loan_no)
+                    ELSE l.loan_no
+                END                                            AS title,
+                CONCAT(lt.name, ' · ₱',
+                       FORMAT(l.principal_amount, 2))          AS description,
+                l.updated_at                                   AS event_at
+            FROM loans l
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            WHERE l.borrower_id = %s
+ 
+            ORDER BY event_at DESC
+            LIMIT 8
+        """, (session['user_id'], session['user_id']))
+        raw_activity = cursor.fetchall()
+ 
+        def time_ago(dt):
+            if dt is None:
+                return ''
+            now = datetime.datetime.now()
+            if isinstance(dt, datetime.date) and not isinstance(dt, datetime.datetime):
+                dt = datetime.datetime.combine(dt, datetime.time.min)
+            diff = now - dt
+            days = diff.days
+            if days == 0:
+                hours = diff.seconds // 3600
+                return f'{hours}h ago' if hours > 0 else 'Just now'
+            if days == 1:
+                return 'Yesterday'
+            if days < 7:
+                return f'{days} days ago'
+            return dt.strftime('%b %d, %Y')
+ 
+        for item in raw_activity:
+            item['time_ago'] = time_ago(item.get('event_at'))
+        recent_activity = raw_activity
+ 
         cursor.close()
         conn.close()
-
+ 
     except Exception as e:
         print(f"[borrower_dashboard ERROR] {e}")
-
-    return render_template('dashboard_borrower.html',
-                           recent_loans=recent_loans,
-                           stats=stats,
-                           next_payment=next_payment,
-                           total_paid=total_paid)
+ 
+    return render_template(
+        'dashboard_borrower.html',
+        recent_loans    = recent_loans,
+        stats           = stats,
+        next_payment    = next_payment,
+        total_paid      = total_paid,
+        overdue_loans   = overdue_loans,
+        due_soon_loans  = due_soon_loans,
+        recent_activity = recent_activity,
+    )
 
 
 # ================================================================
@@ -142,16 +316,79 @@ def borrower_dashboard():
 @borrower_bp.route('/profile')
 @login_required
 def profile():
+    user = {}
+    credit_score = 0
+    credit_factors = {
+        'on_time_payments': 0,
+        'paid_loans': 0,
+        'overdue_count': 0,
+        'active_loans': 0
+    }
+
     try:
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
+
+        # User info
         cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
-        user = cursor.fetchone()
+        user = cursor.fetchone() or {}
+
+        # 1. On-time payments
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM payments
+            WHERE borrower_id = %s AND status IN ('approved', 'verified')
+        """, (session['user_id'],))
+        on_time = (cursor.fetchone() or {}).get('cnt', 0)
+
+        # 2. Loans fully paid
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM loans
+            WHERE borrower_id = %s AND status = 'paid'
+        """, (session['user_id'],))
+        paid_loans = (cursor.fetchone() or {}).get('cnt', 0)
+
+        # 3. Overdue incidents
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM amortization_schedule a
+            JOIN loans l ON a.loan_id = l.id
+            WHERE l.borrower_id = %s
+              AND a.is_paid = 0
+              AND a.due_date < CURDATE()
+        """, (session['user_id'],))
+        overdue_count = (cursor.fetchone() or {}).get('cnt', 0)
+
+        # 4. Active loans
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM loans
+            WHERE borrower_id = %s AND status = 'active'
+        """, (session['user_id'],))
+        active_loans = (cursor.fetchone() or {}).get('cnt', 0)
+
         cursor.close()
         conn.close()
-    except:
-        user = {}
-    return render_template('B_profile.html', user=user)
+
+        credit_factors = {
+            'on_time_payments': on_time,
+            'paid_loans': paid_loans,
+            'overdue_count': overdue_count,
+            'active_loans': active_loans
+        }
+
+        # Score computation (range: 300–850)
+        score = 500
+        score += min(on_time * 10, 200)   # max +200
+        score += paid_loans * 50           # +50 per paid loan
+        score -= overdue_count * 40        # -40 per overdue
+        credit_score = max(300, min(850, score))
+
+    except Exception as e:
+        print(f"[profile ERROR] {e}")
+
+    return render_template('B_profile.html',
+                           user=user,
+                           credit_score=credit_score,
+                           credit_factors=credit_factors)
 
 
 # ================================================================

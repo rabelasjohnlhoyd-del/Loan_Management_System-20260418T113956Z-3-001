@@ -1,10 +1,84 @@
 /**
- * dashboard_borrower.js
+ * dashboard_borrower.js — updated with sidebar toggle
  */
 
 (function () {
   'use strict';
 
+  /* ================================================================
+     SIDEBAR TOGGLE
+     ================================================================ */
+  const burgerBtn      = document.getElementById('burgerBtn');
+  const sidebar        = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const SIDEBAR_KEY    = 'hiraya_sidebar_open';
+  const isMobile       = () => window.innerWidth <= 768;
+
+  function openSidebar() {
+    document.body.classList.add('sidebar-open');
+    if (isMobile()) sidebarOverlay.classList.add('active');
+    if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '1');
+  }
+
+  function closeSidebar() {
+    document.body.classList.remove('sidebar-open');
+    sidebarOverlay.classList.remove('active');
+    if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '0');
+  }
+
+  function toggleSidebar() {
+    document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
+  }
+
+  /* Restore desktop preference on page load */
+  if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
+    openSidebar();
+  }
+
+  burgerBtn?.addEventListener('click', toggleSidebar);
+
+  /* Close via overlay tap (mobile) */
+  sidebarOverlay?.addEventListener('click', closeSidebar);
+
+  /* Close sidebar when a nav link is clicked on mobile */
+  sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
+    link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
+  });
+
+  /* Re-evaluate on resize */
+  window.addEventListener('resize', () => {
+    if (!isMobile()) {
+      sidebarOverlay.classList.remove('active');
+      /* Re-apply saved preference */
+      if (localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
+    } else {
+      /* Going to mobile: close if open to avoid margin-left shift */
+      closeSidebar();
+    }
+  });
+
+  /* ================================================================
+     USER DROPDOWN (sidebar)
+     ================================================================ */
+  const userToggle  = document.getElementById('userDropdownToggle');
+  const userDropdown = document.getElementById('userDropdown');
+
+  userToggle?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    userDropdown.classList.toggle('open');
+    userToggle.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!userToggle?.contains(e.target) && !userDropdown?.contains(e.target)) {
+      userDropdown?.classList.remove('open');
+      userToggle?.classList.remove('open');
+    }
+  });
+
+  /* ================================================================
+     NOTIFICATION ICONS MAP
+     ================================================================ */
   const NOTIF_ICONS = {
     loan_approved:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
     loan_rejected:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E\")",
@@ -16,13 +90,15 @@
     general:          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E\")",
   };
 
+  /* ================================================================
+     NOTIFICATIONS
+     ================================================================ */
   const notifBtn      = document.getElementById('notifBtn');
   const notifDropdown = document.getElementById('notifDropdown');
   const notifDot      = document.getElementById('notifDot');
   const notifList     = document.getElementById('notifList');
   const notifMarkAll  = document.getElementById('notifMarkAll');
 
-  /* ── Unread count ───────────────────────────────────────────── */
   function fetchUnreadCount() {
     fetch('/loans/api/notifications/count')
       .then(r => r.json())
@@ -33,37 +109,24 @@
         } else {
           notifDot?.classList.add('hidden');
         }
-      })
-      .catch(() => {});
+      }).catch(() => {});
   }
 
   fetchUnreadCount();
   setInterval(fetchUnreadCount, 60000);
 
-  /* ── Fetch & render dropdown notifications ───────────────────── */
   function fetchNotifications() {
     if (!notifList) return;
-    notifList.innerHTML = `
-      <div class="notif-loading">
-        <div class="notif-spinner"></div>
-        <span>Loading notifications...</span>
-      </div>`;
-
+    notifList.innerHTML = `<div class="notif-loading"><div class="notif-spinner"></div><span>Loading notifications...</span></div>`;
     fetch('/loans/api/notifications')
       .then(r => r.json())
       .then(data => {
         const items = data.notifications || [];
         if (items.length === 0) {
-          notifList.innerHTML = `
-            <div class="notif-empty">
-              <div class="notif-empty-icon"></div>
-              <p>You're all caught up!</p>
-              <small>No new notifications</small>
-            </div>`;
+          notifList.innerHTML = `<div class="notif-empty"><div class="notif-empty-icon"></div><p>You're all caught up!</p><small>No new notifications</small></div>`;
           return;
         }
         notifList.innerHTML = items.map(renderNotifItem).join('');
-
         notifList.querySelectorAll('.notif-item').forEach(el => {
           el.addEventListener('click', function () {
             const id   = this.dataset.id;
@@ -81,16 +144,14 @@
             }
           });
         });
-      })
-      .catch(() => {
+      }).catch(() => {
         notifList.innerHTML = '<div class="notif-empty"><p>Could not load notifications.</p></div>';
       });
   }
 
-  /* ── Render item ────────────────────────────────────────────── */
   function renderNotifItem(n) {
-    const iconPath  = NOTIF_ICONS[n.type] || NOTIF_ICONS['general'];
-    const unread    = !n.is_read;
+    const iconPath = NOTIF_ICONS[n.type] || NOTIF_ICONS['general'];
+    const unread   = !n.is_read;
     return `
       <div class="notif-item${unread ? ' unread' : ''}" data-id="${n.id}" data-link="${n.link || ''}">
         <div class="notif-item-icon notif-icon--${n.type}">
@@ -105,13 +166,11 @@
       </div>`;
   }
 
-  /* ── Mark read ──────────────────────────────────────────────── */
   function markRead(id, cb) {
     fetch(`/loans/api/notifications/${id}/read`, { method: 'POST' })
       .then(() => cb && cb()).catch(() => cb && cb());
   }
 
-  /* ── Toggle dropdown ────────────────────────────────────────── */
   notifBtn?.addEventListener('click', function (e) {
     e.stopPropagation();
     const opening = !notifDropdown.classList.contains('open');
@@ -125,7 +184,6 @@
     }
   });
 
-  /* ── Mark all ───────────────────────────────────────────────── */
   notifMarkAll?.addEventListener('click', () => {
     fetch('/loans/api/notifications/read-all', { method: 'POST' })
       .then(() => {
@@ -137,34 +195,23 @@
       }).catch(() => {});
   });
 
-  /* ── Verify alert close (localStorage — permanent) ─────────── */
-  const verifyAlert = document.getElementById('verifyAlert');
+  /* ================================================================
+     VERIFY ALERT CLOSE
+     ================================================================ */
+  const verifyAlert  = document.getElementById('verifyAlert');
   const closeVerifyBtn = document.getElementById('closeVerifyAlert');
 
   if (localStorage.getItem('verifyAlertClosed') === '1') {
     verifyAlert?.classList.add('hidden');
   }
-
   closeVerifyBtn?.addEventListener('click', () => {
     verifyAlert?.classList.add('hidden');
     localStorage.setItem('verifyAlertClosed', '1');
   });
 
-  /* ── Mobile sidebar ─────────────────────────────────────────── */
-  const sidebar = document.querySelector('.sidebar');
-  const menuBtn = document.getElementById('menuBtn');
-  menuBtn?.addEventListener('click', () => {
-    if (window.innerWidth <= 768) sidebar?.classList.toggle('mobile-open');
-  });
-  document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 768 &&
-        sidebar?.classList.contains('mobile-open') &&
-        !sidebar.contains(e.target) && e.target !== menuBtn) {
-      sidebar.classList.remove('mobile-open');
-    }
-  });
-
-  /* ── Stat cards animation ───────────────────────────────────── */
+  /* ================================================================
+     STAT CARD ENTRANCE ANIMATION
+     ================================================================ */
   const obs = new IntersectionObserver((entries) => {
     entries.forEach((e, i) => {
       if (e.isIntersecting) {
@@ -175,9 +222,12 @@
   }, { threshold: 0.2 });
   document.querySelectorAll('.stat-card[data-animate]').forEach(c => obs.observe(c));
 
-  /* ── Escape helper ──────────────────────────────────────────── */
+  /* ================================================================
+     HELPER
+     ================================================================ */
   function escHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
