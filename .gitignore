@@ -27,4 +27,10 @@ Loan_Management_System2/Loans/__pycache__/routes.cpython-313.pyc
 .gitignore
 Loan_Management_System2/super_admin/__pycache__/super_admin.cpython-313.pyc
 .gitignore
+<<<<<<< HEAD
 Loan_Management_System2/__init__.py
+=======
+Loan_Management_System2/Loans/__pycache__/routes.cpython-313.pyc
+Loan_Management_System2/super_admin/__pycache__/super_admin.cpython-313.pyc
+.gitignore
+>>>>>>> 1e61978a83a390a725a624df7228c480a713cfa4

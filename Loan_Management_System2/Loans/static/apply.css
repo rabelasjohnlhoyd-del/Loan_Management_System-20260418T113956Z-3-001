@@ -102,39 +102,6 @@ body {
   color: var(--white);
 }
 
-.logo-col--l,
-.logo-col--m,
-.logo-col--r {
-  width: 7px;
-  height: 14px;
-  background: var(--white);
-  border-radius: 2px 2px 0 0;
-  display: inline-block;
-  margin: 0 1px;
-  vertical-align: bottom;
-}
-
-.logo-col--m {
-  height: 20px;
-}
-
-.logo-dome {
-  display: block;
-  width: 22px;
-  height: 8px;
-  background: var(--white);
-  border-radius: 11px 11px 0 0;
-  margin: 0 auto -2px;
-}
-
-.logo-dollar {
-  display: block;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--white);
-  text-align: center;
-}
-
 .sidebar-brand h2 {
   font-family: var(--font-h);
   font-size: 15px;
@@ -204,13 +171,9 @@ body {
   font-weight: 600;
 }
 
-.nav-section--spaced {
-  margin-top: 8px;
-}
-
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: var(--r-sm);
+  padding: 9px 12px; border-radius: 6px;
   color: rgba(255,255,255,.68); font-size: 13px; font-weight: 500;
   text-decoration: none; cursor: pointer;
   background: none; border: none; width: 100%; text-align: left;
@@ -295,21 +258,6 @@ body {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z'/%3E%3C/svg%3E");
 }
 
-.nav-badge {
-  margin-left: auto;
-  background: #e05252;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 99px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
 button {
   font-family: inherit;
 }
@@ -349,59 +297,76 @@ button {
 }
 
 /* ================================================================
-   TOPBAR
+   APPLY PAGE HEADER  (replaces old .topbar)
    ================================================================ */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  padding: 0 28px;
-  height: 64px;
+.apply-page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  padding: 20px 28px 0;
+  flex-wrap: wrap;
 }
 
-.topbar-left h1 {
+.apply-page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.apply-page-title {
   font-family: var(--font-h);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-heading);
+  margin-bottom: 2px;
   line-height: 1.2;
 }
 
-.topbar-left p {
+.apply-page-sub {
   font-size: 12px;
-  color: #9bbcb7;
-  margin-top: 2px;
+  color: var(--text-muted);
 }
 
-.topbar-right {
-  display: flex;
+/* Back button — same style as profile page */
+.btn-back {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-}
-
-.topbar-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--mint);
-  color: #fff;
-  font-family: var(--font-h);
-  font-weight: 700;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mint-dark);
+  background: var(--mint-light);
+  border: 1px solid var(--mint-mid);
   text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+.btn-back:hover {
+  background: var(--mint-mid);
+  color: #1e6e60;
+}
+.btn-back-icon {
+  width: 13px;
+  height: 13px;
+  background: currentColor;
   flex-shrink: 0;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'/%3E%3C/svg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
 }
 
-.topbar-avatar:hover {
-  background: var(--mint-dark);
+/* My Applications button */
+.apply-myapps-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ================================================================
@@ -410,37 +375,6 @@ button {
 .page-body {
   padding: 24px 28px;
   flex: 1;
-}
-
-/* ================================================================
-   RESPONSIVE
-   ================================================================ */
-@media (max-width: 768px) {
-  :root {
-    --sidebar-w: 0px;
-  }
-  
-  .sidebar {
-    transform: translateX(-230px);
-    transition: transform 0.25s ease;
-    width: 230px;
-  }
-  
-  .sidebar.mobile-open {
-    transform: translateX(0);
-  }
-  
-  .main-content {
-    margin-left: 0;
-  }
-  
-  .page-body {
-    padding: 16px;
-  }
-  
-  .topbar {
-    padding: 0 16px;
-  }
 }
 
 /* ================================================================
@@ -686,7 +620,7 @@ button {
   border-radius: 14px;
   padding: 20px;
   position: sticky;
-  top: 80px;
+  top: 24px;
 }
 
 .loan-calculator h3 {
@@ -724,14 +658,55 @@ button {
 }
 
 /* ================================================================
-   RESPONSIVE (APPLY PAGE)
+   RESPONSIVE
    ================================================================ */
 @media (max-width: 900px) {
   .apply-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .loan-calculator {
     position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-w: 0px;
+  }
+
+  .sidebar {
+    transform: translateX(-250px);
+    transition: transform 0.25s ease;
+    width: 250px;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .page-body {
+    padding: 16px;
+  }
+
+  .apply-page-header {
+    padding: 16px 16px 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .apply-page-header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .apply-myapps-btn {
+    align-self: flex-start;
   }
 }

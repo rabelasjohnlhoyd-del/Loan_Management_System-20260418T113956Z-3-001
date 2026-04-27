@@ -12,150 +12,305 @@
 </head>
 <body>
 
+<!-- OVERLAY (mobile sidebar backdrop) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
-  <aside class="sidebar" id="sidebar">
+  <!-- ═══════════════════════════════════════════════
+       TOPBAR
+  ════════════════════════════════════════════════ -->
+  <header class="topbar" id="topbar">
 
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
+    <!-- Left: burger + brand -->
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
     </div>
 
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name if session.user_name else 'Borrower' }}</h4>
-        <div class="s-role-badge">Borrower</div>
+    <!-- Right: back button + avatar -->
+    <!-- Right: notif + avatar -->
+<div class="topbar-right">
+  <div class="notif-wrap" id="notifWrap">
+    <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+      <span class="topbar-icon topbar-icon--notif"></span>
+      <span class="notif-dot hidden" id="notifDot"></span>
+    </button>
+    <div class="notif-dropdown" id="notifDropdown">
+      <div class="notif-header">
+        <span class="notif-header-title">Notifications</span>
+        <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
       </div>
-      <span class="s-chevron"></span>
-    </div>
-
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('borrower.profile') }}">
-        <span class="dd-icon dd-icon--profile"></span>My Profile
-      </a>
-      <a href="{{ url_for('loans.my_loans') }}">
-        <span class="dd-icon dd-icon--loans"></span>My Loans
-      </a>
-      <a href="{{ url_for('loans.my_applications') }}">
-        <span class="dd-icon dd-icon--applications"></span>My Applications
-      </a>
-      <a href="{{ url_for('loans.loan_types') }}">
-        <span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans
-      </a>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
-        <span class="nav-icon nav-icon--payment"></span>Make a Payment
-      </a>
-      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
-        <span class="nav-icon nav-icon--history"></span>Payment History
-      </a>
-      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
-        <span class="nav-icon nav-icon--docs"></span>Documents
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
-        </button>
-      </form>
-    </div>
-
-  </aside>
-
-  <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
-  <div class="main-content">
-
-    <header class="topbar">
-      <div class="topbar-left">
-        <div>
-          <div class="topbar-heading">My Profile</div>
-          <div class="topbar-sub">Account details and settings</div>
-        </div>
+      <div class="notif-list" id="notifList">
+        <div class="notif-loading">Loading...</div>
       </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
-          <span class="btn-back-icon"></span>
-          Back to Dashboard
+      <div class="notif-footer">
+        <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
+          See all notifications →
         </a>
       </div>
-    </header>
+    </div>
+  </div>
 
-    <main class="page-body">
-      <div class="profile-content">
-        <div class="card">
+  <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+    {{ session.user_name[0]|upper if session.user_name else 'U' }}
+  </a>
+</div>
+  </header>
 
-          <div class="card-header">
-            <div>
-              <h3>Personal Information</h3>
-              <p>Your registered account details</p>
+  <!-- ═══════════════════════════════════════════════
+       BODY ROW — sidebar + main
+  ════════════════════════════════════════════════ -->
+  <div class="body-row">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+
+      <!-- User block -->
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name }}</h4>
+          <div class="s-role-badge">Borrower</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('borrower.profile') }}">
+          <span class="dd-icon dd-icon--profile"></span>My Profile
+        </a>
+        <a href="{{ url_for('loans.my_loans') }}">
+          <span class="dd-icon dd-icon--loans"></span>My Loans
+        </a>
+        <a href="{{ url_for('loans.my_applications') }}">
+          <span class="dd-icon dd-icon--applications"></span>My Applications
+        </a>
+        <a href="{{ url_for('loans.loan_types') }}">
+          <span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
+          <span class="nav-icon nav-icon--payment"></span>
+          <span class="nav-label">Make a Payment</span>
+        </a>
+        <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
+          <span class="nav-icon nav-icon--history"></span>
+          <span class="nav-label">Payment History</span>
+        </a>
+        <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
+          <span class="nav-icon nav-icon--docs"></span>
+          <span class="nav-label">Documents</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- PAGE HEADER -->
+        <div class="profile-page-header">
+  <div class="profile-page-header-left">
+    <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
+      <span class="btn-back-icon"></span>
+      Back to Dashboard
+    </a>
+    <div>
+      <h2 class="profile-page-title">My Profile</h2>
+      <p class="profile-page-sub">Account details and settings</p>
+    </div>
+  </div>
+  {% set status = user.get('id_verification_status', 'pending') if user else 'pending' %}
+  <span class="badge {% if status == 'verified' %}badge--approved{% elif status == 'rejected' %}badge--rejected{% else %}badge--pending{% endif %}">
+    ID: {{ status | title }}
+  </span>
+</div>
+        <!-- PROFILE CONTENT -->
+        <div class="profile-content">
+
+          <!-- Personal Information -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Personal Information</h3>
+                <p>Your registered account details</p>
+              </div>
             </div>
-            {% set status = user.get('id_verification_status', 'pending') if user else 'pending' %}
-            <span class="badge {% if status == 'verified' %}badge--approved{% elif status == 'rejected' %}badge--rejected{% else %}badge--pending{% endif %}">
-              ID: {{ status | title }}
-            </span>
+            <div class="card-body">
+              <div class="profile-header-section">
+                <div class="profile-avatar">
+                  {{ user.get('full_name', '?')[0]|upper if user else '?' }}
+                </div>
+                <div>
+                  <h3 class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</h3>
+                  <p class="profile-email">{{ user.get('email', '') if user else '' }}</p>
+                  <span class="badge badge--info">Borrower</span>
+                </div>
+              </div>
+              <div class="profile-info-grid">
+                <div class="profile-field">
+                  <div class="profile-field-label">Full Name</div>
+                  <div class="profile-field-value">{{ user.get('full_name', '—') if user else '—' }}</div>
+                </div>
+                <div class="profile-field">
+                  <div class="profile-field-label">Email Address</div>
+                  <div class="profile-field-value">{{ user.get('email', '—') if user else '—' }}</div>
+                </div>
+                <div class="profile-field">
+                  <div class="profile-field-label">Date of Birth</div>
+                  <div class="profile-field-value">{{ user.get('date_of_birth', '—') if user else '—' }}</div>
+                </div>
+                <div class="profile-field">
+                  <div class="profile-field-label">Age</div>
+                  <div class="profile-field-value">{{ user.get('age', '—') if user else '—' }}</div>
+                </div>
+                <div class="profile-field">
+                  <div class="profile-field-label">Contact Number</div>
+                  <div class="profile-field-value">{{ user.get('contact_number', '—') if user else '—' }}</div>
+                </div>
+                <div class="profile-field">
+                  <div class="profile-field-label">Member Since</div>
+                  <div class="profile-field-value">{{ user.get('created_at', '—') if user else '—' }}</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="card-body">
-            <div class="profile-header-section">
-              <div class="profile-avatar">
-                {{ user.get('full_name', '?')[0]|upper if user else '?' }}
-              </div>
+          <!-- Credit Score Card -->
+          {% set cs = credit_score if credit_score is defined and credit_score else 0 %}
+          {% if cs >= 750 %}
+            {% set cs_label = 'Excellent' %}
+            {% set cs_class = 'cs--excellent' %}
+            {% set cs_tip = 'Outstanding credit standing. You qualify for the best loan terms and lowest interest rates.' %}
+          {% elif cs >= 650 %}
+            {% set cs_label = 'Good' %}
+            {% set cs_class = 'cs--good' %}
+            {% set cs_tip = 'Good credit standing. Keep paying on time to reach Excellent status.' %}
+          {% elif cs >= 550 %}
+            {% set cs_label = 'Fair' %}
+            {% set cs_class = 'cs--fair' %}
+            {% set cs_tip = 'Fair credit standing. Avoid late payments and settle overdue loans to improve your score.' %}
+          {% else %}
+            {% set cs_label = 'Poor' %}
+            {% set cs_class = 'cs--poor' %}
+            {% set cs_tip = 'Poor credit standing. Settling overdue accounts and making on-time payments will help rebuild your score.' %}
+          {% endif %}
+          {% set cs_pct = [([((cs - 300) / 550 * 100)|round|int, 0]|max), 100]|min %}
+
+          <div class="card">
+            <div class="card-header">
               <div>
-                <h3 class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</h3>
-                <p class="profile-email">{{ user.get('email', '') if user else '' }}</p>
-                <span class="badge badge--info">Borrower</span>
+                <h3>Credit Score</h3>
+                <p>Based on your loan and payment history</p>
               </div>
+              <span class="badge cs-badge {{ cs_class }}">{{ cs_label }}</span>
             </div>
 
-            <div class="profile-info-grid">
-              <div class="profile-field">
-                <div class="profile-field-label">Full Name</div>
-                <div class="profile-field-value">{{ user.get('full_name', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Email Address</div>
-                <div class="profile-field-value">{{ user.get('email', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Date of Birth</div>
-                <div class="profile-field-value">{{ user.get('date_of_birth', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Age</div>
-                <div class="profile-field-value">{{ user.get('age', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Contact Number</div>
-                <div class="profile-field-value">{{ user.get('contact_number', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Member Since</div>
-                <div class="profile-field-value">{{ user.get('created_at', '—') if user else '—' }}</div>
+            <div class="card-body">
+              <div class="cs-main">
+
+                <!-- Score dial -->
+                <div class="cs-dial-wrap">
+                  <div class="cs-dial {{ cs_class }}">
+                    <span class="cs-number">{{ cs if cs > 0 else '—' }}</span>
+                    <span class="cs-range-label">out of 850</span>
+                  </div>
+                </div>
+
+                <!-- Bar + factors -->
+                <div class="cs-details">
+                  <div class="cs-bar-wrap">
+                    <div class="cs-bar-labels">
+                      <span>Poor</span><span>Fair</span><span>Good</span><span>Excellent</span>
+                    </div>
+                    <div class="cs-bar-track">
+                      <div class="cs-bar-segments">
+                        <div class="cs-seg cs-seg--poor"></div>
+                        <div class="cs-seg cs-seg--fair"></div>
+                        <div class="cs-seg cs-seg--good"></div>
+                        <div class="cs-seg cs-seg--excellent"></div>
+                      </div>
+                      <div class="cs-bar-marker" style="left: {{ cs_pct }}%;"></div>
+                    </div>
+                    <div class="cs-bar-range">
+                      <span>300</span><span>850</span>
+                    </div>
+                  </div>
+
+                  <div class="cs-tip">
+                    <span class="cs-tip-icon"></span>
+                    <p>{{ cs_tip }}</p>
+                  </div>
+
+                  <div class="cs-factors">
+                    <div class="cs-factor">
+                      <div class="cs-factor-icon cs-factor-icon--payments"></div>
+                      <div class="cs-factor-body">
+                        <div class="cs-factor-label">On-time Payments</div>
+                        <div class="cs-factor-value">{{ credit_factors.on_time_payments if credit_factors is defined else '—' }}</div>
+                      </div>
+                    </div>
+                    <div class="cs-factor">
+                      <div class="cs-factor-icon cs-factor-icon--loans"></div>
+                      <div class="cs-factor-body">
+                        <div class="cs-factor-label">Loans Fully Paid</div>
+                        <div class="cs-factor-value">{{ credit_factors.paid_loans if credit_factors is defined else '—' }}</div>
+                      </div>
+                    </div>
+                    <div class="cs-factor">
+                      <div class="cs-factor-icon cs-factor-icon--overdue"></div>
+                      <div class="cs-factor-body">
+                        <div class="cs-factor-label">Overdue Incidents</div>
+                        <div class="cs-factor-value cs-factor-value--bad">{{ credit_factors.overdue_count if credit_factors is defined else '—' }}</div>
+                      </div>
+                    </div>
+                    <div class="cs-factor">
+                      <div class="cs-factor-icon cs-factor-icon--active"></div>
+                      <div class="cs-factor-body">
+                        <div class="cs-factor-label">Active Loans</div>
+                        <div class="cs-factor-value">{{ credit_factors.active_loans if credit_factors is defined else '—' }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
 
         </div>
-      </div>
-    </main>
-  </div>
 
-</div>
+      </main>
+    </div><!-- /.main-content -->
 
-<script src="{{ url_for('auth.static', filename='profile.js') }}"></script>
+  </div><!-- /.body-row -->
+</div><!-- /.app-wrap -->
+
+<script src="{{ url_for('borrower.static', filename='dashboard_borrower.js') }}"></script>
 </body>
 </html>

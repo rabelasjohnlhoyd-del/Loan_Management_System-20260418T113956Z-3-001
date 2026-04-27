@@ -97,18 +97,21 @@
   </aside>
 
   <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <h1>Loan Application</h1>
-        <p>Fill in the details to submit your loan request</p>
-      </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('loans.my_applications') }}" class="btn btn-ghost btn-sm">My Applications</a>
-        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'U' }}
-        </a>
-      </div>
-    </header>
+    <header class="apply-page-header">
+  <div class="apply-page-header-left">
+    <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
+      <span class="btn-back-icon"></span>
+      Back to Dashboard
+    </a>
+    <div>
+      <h1 class="apply-page-title">Loan Application</h1>
+      <p class="apply-page-sub">Fill in the details to submit your loan request</p>
+    </div>
+  </div>
+  <a href="{{ url_for('loans.my_applications') }}" class="btn btn-ghost btn-sm apply-myapps-btn">
+    My Applications
+  </a>
+</header>
 
     <main class="page-body">
       <div class="apply-grid">
