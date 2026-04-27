@@ -38,15 +38,33 @@
     </div>
 
     <!-- Right: back button + avatar -->
-    <div class="topbar-right">
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
-        <span class="btn-back-icon"></span>
-        Back to Dashboard
-      </a>
-      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
-        {{ session.user_name[0]|upper if session.user_name else 'U' }}
-      </a>
+    <!-- Right: notif + avatar -->
+<div class="topbar-right">
+  <div class="notif-wrap" id="notifWrap">
+    <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+      <span class="topbar-icon topbar-icon--notif"></span>
+      <span class="notif-dot hidden" id="notifDot"></span>
+    </button>
+    <div class="notif-dropdown" id="notifDropdown">
+      <div class="notif-header">
+        <span class="notif-header-title">Notifications</span>
+        <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+      </div>
+      <div class="notif-list" id="notifList">
+        <div class="notif-loading">Loading...</div>
+      </div>
+      <div class="notif-footer">
+        <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
+          See all notifications →
+        </a>
+      </div>
     </div>
+  </div>
+
+  <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+    {{ session.user_name[0]|upper if session.user_name else 'U' }}
+  </a>
+</div>
   </header>
 
   <!-- ═══════════════════════════════════════════════
@@ -117,16 +135,21 @@
 
         <!-- PAGE HEADER -->
         <div class="profile-page-header">
-          <div>
-            <h2 class="profile-page-title">My Profile</h2>
-            <p class="profile-page-sub">Account details and settings</p>
-          </div>
-          {% set status = user.get('id_verification_status', 'pending') if user else 'pending' %}
-          <span class="badge {% if status == 'verified' %}badge--approved{% elif status == 'rejected' %}badge--rejected{% else %}badge--pending{% endif %}">
-            ID: {{ status | title }}
-          </span>
-        </div>
-
+  <div class="profile-page-header-left">
+    <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
+      <span class="btn-back-icon"></span>
+      Back to Dashboard
+    </a>
+    <div>
+      <h2 class="profile-page-title">My Profile</h2>
+      <p class="profile-page-sub">Account details and settings</p>
+    </div>
+  </div>
+  {% set status = user.get('id_verification_status', 'pending') if user else 'pending' %}
+  <span class="badge {% if status == 'verified' %}badge--approved{% elif status == 'rejected' %}badge--rejected{% else %}badge--pending{% endif %}">
+    ID: {{ status | title }}
+  </span>
+</div>
         <!-- PROFILE CONTENT -->
         <div class="profile-content">
 

@@ -392,17 +392,20 @@ body:not(.sidebar-open) .sidebar {
 .card-body { padding: 0; }
 
 /* ================================================================
-   DATA TABLE
+   DATA TABLE — TABLE HEADER teal gradient tulad ng card-header sa dashboard
    ================================================================ */
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table thead {
+  background: linear-gradient(90deg, var(--mint-darker) 0%, var(--mint-dark) 100%);
+}
 .data-table th {
-  padding: 10px 16px;
+  padding: 12px 16px;
   text-align: left;
   font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.5px;
-  color: var(--gray-400);
-  background: var(--gray-100);
-  border-bottom: 1px solid var(--gray-200);
+  color: rgba(255, 255, 255, 0.80);
+  background: transparent;
+  border-bottom: none;
 }
 .data-table td {
   padding: 13px 16px;
@@ -411,7 +414,8 @@ body:not(.sidebar-open) .sidebar {
   color: var(--gray-800);
 }
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover td { background: var(--gray-100); }
+/* TANGGALIN ITO — walang row hover */
+/* .data-table tbody tr:hover td { background: var(--gray-100); } */
 
 .td-loan-no { font-weight: 600; color: var(--gray-800); }
 .td-type-name { font-weight: 500; color: var(--gray-800); }
@@ -477,7 +481,148 @@ body:not(.sidebar-open) .sidebar {
 .btn-apply-empty:hover { background: var(--mint-dark); }
 
 /* ================================================================
-   RESPONSIVE — matches dashboard breakpoints exactly
+   PAGE HEADER
+   ================================================================ */
+.loans-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.loans-page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Back to Dashboard button */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  color: var(--accent);
+  background: var(--mint-light);
+  border: 1px solid var(--mint-mid);
+  text-decoration: none;
+  transition: background 0.15s;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+.btn-back:hover { background: var(--mint-mid); }
+.btn-back-icon {
+  width: 13px; height: 13px;
+  background: currentColor;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z'/%3E%3C/svg%3E");
+  mask-size: contain; mask-repeat: no-repeat;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat;
+  flex-shrink: 0;
+}
+
+/* Apply for Loan button */
+.btn-apply {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--mint) 0%, var(--mint-dark) 100%);
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.btn-apply:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* ================================================================
+   NOTIF BELL — copy from dashboard_borrower.css
+   ================================================================ */
+.notif-wrap { position: relative; }
+.topbar-icon-btn {
+  position: relative;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.topbar-icon-btn:hover { background: rgba(255,255,255,0.22); }
+.topbar-icon {
+  width: 18px; height: 18px;
+  background: rgba(255,255,255,0.90);
+  mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+}
+.topbar-icon--notif {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E");
+}
+.notif-dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  border: 2px solid var(--mint-darker);
+}
+.notif-dot.hidden { display: none; }
+.notif-dropdown {
+  display: none;
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: 340px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(42,144,128,0.14);
+  z-index: 300; overflow: hidden;
+}
+.notif-dropdown.open { display: flex; flex-direction: column; }
+.notif-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-100);
+}
+.notif-header-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--gray-800);
+}
+.notif-mark-all {
+  font-size: 11px; font-weight: 600;
+  color: var(--accent);
+  background: none; border: none; cursor: pointer;
+  padding: 4px 8px; border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+.notif-mark-all:hover { background: var(--mint-light); }
+.notif-list { flex: 1; overflow-y: auto; max-height: 320px; }
+.notif-loading {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 16px;
+  font-size: 13px; color: var(--gray-400);
+}
+.notif-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--gray-200);
+  background: var(--gray-100);
+  text-align: center;
+}
+.notif-see-all {
+  font-size: 12px; font-weight: 600;
+  color: var(--accent);
+  transition: color 0.15s;
+}
+.notif-see-all:hover { color: var(--accent-hover); }
+
+/* ================================================================
+   RESPONSIVE — updated
    ================================================================ */
 @media (max-width: 1024px) {
   .data-table th:nth-child(4),
@@ -486,9 +631,7 @@ body:not(.sidebar-open) .sidebar {
 
 @media (max-width: 768px) {
   :root { --sidebar-w: 260px; }
-
   .page-body { padding: 16px; gap: 14px; }
-
   .topbar-brand-sub { display: none; }
 
   .sidebar {
@@ -498,6 +641,33 @@ body:not(.sidebar-open) .sidebar {
 
   body.sidebar-open .main-content { margin-left: 0; }
 
+  .loans-page-header     { flex-direction: column; align-items: flex-start; }
+  .loans-page-header-left{ flex-wrap: wrap; gap: 10px; }
+
+  /* Mobile table — card style per row */
+  .data-table thead { display: none; }
+  .data-table tbody tr {
+    display: block;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .data-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 0;
+    border: none;
+    font-size: 12px;
+  }
+  .data-table tbody td::before {
+    content: attr(data-label);
+    font-size: 10px; font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    flex-shrink: 0; margin-right: 10px;
+  }
+  .notif-dropdown { width: calc(100vw - 24px); right: -50px; }
+
   .data-table th:nth-child(3),
   .data-table td:nth-child(3),
   .data-table th:nth-child(4),
@@ -506,5 +676,6 @@ body:not(.sidebar-open) .sidebar {
 
 @media (max-width: 480px) {
   .topbar-brand-name { font-size: 13px; }
+  .btn-apply { font-size: 12px; padding: 7px 12px; }
   .btn-topbar-outline span:not(.btn-back-icon) { display: none; }
 }

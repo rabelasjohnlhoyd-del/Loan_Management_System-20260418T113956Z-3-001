@@ -12,7 +12,6 @@
    ROOT VARIABLES
    ================================================================ */
 :root {
-  /* 30% — mid-mint: topbar, sidebar */
   --mint: #3ab5a0;
   --mint-dark: #2a9080;
   --mint-darker: #1e6e60;
@@ -20,7 +19,6 @@
   --mint-mid: #b2e4db;
   --mint-sidebar: #1e6e60;
 
-  /* 60% — white/near-white: main content, cards, page bg */
   --white: #ffffff;
   --gray-50: #ffffff;
   --gray-100: #f2faf8;
@@ -30,7 +28,6 @@
   --gray-600: #5a7a76;
   --gray-800: #2c4a47;
 
-  /* 10% — dark mint accent: CTAs, active states, highlights */
   --accent: #1e6e60;
   --accent-hover: #155349;
 
@@ -56,7 +53,6 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  /* 60% zone: clean white-mint tinted page background */
   background: var(--gray-100);
   color: var(--gray-800);
   overflow-x: hidden;
@@ -81,7 +77,7 @@ button { font-family: inherit; }
 }
 
 /* ================================================================
-   TOPBAR — 30% zone
+   TOPBAR
    ================================================================ */
 .topbar {
   position: fixed;
@@ -95,19 +91,15 @@ button { font-family: inherit; }
   gap: 0;
 }
 
-/* Left zone: burger + brand — NO border-right divider line */
 .topbar-left {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: var(--sidebar-w);
-  flex-shrink: 0;
+  flex: 1;
   padding: 0 16px;
   height: 100%;
-  /* border-right REMOVED — no divider line */
 }
 
-/* Burger button — stays as burger always, no X animation */
 .burger-btn {
   display: flex;
   flex-direction: column;
@@ -129,10 +121,8 @@ button { font-family: inherit; }
   height: 2px;
   background: #fff;
   border-radius: 2px;
-  /* No transform transitions — burger stays as burger */
 }
 
-/* Brand in topbar */
 .topbar-brand {
   display: flex;
   align-items: center;
@@ -165,13 +155,8 @@ button { font-family: inherit; }
   white-space: nowrap;
 }
 
-/* Center zone: hidden — title/subtitle removed */
 .topbar-center { display: none; }
 
-/* Fix: topbar-left grows to fill space so right zone stays pushed to end */
-.topbar-left { flex: 1; }
-
-/* Right zone: notif + avatar */
 .topbar-right {
   display: flex;
   align-items: center;
@@ -224,7 +209,7 @@ button { font-family: inherit; }
 .topbar-avatar:hover { background: rgba(255,255,255,0.30); }
 
 /* ================================================================
-   SIDEBAR — 30% zone
+   SIDEBAR
    ================================================================ */
 .sidebar {
   width: var(--sidebar-w);
@@ -244,12 +229,10 @@ button { font-family: inherit; }
   overflow-y: auto;
 }
 
-/* Collapsed state (desktop) */
 body:not(.sidebar-open) .sidebar {
   transform: translateX(calc(-1 * var(--sidebar-w)));
 }
 
-/* Main content shifts when sidebar is open */
 body.sidebar-open .main-content {
   margin-left: var(--sidebar-w);
 }
@@ -260,7 +243,6 @@ body.sidebar-open .main-content {
   margin-left: 0;
 }
 
-/* ── User dropdown in sidebar ── */
 .sidebar-user {
   cursor: pointer;
   position: relative;
@@ -339,7 +321,6 @@ body.sidebar-open .main-content {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'/%3E%3C/svg%3E");
 }
 
-/* Nav */
 .sidebar-nav {
   flex: 1;
   padding: 8px 10px;
@@ -357,7 +338,6 @@ body.sidebar-open .main-content {
   white-space: nowrap;
 }
 .nav-item:hover { background: rgba(255,255,255,0.10); color: var(--white); }
-/* 10% accent: active nav item gets a strong left border + brighter bg */
 .nav-item.active {
   background: rgba(255,255,255,0.16);
   color: var(--white);
@@ -419,7 +399,7 @@ body.sidebar-open .main-content {
 .sidebar-overlay.active { display: block; }
 
 /* ================================================================
-   PAGE BODY — 60% zone
+   PAGE BODY
    ================================================================ */
 .page-body {
   padding: 24px 28px;
@@ -479,7 +459,6 @@ body.sidebar-open .main-content {
 .payment-alert-body { flex: 1; }
 .payment-alert-body strong { font-weight: 700; }
 .payment-alert-body p { font-size: 12px; margin-top: 2px; opacity: 0.85; }
-/* 10% accent: CTA buttons */
 .payment-alert-cta {
   padding: 6px 14px; border-radius: var(--radius-sm);
   font-size: 12px; font-weight: 700; border: none; cursor: pointer;
@@ -491,7 +470,7 @@ body.sidebar-open .main-content {
 .payment-alert--warning .payment-alert-cta { background: var(--warning); color: #fff; }
 
 /* ================================================================
-   WELCOME BANNER — 30% zone (mid-mint strip)
+   WELCOME BANNER
    ================================================================ */
 .welcome-banner {
   display: flex; align-items: center; justify-content: space-between;
@@ -507,12 +486,11 @@ body.sidebar-open .main-content {
   font-size: 13px; font-weight: 600; transition: opacity 0.15s, transform 0.15s;
 }
 .wb-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-/* 10% accent: white button with dark mint text = strong contrast CTA */
 .wb-btn-white { background: var(--white); color: var(--accent); }
 .wb-btn-outline { border: 1.5px solid rgba(255,255,255,0.6); color: var(--white); }
 
 /* ================================================================
-   STATS GRID — 60% zone (white cards on light bg)
+   STATS GRID — NO hover (not clickable)
    ================================================================ */
 .stats-grid {
   display: grid;
@@ -520,22 +498,16 @@ body.sidebar-open .main-content {
   gap: 16px;
 }
 .stat-card {
-  /* 60% zone: pure white cards */
   background: var(--white);
   border-radius: var(--radius);
   padding: 20px; display: flex; align-items: center;
   justify-content: space-between; gap: 12px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--gray-200);
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-.stat-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  /* NO hover — stat cards are not clickable */
 }
 .stat-info h3 {
   font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700;
-  /* 10% accent: stat numbers in dark mint */
   color: var(--accent);
   margin-bottom: 2px;
 }
@@ -574,7 +546,7 @@ body.sidebar-open .main-content {
 }
 
 /* ================================================================
-   CARDS — 60% zone (white surfaces)
+   CARDS
    ================================================================ */
 .card {
   background: var(--white);
@@ -583,37 +555,39 @@ body.sidebar-open .main-content {
   border: 1px solid var(--gray-200);
   overflow: hidden;
 }
+
+/* CHANGED: card-header now uses teal/dark-mint (30% zone) */
 .card-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 20px;
-  border-bottom: 1px solid var(--gray-200);
-  /* Subtle mint tint on card headers — still 60% zone */
-  background: var(--gray-100);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(90deg, var(--mint-darker) 0%, var(--mint-dark) 100%);
+  /* NO hover — card headers are not clickable */
 }
 .card-header h3 {
   font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700;
-  color: var(--gray-800); margin-bottom: 2px;
+  color: var(--white);
+  margin-bottom: 2px;
 }
-.card-header p { font-size: 12px; color: var(--gray-400); }
+.card-header p { font-size: 12px; color: rgba(255,255,255,0.65); }
 .card-body { padding: 20px; }
 
-/* 10% accent: outline buttons use dark mint */
+/* View All button inside teal header */
 .btn-outline {
   padding: 6px 14px; border-radius: var(--radius-sm);
   font-size: 12px; font-weight: 600;
-  color: var(--accent);
-  border: 1.5px solid var(--mint-mid);
-  background: var(--mint-light);
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  color: var(--white);
+  border: 1.5px solid rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.12);
+  transition: background 0.15s, border-color 0.15s;
 }
 .btn-outline:hover {
-  background: var(--mint-mid);
-  border-color: var(--mint);
-  color: var(--mint-darker);
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.70);
 }
 
 /* ================================================================
-   LOANS TABLE
+   LOANS TABLE — NO row hover (rows are not clickable)
    ================================================================ */
 .loans-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .loans-table thead th {
@@ -626,8 +600,7 @@ body.sidebar-open .main-content {
   color: var(--gray-800); vertical-align: middle;
 }
 .loans-table tbody tr:last-child td { border-bottom: none; }
-.loans-table tbody tr:hover td { background: var(--gray-100); }
-/* 10% accent: loan reference links */
+/* NO tr:hover — table rows are not clickable, only the reference link is */
 .loans-table a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .loans-table a:hover { text-decoration: underline; color: var(--accent-hover); }
 
@@ -647,7 +620,6 @@ body.sidebar-open .main-content {
 .loan-progress-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--gray-400); margin-bottom: 3px; }
 .loan-progress-bar { height: 4px; border-radius: 2px; background: var(--gray-200); overflow: hidden; }
 .loan-progress-fill { height: 4px; border-radius: 2px; transition: width 0.4s ease; }
-/* 10% accent: progress bars use dark mint */
 .loan-progress-fill--mint  { background: var(--accent); }
 .loan-progress-fill--green { background: var(--success); }
 .loan-progress-fill--red   { background: var(--danger); }
@@ -673,15 +645,14 @@ body.sidebar-open .main-content {
 .countdown-chip--amber { background: #fffbea; color: #d97706; }
 
 /* ================================================================
-   ACTIVITY FEED
+   ACTIVITY FEED — NO row hover (rows are not clickable)
    ================================================================ */
 .activity-feed { display: flex; flex-direction: column; }
 .activity-item {
   display: flex; align-items: flex-start; gap: 12px;
   padding: 11px 20px; border-bottom: 1px solid var(--gray-200);
-  transition: background 0.15s;
+  /* NO hover — activity items are not clickable */
 }
-.activity-item:hover { background: var(--gray-100); }
 .activity-item:last-child { border-bottom: none; }
 .activity-icon {
   width: 32px; height: 32px; border-radius: 50%;
@@ -692,7 +663,6 @@ body.sidebar-open .main-content {
 .activity-icon--blue  { background: #eff6ff; color: #2563eb; }
 .activity-icon--amber { background: #fffbea; color: #d97706; }
 .activity-icon--red   { background: #fdf0f0; color: #dc2626; }
-/* 10% accent: mint activity icons */
 .activity-icon--mint  { background: var(--mint-light); color: var(--accent); }
 .activity-body { flex: 1; min-width: 0; }
 .activity-title { font-size: 13px; font-weight: 600; color: var(--gray-800); }
@@ -733,7 +703,6 @@ body.sidebar-open .main-content {
 .notif-header-title { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: var(--gray-800); }
 .notif-mark-all {
   font-size: 11px; font-weight: 600;
-  /* 10% accent: mark all button */
   color: var(--accent);
   background: none; border: none; cursor: pointer;
   padding: 4px 8px; border-radius: var(--radius-sm); transition: background 0.15s;
@@ -784,10 +753,8 @@ body.sidebar-open .main-content {
 .notif-item-title { font-size: 13px; font-weight: 600; color: var(--gray-800); line-height: 1.3; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .notif-item-msg { font-size: 12px; color: var(--gray-600); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .notif-item-time { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
-/* 10% accent: unread dot in dark mint */
 .notif-unread-dot { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .notif-footer { padding: 10px 16px; border-top: 1px solid var(--gray-200); background: var(--gray-100); text-align: center; }
-/* 10% accent: see all link */
 .notif-see-all { font-size: 12px; font-weight: 600; color: var(--accent); transition: color 0.15s; }
 .notif-see-all:hover { color: var(--accent-hover); }
 

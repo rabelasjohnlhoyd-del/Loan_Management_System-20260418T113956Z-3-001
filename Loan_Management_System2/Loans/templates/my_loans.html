@@ -35,19 +35,33 @@
       </div>
     </div>
 
-    <!-- Right: back + apply + avatar -->
+    <!-- Right: notif + avatar -->
     <div class="topbar-right">
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-topbar-outline">
-        <span class="btn-back-icon"></span>
-        Back to Dashboard
-      </a>
-      <a href="{{ url_for('loans.apply') }}" class="btn-topbar-white">
-        + Apply for Loan
-      </a>
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-loading">Loading...</div>
+          </div>
+          <div class="notif-footer">
+            <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
+          </div>
+        </div>
+      </div>
       <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
         {{ session.user_name[0]|upper if session.user_name else 'U' }}
       </a>
     </div>
+
   </header>
 
   <!-- ═══════════════════════════════════════════════
@@ -116,8 +130,19 @@
       <main class="page-body">
 
         <div class="loans-page-header">
-          <h2 class="loans-page-title">My Loans</h2>
-          <p class="loans-page-sub">Your active and completed loans</p>
+          <div class="loans-page-header-left">
+            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
+              <span class="btn-back-icon"></span>
+              Back to Dashboard
+            </a>
+            <div>
+              <h2 class="loans-page-title">My Loans</h2>
+              <p class="loans-page-sub">Your active and completed loans</p>
+            </div>
+          </div>
+          <a href="{{ url_for('loans.apply') }}" class="btn-apply">
+            + Apply for Loan
+          </a>
         </div>
 
         <div class="card">
@@ -139,25 +164,25 @@
               <tbody>
                 {% for loan in loans %}
                 <tr>
-                  <td><span class="td-loan-no">{{ loan.loan_no }}</span></td>
-                  <td>
+                  <td data-label="Loan No."><span class="td-loan-no">{{ loan.loan_no }}</span></td>
+                  <td data-label="Type">
                     <div class="td-type-name">{{ loan.type_name }}</div>
                     <div class="td-sub">{{ loan.plan_name }}</div>
                   </td>
-                  <td>&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</td>
-                  <td>&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</td>
-                  <td>
+                  <td data-label="Principal">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</td>
+                  <td data-label="Monthly Due">&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</td>
+                  <td data-label="Balance">
                     <span class="td-balance {% if loan.outstanding_balance == 0 %}td-balance--paid{% endif %}">
                       &#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}
                     </span>
                   </td>
-                  <td>{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else '—' }}</td>
-                  <td>
+                  <td data-label="Next Due">{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else '—' }}</td>
+                  <td data-label="Status">
                     <span class="loan-status loan-status--{{ loan.status }}">
                       {{ loan.status | title }}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Action">
                     <a href="{{ url_for('loans.loan_detail', loan_id=loan.id) }}" class="btn-view">View</a>
                   </td>
                 </tr>
