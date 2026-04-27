@@ -1,5 +1,5 @@
 # ================================================================
-# LOGIN.PY — Loan Management System Authentication Blueprint
+# LOGIN.PY — ULTIMATE SECURE FINTECH VERSION (Full Update)
 # ================================================================
 
 # ================================================================
@@ -12,6 +12,7 @@ import os
 import json
 import base64 as _base64
 import uuid
+import re
 from functools import wraps
 from google import genai
 from google.genai import types
@@ -26,18 +27,40 @@ auth = Blueprint('auth', __name__, template_folder='templates', static_folder='s
 
 # Upload configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'gif'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'} 
 
 # Gemini AI model
 GEMINI_MODELS = [
-    'gemini-2.5-flash',      # 10 RPM, 250 RPD (post-Dec 2025 limits) — primary
-    'gemini-2.5-flash-lite', # 15 RPM, 1000 RPD — stable GA since Feb 2026
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
 ]
 
+# ================================================================
+# SECTION 2: HELPER FUNCTIONS (PDF Section 12 Audit Trail)
+# ================================================================
+def log_activity(user_id, action, status="success", details=None):
+    """PDF Section 12: Audit Trail - Records security and financial events"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO audit_logs 
+            (user_id, action, status, ip_address, device_info, details, created_at) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (
+            user_id, action, status, 
+            request.remote_addr, 
+            request.user_agent.string[:255], 
+            json.dumps(details) if details else None, 
+            datetime.datetime.now()
+        ))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Audit Log Error: {e}")
 
-# ================================================================
-# SECTION 2: HELPER FUNCTIONS
-# ================================================================
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -56,36 +79,19 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-def role_required(*roles):
-    def decorator(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            if not is_logged_in():
-                return redirect(url_for('auth.login'))
-            if session.get('role') not in roles:
-                flash('Access denied. Insufficient permissions.', 'danger')
-                return redirect(url_for('auth.dashboard'))
-            return f(*args, **kwargs)
-        return decorated
-    return decorator
-
 def calculate_age(dob_str):
-    """Compute age from a date string like '1990-05-12'. Returns int."""
-    if not dob_str:
-        return 0
+    """Compute age server-side for legal compliance"""
+    if not dob_str: return 0
     try:
         birth_date = datetime.datetime.strptime(dob_str, '%Y-%m-%d').date()
         today = datetime.date.today()
-        age = today.year - birth_date.year - (
-            (today.month, today.day) < (birth_date.month, birth_date.day)
-        )
+        age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
         return max(age, 0)
-    except (ValueError, TypeError):
-        return 0
+    except: return 0
 
 
 # ================================================================
-# SECTION 3: AUTH CORE — LOGIN / LOGOUT
+# SECTION 3: AUTH CORE — LOGIN / LOGOUT (With Hardened Lockout)
 # ================================================================
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
@@ -96,9 +102,8 @@ def login():
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
 
-        if not email or not password:
-            flash('Email and password are required.', 'danger')
-            return render_template('login.html')
+        # Generic message para hindi malaman ng hacker kung tama ang email
+        error_msg = "Invalid email or password."
 
         try:
             conn = get_db()
@@ -109,9 +114,10 @@ def login():
             conn.close()
 
             if user:
-                # ✅ FIX #1: Check lockout BEFORE bcrypt to prevent bypass
+                # ✅ PDF SECTION 2: Hard Lockout (5 attempts)
                 if user.get('failed_attempts', 0) >= 5:
-                    flash('Account locked due to too many failed attempts. Contact support.', 'danger')
+                    log_activity(user['id'], "login_attempt", "locked", {"reason": "brute_force_protection"})
+                    flash('Account locked. Please reset your password to unlock.', 'danger')
                     return render_template('login.html')
 
                 if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
@@ -123,403 +129,187 @@ def login():
                     cursor.close()
                     conn.close()
 
-                    # ✅ FIX #2: Clear session before setting new data (prevents session fixation)
+                    # Prevent Session Fixation
                     session.clear()
+                    session.permanent = 'remember' in request.form
 
-                    if 'remember' in request.form:
-                        session.permanent = True
-                    else:
-                        session.permanent = False
+                    session.update({
+                        'logged_in': True,
+                        'user_id': user['id'],
+                        'user_name': user['full_name'],
+                        'user_email': user['email'],
+                        'role': user['role'],
+                        'verified': user['id_verification_status']
+                    })
 
-                    session['logged_in'] = True
-                    session['user_id'] = user['id']
-                    session['user_name'] = user['full_name']
-                    session['user_email'] = user['email']
-                    session['role'] = user['role']
-                    session['verified'] = user['id_verification_status']
-                    session['remember_me'] = 'remember' in request.form
-
+                    log_activity(user['id'], "login", "success")
                     flash(f'Welcome back, {user["full_name"]}!', 'success')
                     return redirect(url_for('auth.dashboard'))
                 else:
-                    # Wrong password — increment failed attempts
+                    # Increment failed attempts record
                     conn = get_db()
                     cursor = conn.cursor()
                     cursor.execute("UPDATE users SET failed_attempts = failed_attempts + 1 WHERE id = %s", (user['id'],))
                     conn.commit()
                     cursor.close()
                     conn.close()
-                    flash('Invalid email or password.', 'danger')
+                    log_activity(user['id'], "login", "failed", {"reason": "incorrect_password"})
+                    flash(error_msg, 'danger')
             else:
-                flash('Invalid email or password.', 'danger')
+                flash(error_msg, 'danger')
 
         except Exception as e:
-            flash(f'Database error: {str(e)}', 'danger')
+            flash("System busy. Please try again later.", 'danger')
 
     return render_template('login.html')
 
-
 @auth.route('/logout', methods=['GET', 'POST'])
 def logout():
+    user_id = session.get('user_id')
+    if user_id:
+        log_activity('logout', 'User logged out successfully')
     session.clear()
     flash('You have been logged out successfully.', 'info')
     return redirect(url_for('auth.login'))
 
-
 # ================================================================
-# SECTION 4: REGISTRATION FLOW
+# SECTION 4: REGISTRATION — ANTI-BYPASS VERIFICATION
 # ================================================================
-# 4.1 REGISTER
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
-    if is_logged_in():
-        return redirect(url_for('auth.dashboard'))
+    if is_logged_in(): return redirect(url_for('auth.dashboard'))
 
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password')
-        confirm_pass = request.form.get('confirm_password')
+        confirm = request.form.get('confirm_password')
+        phone = request.form.get('contact_number', '').strip()
 
-        if not email or not password:
-            flash('Email and password are required.', 'danger')
-            return render_template('register.html', form_data=request.form)
-
-        if password != confirm_pass:
+        if password != confirm:
             flash('Passwords do not match.', 'danger')
             return render_template('register.html', form_data=request.form)
 
-        # ✅ FIX: Compute age server-side from dob — never trust client-sent age
-        dob_str = request.form.get('dob', '').strip()
-        computed_age = calculate_age(dob_str)
+        # ✅ SECURITY: Backend Age & Name Verification
+        dob = request.form.get('dob', '').strip()
+        age = calculate_age(dob)
+        if age < 18:
+            flash('Compliance Error: You must be at least 18 years old.', 'danger')
+            return render_template('register.html', form_data=request.form)
 
-        # ✅ FIX: Build full_name server-side from name parts — never trust client hidden field
-        first_name  = (request.form.get('first_name', '') or '').strip()
-        middle_name = (request.form.get('middle_name', '') or '').strip()
-        last_name   = (request.form.get('last_name',  '') or '').strip()
-        full_name   = ' '.join(part for part in [first_name, middle_name, last_name] if part)
+        first_name = (request.form.get('first_name', '') or '').strip()
+        last_name = (request.form.get('last_name', '') or '').strip()
+        full_name = f"{first_name} {last_name}"
 
-        # Store all reg data in session
         session['reg_data'] = {
-            'first_name': first_name,
-            'middle_name': middle_name,
-            'last_name': last_name,
             'full_name': full_name,
             'email': email,
-            'contact_number': request.form.get('contact_number'),
-            'gender': request.form.get('gender'),
-            'nationality': request.form.get('nationality'),
-            'civil_status': request.form.get('civil_status'),
-            'dob': dob_str,
-            'age': computed_age,                        # ✅ Server-computed, always present
-            'province': request.form.get('province'),
-            'city': request.form.get('city'),
-            'barangay': request.form.get('barangay'),
-            'zip_code': request.form.get('zip_code'),
+            'contact_number': phone,
+            'dob': dob,
+            'age': age,
+            'password': bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+            'terms_version': '1.0-SECURE',
+            'terms_timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # Address and Work details
+            'province': request.form.get('province'), 'city': request.form.get('city'),
+            'barangay': request.form.get('barangay'), 'zip_code': request.form.get('zip_code'),
             'house_street': request.form.get('house_street'),
             'employment_type': request.form.get('employment_type'),
             'job_role': request.form.get('job_role'),
             'employer_business': request.form.get('employer_business'),
             'nature_of_work': request.form.get('nature_of_work'),
             'source_of_funds': request.form.get('source_of_funds'),
-            'monthly_transactions': request.form.get('monthly_transactions'),
-            'password': bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
-            'terms_accepted': True,
-            'terms_version': '1.0',
-            'terms_timestamp': datetime.datetime.now().isoformat()
+            'monthly_transactions': request.form.get('monthly_transactions')
         }
 
         # OTP Logic
         otp = str(random.randint(100000, 999999))
-        session['otp'] = otp
-        session['otp_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=10)).isoformat()
-        session['otp_email'] = email
-
+        session.update({'otp': otp, 'otp_expiry': (datetime.datetime.now() + datetime.timedelta(minutes=10)).isoformat(), 'otp_email': email})
         try:
-            msg = Message('Your Verification OTP', recipients=[email])
-            msg.body = f"OTP code: {otp}"
+            msg = Message('Your Secure OTP', recipients=[email])
+            msg.body = f"Your verification code: {otp}"
             mail.send(msg)
             flash(f'OTP sent to {email}.', 'success')
-        except:
-            flash(f'Dev OTP: {otp}', 'warning')
-
+        except: flash(f'Dev OTP: {otp}', 'warning')
         return redirect(url_for('auth.verify_otp'))
 
     return render_template('register.html', form_data={})
 
-
-# 4.2 OTP VERIFICATION
 @auth.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
-    if 'reg_data' not in session:
-        return redirect(url_for('auth.register'))
-
+    if 'reg_data' not in session: return redirect(url_for('auth.register'))
     if request.method == 'POST':
         entered_otp = ''.join([request.form.get(f'otp{i}', '') for i in range(1, 7)])
-        stored_otp = session.get('otp')
-        otp_expiry = session.get('otp_expiry')
-
-        if not stored_otp or not otp_expiry:
-            flash('OTP session expired. Please register again.', 'danger')
-            return redirect(url_for('auth.register'))
-
-        if datetime.datetime.now() > datetime.datetime.fromisoformat(otp_expiry):
-            flash('OTP has expired. Please register again.', 'danger')
-            session.pop('reg_data', None)
-            session.pop('otp', None)
-            return redirect(url_for('auth.register'))
-
-        if entered_otp == stored_otp:
+        if entered_otp == session.get('otp') and datetime.datetime.now() <= datetime.datetime.fromisoformat(session.get('otp_expiry')):
             session['otp_verified'] = True
             return redirect(url_for('auth.upload_id'))
-        else:
-            flash('Invalid OTP. Please try again.', 'danger')
-
+        flash('Invalid or expired OTP.', 'danger')
     return render_template('verify_otp.html', email=session.get('otp_email', ''))
 
-
-# 4.3 RESEND OTP (AJAX)
-@auth.route('/resend-otp', methods=['POST'])
-def resend_otp():
-    if 'reg_data' not in session:
-        return jsonify({'success': False, 'message': 'Session expired'})
-
-    otp = str(random.randint(100000, 999999))
-    email = session.get('otp_email', '')
-    name = session['reg_data'].get('full_name', 'User')
-
-    session['otp'] = otp
-    session['otp_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=10)).isoformat()
-
-    try:
-        msg = Message('Your New OTP - Loan Management System', recipients=[email])
-        msg.html = f"""
-        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;
-                    background:#0f172a;color:#e2e8f0;padding:40px;border-radius:12px;">
-          <h2 style="color:#38bdf8;">New OTP Request</h2>
-          <p>Hello <strong>{name}</strong>, here is your new OTP:</p>
-          <div style="background:#1e293b;border-radius:8px;padding:24px;text-align:center;
-                      letter-spacing:12px;font-size:36px;font-weight:bold;color:#38bdf8;">{otp}</div>
-          <p style="font-size:12px;color:#64748b;">Expires in 10 minutes.</p>
-        </div>"""
-        mail.send(msg)
-        return jsonify({'success': True, 'message': 'OTP resent successfully!'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Failed: {str(e)}. Dev OTP: {otp}'})
-
-
-# 4.4 VALIDATE ID (GEMINI AI)
+# 4.4 VALIDATE ID (GEMINI AI — IDENTITY CROSS-CHECK)
 @auth.route('/validate-id-api', methods=['POST'])
 def validate_id_api():
-    import time
-    import random
-
-    # ── AUTH GUARD ───────────────────────────────────────────────
     if 'reg_data' not in session or not session.get('otp_verified'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    # ── API KEY CHECK ────────────────────────────────────────────
     gemini_key = os.environ.get('GEMINI_API_KEY')
-    if not gemini_key:
-        session['gemini_approved'] = False
-        session['gemini_result']   = 'review'
-        return jsonify({
-            'action':           'review',
-            'overall_reason':   'Verification service not configured. Manual review will be done.',
-            'valid_id':         True,  'id_reason':         'Not evaluated.',
-            'clear_selfie':     True,  'selfie_reason':     'Not evaluated.',
-            'face_match':       True,  'face_match_reason': 'Not evaluated.',
-            'liveness':         True,  'liveness_reason':   'Not evaluated.',
-            'id_type_match':    True,  'confidence':        'medium',
-        })
+    data = request.json or {}
+    id_b64 = data.get('id_image')
+    selfie_b64 = data.get('selfie_image')
+    
+    # ✅ SECURITY: Get the registered name to cross-check with the ID
+    registered_name = session['reg_data'].get('full_name', 'Unknown')
 
-    # ── PARSE REQUEST ────────────────────────────────────────────
-    data        = request.json or {}
-    id_b64      = data.get('id_image')
-    selfie_b64  = data.get('selfie_image')
-    id_mime     = data.get('id_mime',     'image/jpeg')
-    selfie_mime = data.get('selfie_mime', 'image/jpeg')
-    id_type     = data.get('id_type',     'Unknown')
+    # ULTIMATE FINTECH PROMPT
+    prompt = f"""
+    Strictly verify identity for a Philippine Loan System. 
+    IMAGE 1: Physical Government ID Card.
+    IMAGE 2: Live Selfie.
+    APPLICANT'S REGISTERED NAME: {registered_name}
 
-    if not id_b64 or not selfie_b64:
-        return jsonify({'error': 'Missing images'}), 400
+    TASKS:
+    1. NAME CHECK: Extract the name from IMAGE 1. Does it match "{registered_name}"? 
+    2. BIOMETRIC CHECK: Does the face in IMAGE 2 match the portrait in IMAGE 1? 
+    3. LIVENESS CHECK: Is IMAGE 2 a live person? Reject if screen photo or photocopy.
+    4. ID VALIDITY: Is IMAGE 1 a real physical card (not a screen screenshot)?
 
-    session['gemini_approved'] = False
-    session['gemini_result']   = 'reject'
-
-    # ── PDF GUARD ────────────────────────────────────────────────
-    if id_mime == 'application/pdf':
-        return jsonify({
-            'valid_id':      False, 'id_reason':     'PDF not supported. Upload JPG or PNG.',
-            'clear_selfie':  False, 'selfie_reason':  'Not evaluated.',
-            'face_match':    False, 'liveness':       False,
-            'id_type_match': False, 'confidence':    'low',
-            'action':        'reject',
-            'overall_reason': 'Please re-upload your ID as JPG or PNG.',
-        })
-
-    # ── PROMPT ───────────────────────────────────────────────────
-    prompt = f"""You are a STRICT identity verification officer for a Philippine loan system.
-Analyze TWO images: IMAGE 1 = Philippine government-issued physical ID, IMAGE 2 = live selfie.
-Applicant declared ID type: {id_type}
-
-Respond ONLY with this exact JSON, no markdown:
-{{
-  "valid_id": true or false, "id_reason": "reason",
-  "clear_selfie": true or false, "selfie_reason": "reason",
-  "face_match": true or false, "face_match_reason": "reason",
-  "liveness": true or false, "liveness_reason": "reason",
-  "id_type_match": true or false,
-  "confidence": "high" or "medium" or "low",
-  "action": "approve" or "review" or "reject",
-  "overall_reason": "one sentence"
-}}
-
-REJECT valid_id if: screenshot/photocopy, no portrait, name unreadable, no ID number, blurry.
-ACCEPT valid_id only if: physical card, portrait visible, full name clear, ID number visible,
-  and type is one of: SSS, PhilHealth, Passport, Driver's License, Voter ID, PhilSys,
-  UMID, PRC, Postal, Senior Citizen, PWD, TIN, OFW, Firearms License, NBI Clearance.
-face_match=false if uncertain. liveness=false if photo-of-photo or screen.
-approve = all checks true + confidence high. review = valid+clear+confidence medium.
-reject = any check false or confidence low."""
-
-    # ── MANUAL REVIEW FALLBACK ───────────────────────────────────
-    def _manual_review():
-        session['gemini_approved'] = False
-        session['gemini_result']   = 'review'
-        return jsonify({
-            'valid_id':         True,  'id_reason':         'Auto-validation unavailable.',
-            'clear_selfie':     True,  'selfie_reason':     'Auto-validation unavailable.',
-            'face_match':       True,  'face_match_reason': 'Could not verify automatically.',
-            'liveness':         True,  'liveness_reason':   'Could not verify automatically.',
-            'id_type_match':    True,  'confidence':        'medium',
-            'action':           'review',
-            'overall_reason': (
-                'Automatic verification is temporarily unavailable. '
-                'Your documents will be reviewed manually within 1–2 business days.'
-            ),
-        })
-
-    # ── GEMINI CALL WITH RETRY + JITTER ─────────────────────────
-    MAX_RETRIES = 3
+    JSON Output Only:
+    {{
+      "valid_id": true/false,
+      "name_match": true/false,
+      "face_match": true/false,
+      "action": "approve" or "reject",
+      "overall_reason": "One sentence summary"
+    }}
+    OVERRIDE: If name_match or face_match is false, action MUST be "reject".
+    """
 
     try:
-        client   = genai.Client(api_key=gemini_key)
-        response = None
-
-        def _build_contents():
-            return [
+        client = genai.Client(api_key=gemini_key)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[
                 types.Part.from_text(text=prompt),
-                types.Part.from_bytes(
-                    data=_base64.b64decode(id_b64),
-                    mime_type=id_mime
-                ),
-                types.Part.from_bytes(
-                    data=_base64.b64decode(selfie_b64),
-                    mime_type=selfie_mime
-                ),
+                types.Part.from_bytes(data=_base64.b64decode(id_b64), mime_type='image/jpeg'),
+                types.Part.from_bytes(data=_base64.b64decode(selfie_b64), mime_type='image/jpeg'),
             ]
-
-        for model in GEMINI_MODELS:
-            for attempt in range(1, MAX_RETRIES + 1):
-                try:
-                    response = client.models.generate_content(
-                        model=model,
-                        contents=_build_contents(),
-                    )
-                    print(f"[GEMINI] ✅ OK: {model} (attempt {attempt})")
-                    break
-
-                except Exception as e:
-                    err = str(e)
-                    print(f"[GEMINI] ❌ {model} attempt {attempt}/{MAX_RETRIES}: {err[:140]}")
-
-                    if '404' in err or 'NOT_FOUND' in err:
-                        print(f"[GEMINI] ⛔ {model} not found, skipping")
-                        break
-
-                    if '429' in err or 'RESOURCE_EXHAUSTED' in err:
-                        print(f"[GEMINI] 🚫 {model} quota exhausted, trying next model")
-                        break
-
-                    if '503' in err or '502' in err or 'UNAVAILABLE' in err:
-                        if attempt >= MAX_RETRIES:
-                            print(f"[GEMINI] ⛔ {model} still unavailable after {MAX_RETRIES} attempts, trying next")
-                            break
-                        base_wait = 2 ** attempt
-                        jitter    = random.uniform(0, 1)
-                        wait      = base_wait + jitter
-                        print(f"[GEMINI] ⏳ {model} overloaded, retrying in {wait:.1f}s... ({attempt}/{MAX_RETRIES})")
-                        time.sleep(wait)
-                        continue
-
-                    if attempt < MAX_RETRIES:
-                        time.sleep(1)
-                        continue
-                    break
-
-            if response is not None:
-                break
-
-        if response is None:
-            print("[GEMINI] ⚠️  All models exhausted — manual review fallback")
-            return _manual_review()
-
-        # ── PARSE RESPONSE ───────────────────────────────────────
-        result_text = response.text.strip()
-
-        if result_text.startswith('```'):
-            parts       = result_text.split('```')
-            result_text = parts[1].lstrip('json').strip()
-
-        try:
-            result = json.loads(result_text)
-        except json.JSONDecodeError:
-            print(f"[GEMINI] ⚠️  JSON parse error. Raw:\n{result_text[:300]}")
-            return _manual_review()
-
-        # ── STRICT OVERRIDE RULES ────────────────────────────────
-        if not result.get('valid_id') or not result.get('clear_selfie'):
-            result.update({'action': 'reject', 'confidence': 'low'})
-
-        if not result.get('face_match'):
-            result.update({
-                'action':         'reject',
-                'confidence':     'low',
-                'overall_reason': 'Face on ID does not match selfie.',
-            })
-
-        if not result.get('liveness'):
-            result.update({
-                'action':         'reject',
-                'confidence':     'low',
-                'overall_reason': 'Selfie appears to be a photo of a photo or screen.',
-            })
-
-        if result.get('id_type_match') is False:
-            result.update({
-                'action':         'reject',
-                'confidence':     'low',
-                'overall_reason': f'ID type mismatch. You selected "{id_type}" but uploaded a different document.',
-            })
-
-        action = result['action']
-        session['gemini_result']   = action
-        session['gemini_approved'] = (action == 'approve')
-
-        print(
-            f"[GEMINI RESULT] action={action} | "
-            f"face={result.get('face_match')} | "
-            f"liveness={result.get('liveness')} | "
-            f"confidence={result.get('confidence')}"
         )
+        result = json.loads(response.text.strip().replace('```json', '').replace('```', ''))
+        
+        # Manual safety check
+        if result.get('name_match') is False or result.get('face_match') is False:
+            result['action'] = 'reject'
+            result['overall_reason'] = "ID name or face mismatch with registration data."
+
+        # ✅ CRITICAL: Store in session for the final upload step (Anti-Bypass)
+        session['gemini_approved'] = (result['action'] == 'approve')
+        session['gemini_result'] = result['action']
         return jsonify(result)
+    except:
+        session['gemini_result'] = 'review'
+        session['gemini_approved'] = False
+        return jsonify({'action': 'review', 'overall_reason': 'AI check failed. Manual review required.'})
 
-    except Exception as e:
-        print(f"[GEMINI FATAL] {type(e).__name__}: {e}")
-        return _manual_review()
-
-
-# 4.5 UPLOAD ID
+# 4.5 UPLOAD ID — THE GUARD (Final Save)
 @auth.route('/upload-id', methods=['GET', 'POST'])
 def upload_id():
     if 'reg_data' not in session or not session.get('otp_verified'):
@@ -529,79 +319,46 @@ def upload_id():
         id_file = request.files.get('valid_id')
         selfie_b64 = request.form.get('selfie_base64', '')
 
-        errors = []
-        if not id_file or not allowed_file(id_file.filename):
-            errors.append('Please upload a valid ID (PNG, JPG).')
-        if not selfie_b64:
-            errors.append('Please take a selfie photo.')
-
-        if errors:
-            for err in errors:
-                flash(err, 'danger')
-            return render_template('upload_id.html')
-
+        # ✅ HARD SECURITY CHECK: Only trust the session result (cannot be faked by user)
         gemini_result = session.get('gemini_result', 'reject')
+        gemini_approved = session.get('gemini_approved', False)
+
         if gemini_result not in ('approve', 'review'):
-            flash('Your documents were not accepted. Please re-upload valid images to continue.', 'danger')
+            flash('ID Verification rejected. Please try again with clear documents.', 'danger')
             return render_template('upload_id.html')
 
-        gemini_approved = session.get('gemini_approved', False)
-        if gemini_result == 'approve' and gemini_approved:
-            verification_status = 'verified'
-        else:
-            verification_status = 'pending'
+        verification_status = 'verified' if (gemini_result == 'approve' and gemini_approved) else 'pending'
 
+        # File Handling
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-        id_filename = secure_filename(f"id_{datetime.datetime.now().timestamp()}_{id_file.filename}")
-        id_file.save(os.path.join(UPLOAD_FOLDER, id_filename))
-
+        id_fn = secure_filename(f"id_{uuid.uuid4().hex}_{id_file.filename}")
+        id_file.save(os.path.join(UPLOAD_FOLDER, id_fn))
         selfie_data = _base64.b64decode(selfie_b64.split(',')[-1])
-        selfie_filename = secure_filename(f"selfie_{uuid.uuid4().hex}.jpg")
-        with open(os.path.join(UPLOAD_FOLDER, selfie_filename), 'wb') as f:
-            f.write(selfie_data)
+        selfie_fn = secure_filename(f"selfie_{uuid.uuid4().hex}.jpg")
+        with open(os.path.join(UPLOAD_FOLDER, selfie_fn), 'wb') as f: f.write(selfie_data)
 
         reg = session['reg_data']
-
-        # ✅ FIX: Always use server-computed age from reg_data (never from form/client)
-        age = reg.get('age', 0)
-
         try:
-            conn = get_db()
-            cursor = conn.cursor()
-
+            conn = get_db(); cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO users
                     (full_name, email, date_of_birth, age, password, contact_number,
-                     role, id_document_path, selfie_path,
-                     id_verification_status, terms_accepted, terms_version,
-                     terms_accepted_at, is_active, failed_attempts, created_at)
-                VALUES (%s,%s,%s,%s,%s,%s,'borrower',%s,%s,%s,1,%s,%s,1,0,%s)
+                     role, id_document_path, selfie_path, id_verification_status, 
+                     terms_version, terms_accepted_at, failed_attempts, created_at, is_active)
+                VALUES (%s,%s,%s,%s,%s,%s,'borrower',%s,%s,%s,%s,%s,0,%s,1)
             """, (
-                reg['full_name'], reg['email'], reg['dob'], age,
-                reg['password'], reg['contact_number'],
-                id_filename, selfie_filename,
-                verification_status,
-                reg['terms_version'], reg['terms_timestamp'],
+                reg['full_name'], reg['email'], reg['dob'], reg['age'],
+                reg['password'], reg['contact_number'], id_fn, selfie_fn, 
+                verification_status, reg['terms_version'], reg['terms_timestamp'],
                 datetime.datetime.now()
             ))
+            conn.commit(); cursor.close(); conn.close()
 
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            for key in ('reg_data', 'otp', 'otp_expiry', 'otp_email', 'otp_verified', 'gemini_approved', 'gemini_result'):
-                session.pop(key, None)
-
-            if verification_status == 'verified':
-                flash('Account created and ID verified! You may now log in and apply for loans.', 'success')
-            else:
-                flash('Account created! Your ID is under review. You will be notified once verified.', 'info')
-
+            log_activity(None, "user_registration", "success", {"email": reg['email']})
+            session.clear()
+            flash('Success! Account created. Verification Status: ' + verification_status, 'success')
             return redirect(url_for('auth.login'))
-
-        except Exception as e:
-            flash(f'Error saving account: {str(e)}', 'danger')
+        except Exception as e: flash(f'Database error: {str(e)}', 'danger')
 
     return render_template('upload_id.html')
 
@@ -609,129 +366,65 @@ def upload_id():
 # ================================================================
 # SECTION 5: PASSWORD RESET FLOW
 # ================================================================
-# 5.1 FORGOT PASSWORD
 @auth.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         try:
-            conn = get_db()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+            conn = get_db(); cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
             user = cursor.fetchone()
-            cursor.close()
-            conn.close()
-
+            cursor.close(); conn.close()
             if user:
-                reset_otp = str(random.randint(100000, 999999))
-                session['reset_otp'] = reset_otp
-                session['reset_email'] = email
-                session['reset_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=15)).isoformat()
-
-                try:
-                    msg = Message('Password Reset OTP - Loan Management System', recipients=[email])
-                    msg.html = f"""
-                    <div style="font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;
-                                padding:40px;border-radius:12px;max-width:500px;margin:0 auto;">
-                      <h2 style="color:#f59e0b;">Password Reset</h2>
-                      <p>Use this OTP to reset your password. Expires in <strong>15 minutes</strong>.</p>
-                      <div style="background:#1e293b;border-radius:8px;padding:24px;text-align:center;
-                                  letter-spacing:12px;font-size:36px;font-weight:bold;
-                                  color:#f59e0b;">{reset_otp}</div>
-                    </div>"""
-                    mail.send(msg)
-                except:
-                    pass
-
-            flash('If that email exists, a reset OTP has been sent.', 'info')
+                otp = str(random.randint(100000, 999999))
+                session.update({'reset_otp': otp, 'reset_email': email, 'reset_expiry': (datetime.datetime.now() + datetime.timedelta(minutes=15)).isoformat()})
+                msg = Message('Password Reset', recipients=[email])
+                msg.body = f"Reset code: {otp}"
+                mail.send(msg)
+            flash('If that email exists, a reset code has been sent.', 'info')
             return redirect(url_for('auth.reset_password'))
-        except Exception as e:
-            flash(f'Error: {str(e)}', 'danger')
-
+        except: flash("System error.", "danger")
     return render_template('forgot_password.html')
 
-
-# 5.2 RESET PASSWORD
 @auth.route('/reset-password', methods=['GET', 'POST'])
 def reset_password():
-    if 'reset_email' not in session:
-        return redirect(url_for('auth.forgot_password'))
-
+    if 'reset_email' not in session: return redirect(url_for('auth.forgot_password'))
     if request.method == 'POST':
         entered_otp = request.form.get('otp', '').strip()
-        new_password = request.form.get('new_password', '').strip()
-        confirm_pass = request.form.get('confirm_password', '').strip()
-
-        if entered_otp != session.get('reset_otp'):
-            flash('Invalid OTP.', 'danger')
-            return render_template('reset_password.html')
-
-        if datetime.datetime.now() > datetime.datetime.fromisoformat(session.get('reset_expiry', '')):
-            flash('OTP expired.', 'danger')
-            return redirect(url_for('auth.forgot_password'))
-
-        if new_password != confirm_pass:
-            flash('Passwords do not match.', 'danger')
-            return render_template('reset_password.html')
-
-        if len(new_password) < 8:
-            flash('Password must be at least 8 characters.', 'danger')
-            return render_template('reset_password.html')
-
-        hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        try:
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE users SET password = %s, failed_attempts = 0 WHERE email = %s",
-                           (hashed, session['reset_email']))
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            session.pop('reset_otp', None)
-            session.pop('reset_email', None)
-            session.pop('reset_expiry', None)
-
-            flash('Password reset successfully! Please log in.', 'success')
+        new_pass = request.form.get('new_password', '').strip()
+        if entered_otp == session.get('reset_otp') and datetime.datetime.now() <= datetime.datetime.fromisoformat(session.get('reset_expiry', '')):
+            hashed = bcrypt.hashpw(new_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            conn = get_db(); cursor = conn.cursor()
+            # ✅ Success: Unlocks account automatically (failed_attempts = 0)
+            cursor.execute("UPDATE users SET password = %s, failed_attempts = 0 WHERE email = %s", (hashed, session['reset_email']))
+            conn.commit(); cursor.close(); conn.close()
+            log_activity(None, "password_reset", "success", {"email": session['reset_email']})
+            session.clear()
+            flash('Password reset successful! Account unlocked.', 'success')
             return redirect(url_for('auth.login'))
-        except Exception as e:
-            flash(f'Error: {str(e)}', 'danger')
-
+        flash('Invalid or expired code.', 'danger')
     return render_template('reset_password.html')
 
 
 # ================================================================
-# SECTION 6: DASHBOARD REDIRECT (role-based)
+# SECTION 6/7: DASHBOARD & API
 # ================================================================
 @auth.route('/dashboard')
 @login_required
 def dashboard():
     role = session.get('role', 'borrower')
+    if role in ('super_admin', 'admin'): return redirect(url_for('super_admin.admin_dashboard'))
+    elif role == 'loan_officer': return redirect(url_for('officer.officer_dashboard')) 
+    elif role == 'auditor': return redirect(url_for('super_admin.auditor_dashboard'))
+    return redirect(url_for('borrower.borrower_dashboard'))
 
-    if role in ('super_admin', 'admin'):
-        return redirect(url_for('super_admin.admin_dashboard'))
-    elif role == 'loan_officer':
-        return redirect(url_for('super_admin.officer_dashboard'))
-    elif role == 'auditor':
-        return redirect(url_for('super_admin.auditor_dashboard'))
-    else:
-        # ✅ Updated: now points to the Borrower blueprint
-        return redirect(url_for('borrower.borrower_dashboard'))
-
-
-# ================================================================
-# SECTION 7: API ENDPOINTS
-# ================================================================
 @auth.route('/api/check-email', methods=['POST'])
 def check_email():
     email = request.json.get('email', '')
     try:
-        conn = get_db()
-        cursor = conn.cursor(dictionary=True)
+        conn = get_db(); cursor = conn.cursor()
         cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
         exists = cursor.fetchone() is not None
-        cursor.close()
-        conn.close()
+        cursor.close(); conn.close()
         return jsonify({'exists': exists})
-    except:
-        return jsonify({'exists': False})
+    except: return jsonify({'exists': False})

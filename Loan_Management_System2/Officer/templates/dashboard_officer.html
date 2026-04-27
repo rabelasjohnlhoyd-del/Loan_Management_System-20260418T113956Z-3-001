@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Officer Dashboard — Hiraya</title>
+  
+ 
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+</head>
+<body>
+<div class="app-wrap">
+
+  <!-- ════════════ SIDEBAR ════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand"><div class="s-logo"></div><div><h2>Hiraya</h2><span>Officer Panel</span></div></div>
+    </div>
+
+    <div class="sidebar-user" id="userDropdownToggle" onclick="document.getElementById('userDropdown').classList.toggle('open')">
+      <div class="s-avatar">{{ session.user_name[0]|upper }}</div>
+      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
+      <span class="s-chevron"></span>
+    </div>
+
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item active">
+        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+      </a>
+      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--verification"></span>ID Verification
+        {% if stats.pending_verifications > 0 %}<span class="nav-badge">{{ stats.pending_verifications }}</span>{% endif %}
+      </a>
+      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--clock"></span>Review Applications
+      </a>
+      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
+        <span class="nav-icon nav-icon--borrowers"></span>Risk Management
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- ════════════ MAIN CONTENT ════════════ -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-heading">Operational Dashboard</div>
+        <div class="topbar-sub">Processing and Verifications</div>
+      </div>
+    </header>
+
+    <main class="page-body">
+      <!-- Stats focusing on processing items -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.pending_applications }}</div>
+            <div class="stat-label">Pending Reviews</div>
+            <div class="stat-change warning">Loan Processing</div>
+          </div>
+          <div class="stat-icon yellow"><span class="stat-icon-img stat-icon--calendar"></span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.pending_verifications }}</div>
+            <div class="stat-label">Identity Queue</div>
+            <div class="stat-change warning">KYC Verification</div>
+          </div>
+          <div class="stat-icon blue"><span class="stat-icon-img stat-icon--borrowers"></span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.active_loans }}</div>
+            <div class="stat-label">Active Loans</div>
+            <div class="stat-change positive">Managing</div>
+          </div>
+          <div class="stat-icon green"><span class="stat-icon-img stat-icon--loans"></span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.total_borrowers }}</div>
+            <div class="stat-label">Total Borrowers</div>
+            <div class="stat-change positive">Database</div>
+          </div>
+          <div class="stat-icon purple"><span class="stat-icon-img stat-icon--borrowers"></span></div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Main Work Area: Application Review -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Applications Needing Review</h3>
+            <a href="{{ url_for('super_admin.admin_applications') }}" class="btn btn-ghost btn-sm">View All</a>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ref No.</th>
+                  <th>Borrower</th>
+                  <th>Loan Type</th>
+                  <th>Amount</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for app in recent_applications %}
+                <tr>
+                  <td>{{ app.reference_no }}</td>
+                  <td class="borrower-name">{{ app.borrower_name }}</td>
+                  <td>{{ app.type_name }}</td>
+                  <td>₱{{ "{:,.2f}".format(app.amount_requested) }}</td>
+                  <td><a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="tbl-btn tbl-btn--view">Process</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Sidebar Actions: Verification Queue -->
+        <div class="dash-col-right">
+          <div class="card">
+            <div class="card-header"><h3>Verification Queue</h3></div>
+            <div class="card-body">
+              <div class="activity-list">
+                {% for v in verification_queue %}
+                <div class="activity-item">
+                  <span class="activity-dot activity-dot--yellow"></span>
+                  <div class="activity-content">
+                    <p><strong>{{ v.full_name }}</strong></p>
+                    <p style="font-size: 11px;">Pending Biometric Match</p>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              <br>
+              <a href="{{ url_for('officer.list_verifications') }}" class="btn btn-primary" style="width: 100%; justify-content: center;">Verify IDs Now</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

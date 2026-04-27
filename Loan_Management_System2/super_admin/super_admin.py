@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 import datetime
 import os
 import io
+import json
 from Loan_Management_System2 import db_config, mail
 from flask_mail import Message
 import mysql.connector
@@ -19,7 +20,6 @@ def is_logged_in():
     return session.get('logged_in', False)
 
 def login_required(f):
-    
     @wraps(f)
     def decorated(*args, **kwargs):
         if not is_logged_in():
@@ -41,25 +41,46 @@ def role_required(*roles):
         return decorated
     return decorator
 
-def log_activity(action, details=''):
-    """Helper to log admin activity."""
+# ✅ UPDATED: Immutable Audit Trail (PDF Section 12)
+def log_activity(action, details='', status='success'):
+    """Hardened Logging for Audit Trail"""
     try:
         conn   = get_db()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO activity_logs (user_id, action, details, ip_address, created_at)
-            VALUES (%s, %s, %s, %s, NOW())
+            INSERT INTO audit_logs (user_id, action, status, details, ip_address, device_info, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """, (
             session.get('user_id'),
             action,
+            status,
             details,
-            request.remote_addr
+            request.remote_addr,
+            request.user_agent.string[:255]
         ))
         conn.commit()
         cursor.close()
         conn.close()
-    except Exception:
-        pass  # Don't break app if logging fails
+    except Exception as e:
+        print(f"Logging Failure: {e}")
+
+# ✅ NEW: UNLOCK USER ACCOUNT (For Security Lockout Bypass)
+@super_admin_bp.route('/users/<int:user_id>/unlock', methods=['POST'])
+@login_required
+@role_required('admin', 'super_admin')
+def unlock_user(user_id):
+    """Resets failed attempts to 0 to unlock account"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET failed_attempts = 0 WHERE id = %s", (user_id,))
+        conn.commit()
+        log_activity('unlock_account', f'Admin unlocked user ID: {user_id}')
+        flash('Account has been unlocked successfully.', 'success')
+        cursor.close(); conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(request.referrer or url_for('super_admin.borrowers'))
 
 
 # ─────────────────────────────────────────────
@@ -110,9 +131,10 @@ def admin_dashboard():
         """)
         recent_applications = cursor.fetchall()
 
+        # ✅ Pull from new audit_logs table
         cursor.execute("""
             SELECT al.*, u.full_name AS actor_name
-            FROM activity_logs al
+            FROM audit_logs al
             LEFT JOIN users u ON u.id = al.user_id
             ORDER BY al.created_at DESC LIMIT 10
         """)
@@ -368,6 +390,7 @@ def borrowers():
         query = """
             SELECT u.id, u.full_name, u.email, u.contact_number,
                    u.id_verification_status, u.is_active, u.created_at,
+                   u.failed_attempts,
                    COALESCE(bp.credit_score, 500) AS credit_score,
                    COALESCE(bp.risk_level, 'medium') AS risk_level,
                    COALESCE(bp.active_loans, 0) AS active_loans,
@@ -1105,10 +1128,6 @@ def penalties_page():
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer')
 def compute_penalties():
-    """
-    Run penalty computation for all overdue loans.
-    Grace period: 5 days. Penalty rate: 2% of monthly payment per month overdue.
-    """
     GRACE_DAYS    = 5
     PENALTY_RATE  = 0.02
     today         = datetime.date.today()
@@ -1180,8 +1199,8 @@ def compute_penalties():
 
 
 # ═════════════════════════════════════════════
-# ACTIVITY LOGS
-# ═════════════════════════════════════════════
+# ACTIVITY LOGS (Updated SQL Table)
+# ════════════─────────────────────────────────
 
 @super_admin_bp.route('/activity-logs')
 @login_required
@@ -1197,7 +1216,7 @@ def activity_logs():
 
         query = """
             SELECT al.*, u.full_name AS actor_name, u.role AS actor_role
-            FROM activity_logs al
+            FROM audit_logs al
             LEFT JOIN users u ON u.id = al.user_id
             WHERE 1=1
         """
@@ -1247,7 +1266,6 @@ def reports_page():
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def report_amortization(loan_id):
-    """Generate amortization schedule report for a specific loan."""
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
@@ -1267,7 +1285,6 @@ def report_amortization(loan_id):
             flash('Loan not found.', 'danger')
             return redirect(url_for('super_admin.reports_page'))
 
-        # Sanitize loan numeric fields
         loan['principal_amount']    = float(loan.get('principal_amount') or 0)
         loan['outstanding_balance'] = float(loan.get('outstanding_balance') or 0)
         loan['monthly_payment']     = float(loan.get('monthly_payment') or 0)
@@ -1300,7 +1317,6 @@ def report_amortization(loan_id):
 @login_required
 @role_required('admin', 'super_admin', 'auditor')
 def report_loan_performance():
-    """Loan performance report by type and date range."""
     date_from   = request.args.get('date_from', '')
     date_to     = request.args.get('date_to', '')
     type_filter = request.args.get('type', 'all')
@@ -1368,7 +1384,6 @@ def report_loan_performance():
 @login_required
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def report_borrower_history(borrower_id):
-    """Individual borrower payment history report."""
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
@@ -1432,7 +1447,6 @@ def report_borrower_history(borrower_id):
 @login_required
 @role_required('admin', 'super_admin', 'auditor')
 def report_paid_loans():
-    """Record of all fully paid loans — bank note format."""
     date_from = request.args.get('date_from', '')
     date_to   = request.args.get('date_to', '')
 
@@ -1538,3 +1552,6 @@ def SA_profile():
         user = None
 
     return render_template('SA_profile.html', user=user, stats=stats)
+
+
+

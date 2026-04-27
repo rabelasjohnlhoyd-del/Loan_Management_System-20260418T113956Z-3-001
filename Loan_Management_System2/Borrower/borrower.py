@@ -401,15 +401,7 @@ def view_receipt(pay_no):
 
     return render_template('e_receipt.html', payment=payment)
 
-# ================================================================
-# IDAGDAG ITO SA borrower.py — pagkatapos ng view_receipt route (5.4)
-# Bagong Section 5.4b: RECEIPT DATA (JSON endpoint para sa inline fetch)
-# ================================================================
 
-# ================================================================
-# IDAGDAG ITO SA borrower.py — pagkatapos ng view_receipt route (5.4)
-# Bagong Section 5.4b: RECEIPT DATA (JSON endpoint para sa inline fetch)
-# ================================================================
 
 @borrower_bp.route('/payments/receipt-data/<string:pay_no>')
 @login_required

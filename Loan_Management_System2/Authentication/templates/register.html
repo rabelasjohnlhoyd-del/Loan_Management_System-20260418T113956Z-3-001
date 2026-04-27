@@ -18,6 +18,7 @@
     .readonly-field { background-color: #f8fafc !important; font-weight: 600; color: #1e293b; border: 1px solid #e2e8f0 !important; cursor: default; }
     .others-input { margin-top: 5px; display: none; }
     .review-label { font-size: 11px; color: #64748b; margin-bottom: 4px; display: block; font-weight: 600; margin-left: 2px; }
+    .security-hint { font-size: 10px; color: #64748b; margin-top: -8px; margin-bottom: 10px; display: block; padding-left: 2px; }
   </style>
 </head>
 <body>
@@ -37,8 +38,7 @@
       <div class="step" id="ind3"><div class="step-num">3</div><div class="step-name">Work</div></div>
       <div class="step-line"></div>
       <div class="step" id="ind4"><div class="step-num">4</div><div class="step-name">Verify</div></div>
-      <div class="step-line"></div>
-      <div class="step" id="ind5"><div class="step-num">5</div><div class="step-name">ID</div></div>
+      <div class="step" id="ind5" style="display:none;"><div class="step-num">5</div><div class="step-name">ID</div></div>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -51,9 +51,6 @@
 
     <form id="regForm" method="POST" action="{{ url_for('auth.register') }}" novalidate>
       
-      <!-- ✅ full_name, age, email, contact_number are all computed/read server-side
-           from named form fields — no JS-dependent hidden fields needed -->
-
       <!-- STEP 1: PERSONAL INFORMATION -->
       <div class="step-content active" id="step1">
         <p class="form-heading">Personal Information</p>
@@ -64,7 +61,10 @@
 
         <div class="field-row">
             <div class="field"><input class="field-input" type="email" name="email" id="email_input" placeholder="Email Address" required></div>
-            <div class="field"><input class="field-input" type="tel" name="contact_number" id="contact_input" placeholder="Contact Number" required></div>
+            <div class="field">
+              <!-- ✅ SECURITY: PH Pattern 09XXXXXXXXX -->
+              <input class="field-input" type="tel" name="contact_number" id="contact_input" placeholder="Contact Number (09...)" pattern="09[0-9]{9}" maxlength="11" required>
+            </div>
         </div>
 
         <div class="field-row">
@@ -93,8 +93,9 @@
             </select>
           </div>
           <div class="field" style="position:relative;">
-            <!-- ✅ dob has name="dob" so it submits to backend for server-side age calculation -->
-            <input class="field-input" type="date" name="dob" id="dob" required>
+            <!-- ✅ SECURITY: Max date set to ensure 18+ years old -->
+            <input class="field-input" type="date" name="dob" id="dob" max="2007-01-01" required>
+            <span class="security-hint">Must be 18+ years old to apply.</span>
           </div>
         </div>
 
@@ -128,7 +129,7 @@
         </div>
         <div class="field-row">
           <div class="field"><select class="field-input" id="curr_barangay_api" name="barangay" disabled required><option value="">Select Barangay</option></select></div>
-          <div class="field"><input class="field-input" type="text" name="zip_code" id="zip_code" placeholder="Zip Code" required></div>
+          <div class="field"><input class="field-input" type="text" name="zip_code" id="zip_code" placeholder="Zip Code" maxlength="4" required></div>
         </div>
         <div class="field"><input class="field-input" type="text" name="house_street" id="house_street" placeholder="House No. / Street / Village" required></div>
         <div class="field-row">
@@ -197,9 +198,12 @@
         </div>
         <div class="form-section-title" style="margin-top: 25px;">Account Security</div>
         <div class="field-row">
-          <div class="field"><input class="field-input" type="password" name="password" placeholder="Create Password" required></div>
-          <div class="field"><input class="field-input" type="password" name="confirm_password" placeholder="Confirm Password" required></div>
+          <!-- ✅ SECURITY: Minimum length enforced -->
+          <div class="field"><input class="field-input" type="password" name="password" placeholder="Create Password" minlength="8" required></div>
+          <div class="field"><input class="field-input" type="password" name="confirm_password" placeholder="Confirm Password" minlength="8" required></div>
         </div>
+        <span class="security-hint">Password must be at least 8 characters.</span>
+        
         <label class="m-check" style="margin-top: 10px;"><input type="checkbox" name="terms" required> I agree to the Terms & Conditions</label>
         <div class="field-row">
           <button type="button" class="btn-register btn-prev" style="background:#64748b;">Back</button>

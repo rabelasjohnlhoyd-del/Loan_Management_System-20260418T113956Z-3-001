@@ -42,10 +42,12 @@ def reg_app():
     from Loan_Management_System2.Officer.officer import officer_bp
     app.register_blueprint(officer_bp, url_prefix='/officer')
 
-    from Loan_Management_System2.Super_admin.super_admin import super_admin_bp
+    from Loan_Management_System2.super_admin.super_admin import super_admin_bp
     app.register_blueprint(super_admin_bp, url_prefix='/admin')
 
     from Loan_Management_System2.Loans.routes import loans_bp
     app.register_blueprint(loans_bp, url_prefix='/loans')
+
+
 
     return app

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Biometric ID Verification</title>
+    <style>
+        body { font-family: sans-serif; background: #f8fafc; padding: 30px; }
+        .container { max-width: 1000px; margin: auto; }
+        .user-row { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: flex; gap: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .photos { display: flex; gap: 15px; }
+        .photos div { text-align: center; }
+        img { width: 200px; height: 150px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; }
+        .details { flex: 1; }
+        .action-form { min-width: 200px; display: flex; flex-direction: column; gap: 10px; }
+        select, button { padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; }
+        .btn-approve { background: #22c55e; color: white; border: none; cursor: pointer; }
+        .btn-reject { background: #ef4444; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Manual ID Verification</h1>
+        <p>Compare portraits for biometric matching as per Section 1.</p>
+        <a href="{{ url_for('officer.officer_dashboard') }}">← Back to Dashboard</a><br><br>
+
+        {% for user in users %}
+        <div class="user-row">
+            <div class="photos">
+                <div>
+                    <small>ID Document</small><br>
+                    <img src="/static/uploads/{{ user.id_document_path }}">
+                </div>
+                <div>
+                    <small>Selfie Portrait</small><br>
+                    <img src="/static/uploads/{{ user.selfie_path }}">
+                </div>
+            </div>
+            
+            <div class="details">
+                <h3>{{ user.full_name }}</h3>
+                <p>{{ user.email }}</p>
+            </div>
+
+            <form class="action-form" action="{{ url_for('officer.verify_user', user_id=user.id) }}" method="POST">
+                <label><small>Assign Risk Level (Section 10):</small></label>
+                <select name="risk_level" required>
+                    <option value="Low">Low Risk</option>
+                    <option value="Medium">Medium Risk</option>
+                    <option value="High">High Risk</option>
+                </select>
+                <button type="submit" name="status" value="verified" class="btn-approve">Approve Identity</button>
+                <button type="submit" name="status" value="rejected" class="btn-reject">Reject / Retake</button>
+            </form>
+        </div>
+        {% else %}
+        <p>No pending verifications found.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

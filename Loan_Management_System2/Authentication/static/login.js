@@ -116,3 +116,21 @@ document.addEventListener('DOMContentLoaded', () => {
   initLoginValidation();
   initSubmitLoader();
 });
+
+
+// Add this to your login.js or inside script tags
+document.querySelector('form').addEventListener('submit', function(e) {
+    const btn = this.querySelector('.btn-login');
+    // Basic frontend validation
+    const email = document.getElementById('email').value;
+    if(!email.includes('@')) {
+        alert('Please enter a valid email.');
+        e.preventDefault();
+        return;
+    }
+    
+    // UI Feedback: Change button to loading state
+    btn.innerHTML = '<span class="spinner"></span> SECURING SESSION...';
+    btn.style.opacity = '0.7';
+    btn.style.pointerEvents = 'none';
+});

@@ -1,22 +1,7 @@
-"""
-officer.py — Loan Management System
-Blueprint for Loan Officer role.
-Handles officer-specific views that are separate from super_admin.py.
-Note: Applications, loans, payments, borrowers, penalties are managed
-      through super_admin.py (accessible to loan_officer role).
-      This blueprint handles officer profile and officer-specific dashboard.
-"""
-
-# ================================================================
-# SECTION 1: IMPORTS & CONFIGURATION
-# ================================================================
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 import datetime
-import os
 import mysql.connector
 from functools import wraps
-from Loan_Management_System2 import db_config, mail
-from flask_mail import Message
 
 # ── Blueprint setup ───────────────────────────────────────────────────────────
 officer_bp = Blueprint(
@@ -27,20 +12,18 @@ officer_bp = Blueprint(
     static_url_path='/officer/static'
 )
 
-
 # ================================================================
-# SECTION 2: HELPER FUNCTIONS
+# SECTION 1: HELPER FUNCTIONS
 # ================================================================
 def get_db():
-    return mysql.connector.connect(**db_config)
-
-def is_logged_in():
-    return session.get('logged_in', False)
+   
+    import Loan_Management_System2 as lms 
+    return mysql.connector.connect(**lms.db_config)
 
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not is_logged_in():
+        if not session.get('logged_in'):
             flash('Please log in to access this page.', 'warning')
             return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
@@ -50,210 +33,147 @@ def role_required(*roles):
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
-            if not is_logged_in():
-                return redirect(url_for('auth.login'))
             if session.get('role') not in roles:
-                flash('Access denied. Insufficient permissions.', 'danger')
+                flash('Access denied.', 'danger')
                 return redirect(url_for('auth.dashboard'))
             return f(*args, **kwargs)
         return decorated
     return decorator
 
 def log_activity(action, details=''):
-    """Helper to log officer activity."""
     try:
-        conn   = get_db()
-        cursor = conn.cursor()
+        conn = get_db(); cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO activity_logs (user_id, action, details, ip_address, created_at)
             VALUES (%s, %s, %s, %s, NOW())
-        """, (
-            session.get('user_id'),
-            action,
-            details,
-            request.remote_addr
-        ))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception:
-        pass  # Don't break app if logging fails
-
+        """, (session.get('user_id'), action, details, request.remote_addr))
+        conn.commit(); cursor.close(); conn.close()
+    except Exception: pass
 
 # ================================================================
-# SECTION 3: OFFICER DASHBOARD
+# SECTION 2: OFFICER DASHBOARD
 # ================================================================
 @officer_bp.route('/dashboard')
 @login_required
 @role_required('loan_officer')
 def officer_dashboard():
-    """
-    Officer-specific dashboard with stats relevant to loan officers.
-    Note: The super_admin blueprint also has /admin/officer-dashboard
-    which auth.dashboard redirects to. This route is the officer's
-    own home when accessed via /officer/dashboard directly.
-    """
-    stats = {
-        'pending_applications': 0,
-        'active_loans':         0,
-        'pending_payments':     0,
-        'total_borrowers':      0,
-        'pending_verifications': 0,
-    }
+    stats = {'pending_applications': 0, 'pending_verifications': 0, 'active_loans': 0, 'total_borrowers': 0}
     recent_applications = []
-    pending_payments    = []
+    verification_queue = []
 
     try:
-        conn   = get_db()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute("""
-            SELECT COUNT(*) AS cnt FROM loan_applications
-            WHERE status IN ('submitted', 'under_review')
-        """)
+        conn = get_db(); cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT COUNT(*) AS cnt FROM loan_applications WHERE status IN ('submitted', 'under_review')")
         stats['pending_applications'] = cursor.fetchone()['cnt']
-
+        cursor.execute("SELECT COUNT(*) AS cnt FROM users WHERE id_verification_status = 'pending'")
+        stats['pending_verifications'] = cursor.fetchone()['cnt']
         cursor.execute("SELECT COUNT(*) AS cnt FROM loans WHERE status = 'active'")
         stats['active_loans'] = cursor.fetchone()['cnt']
-
-        cursor.execute("SELECT COUNT(*) AS cnt FROM payments WHERE status = 'pending'")
-        stats['pending_payments'] = cursor.fetchone()['cnt']
-
         cursor.execute("SELECT COUNT(*) AS cnt FROM users WHERE role = 'borrower'")
         stats['total_borrowers'] = cursor.fetchone()['cnt']
 
         cursor.execute("""
-            SELECT COUNT(*) AS cnt FROM users
-            WHERE id_verification_status = 'pending'
-        """)
-        stats['pending_verifications'] = cursor.fetchone()['cnt']
-
-        cursor.execute("""
-            SELECT la.id, la.reference_no, la.amount_requested, la.status,
-                   la.submitted_at, u.full_name AS borrower_name, lt.name AS type_name
+            SELECT la.id, la.reference_no, u.full_name AS borrower_name, lt.name AS type_name, 
+                   la.amount_requested, la.status, la.submitted_at
             FROM loan_applications la
-            JOIN users u       ON u.id  = la.borrower_id
-            JOIN loan_types lt ON lt.id = la.loan_type_id
+            JOIN users u ON la.borrower_id = u.id
+            JOIN loan_types lt ON la.loan_type_id = lt.id
             WHERE la.status IN ('submitted', 'under_review')
-            ORDER BY la.submitted_at DESC
-            LIMIT 5
+            ORDER BY la.submitted_at DESC LIMIT 5
         """)
         recent_applications = cursor.fetchall()
 
         cursor.execute("""
-            SELECT p.id, p.payment_no, p.amount_paid, p.payment_date,
-                   p.payment_method, p.status,
-                   l.loan_no, u.full_name AS borrower_name
-            FROM payments p
-            JOIN loans l ON p.loan_id  = l.id
-            JOIN users u ON l.borrower_id = u.id
-            WHERE p.status = 'pending'
-            ORDER BY p.payment_date DESC
-            LIMIT 5
+            SELECT id, full_name, email, created_at 
+            FROM users WHERE id_verification_status = 'pending' 
+            ORDER BY created_at DESC LIMIT 5
         """)
-        pending_payments = cursor.fetchall()
+        verification_queue = cursor.fetchall()
+        cursor.close(); conn.close()
+    except Exception as e: flash(f'Error: {str(e)}', 'danger')
 
-        cursor.close()
-        conn.close()
-
-    except Exception as e:
-        flash(f'Dashboard error: {str(e)}', 'warning')
-
-    return render_template(
-        'dashboard_officer.html',
-        stats=stats,
-        recent_applications=recent_applications,
-        pending_payments=pending_payments,
-        user_name=session.get('user_name')
-    )
-
+    return render_template('dashboard_officer.html', stats=stats, recent_applications=recent_applications, verification_queue=verification_queue)
 
 # ================================================================
-# SECTION 4: OFFICER PROFILE
+# SECTION 3: ID VERIFICATION
+# ================================================================
+@officer_bp.route('/verifications')
+@login_required
+@role_required('loan_officer')
+def list_verifications():
+    conn = get_db(); cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id, full_name, email, id_document_path, selfie_path FROM users WHERE id_verification_status = 'pending'")
+    users = cursor.fetchall(); conn.close()
+    return render_template('O_verify_list.html', users=users)
+
+@officer_bp.route('/verify-user/<int:user_id>', methods=['POST'])
+@login_required
+@role_required('loan_officer')
+def verify_user(user_id):
+    decision = request.form.get('status'); risk = request.form.get('risk_level')
+    try:
+        conn = get_db(); cursor = conn.cursor()
+        cursor.execute("UPDATE users SET id_verification_status = %s WHERE id = %s", (decision, user_id))
+        cursor.execute("""
+            INSERT INTO borrower_profiles (user_id, risk_level) VALUES (%s, %s)
+            ON DUPLICATE KEY UPDATE risk_level = %s
+        """, (user_id, risk, risk))
+        conn.commit(); conn.close()
+        flash("Verification completed.", "success")
+    except Exception as e: flash(str(e), "danger")
+    return redirect(url_for('officer.list_verifications'))
+
+# ================================================================
+# SECTION 4: BORROWER MANAGEMENT (Section 5 & 10 of PDF)
+# ================================================================
+@officer_bp.route('/borrowers')
+@login_required
+@role_required('loan_officer')
+def manage_borrowers():
+    """List of borrowers with Credit Scores and Risk Levels."""
+    conn = get_db(); cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT u.id, u.full_name, u.email, 
+               COALESCE(bp.credit_score, 0) as credit_score, 
+               COALESCE(bp.risk_level, 'Not Set') as risk_level
+        FROM users u
+        LEFT JOIN borrower_profiles bp ON u.id = bp.user_id
+        WHERE u.role = 'borrower'
+    """)
+    borrowers = cursor.fetchall(); conn.close()
+    return render_template('O_borrowers.html', borrowers=borrowers)
+
+@officer_bp.route('/update-score/<int:user_id>', methods=['POST'])
+@login_required
+@role_required('loan_officer')
+def update_score(user_id):
+    """Updates Credit Score based on payment history (PDF Section 10)."""
+    score = request.form.get('credit_score')
+    try:
+        conn = get_db(); cursor = conn.cursor()
+        cursor.execute("UPDATE borrower_profiles SET credit_score = %s WHERE user_id = %s", (score, user_id))
+        conn.commit(); conn.close()
+        flash("Credit score updated.", "success")
+    except Exception as e: flash(str(e), "danger")
+    return redirect(url_for('officer.manage_borrowers'))
+
+# ================================================================
+# SECTION 5: PROFILE & ACTIVITY (Existing)
 # ================================================================
 @officer_bp.route('/profile')
 @login_required
 @role_required('loan_officer')
 def profile():
-    """Officer profile page."""
-    try:
-        conn   = get_db()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        flash(f'Error loading profile: {str(e)}', 'danger')
-        user = {}
-
+    conn = get_db(); cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
+    user = cursor.fetchone(); conn.close()
     return render_template('O_profile.html', user=user)
 
-
-# ================================================================
-# SECTION 5: OFFICER ACTIVITY LOG (own actions only)
-# ================================================================
 @officer_bp.route('/my-activity')
 @login_required
 @role_required('loan_officer')
 def my_activity():
-    """View this officer's own activity log."""
-    try:
-        conn   = get_db()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT action, details, ip_address, created_at
-            FROM activity_logs
-            WHERE user_id = %s
-            ORDER BY created_at DESC
-            LIMIT 100
-        """, (session['user_id'],))
-        logs = cursor.fetchall()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-        logs = []
-
+    conn = get_db(); cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT action, details, created_at FROM activity_logs WHERE user_id = %s ORDER BY created_at DESC", (session['user_id'],))
+    logs = cursor.fetchall(); conn.close()
     return render_template('officer_activity.html', logs=logs)
-
-
-# ================================================================
-# SECTION 6: QUICK ACTIONS (AJAX endpoints for officer dashboard)
-# ================================================================
-
-# 6.1 GET PENDING COUNTS (for dashboard badge refresh)
-@officer_bp.route('/api/pending-counts')
-@login_required
-@role_required('loan_officer')
-def pending_counts():
-    """Return live pending counts for dashboard badge updates."""
-    try:
-        conn   = get_db()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute("""
-            SELECT COUNT(*) AS cnt FROM loan_applications
-            WHERE status IN ('submitted', 'under_review')
-        """)
-        apps = cursor.fetchone()['cnt']
-
-        cursor.execute("SELECT COUNT(*) AS cnt FROM payments WHERE status = 'pending'")
-        payments = cursor.fetchone()['cnt']
-
-        cursor.execute("""
-            SELECT COUNT(*) AS cnt FROM users
-            WHERE id_verification_status = 'pending'
-        """)
-        verifications = cursor.fetchone()['cnt']
-
-        cursor.close()
-        conn.close()
-
-        return jsonify({
-            'applications':   apps,
-            'payments':       payments,
-            'verifications':  verifications,
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
