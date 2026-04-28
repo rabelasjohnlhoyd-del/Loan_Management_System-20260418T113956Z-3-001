@@ -11,22 +11,16 @@
 </head>
 <body>
 
-<!-- OVERLAY (mobile sidebar backdrop) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
-       TOPBAR — full width, sits above everything
-  ════════════════════════════════════════════════ -->
+  <!-- TOPBAR -->
   <header class="topbar" id="topbar">
-
-    <!-- Left: burger + brand -->
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
         <span></span><span></span><span></span>
       </button>
-
       <div class="topbar-brand">
         <div class="topbar-logo">$</div>
         <div class="topbar-brand-text">
@@ -35,12 +29,7 @@
         </div>
       </div>
     </div>
-
-    <!-- Right: my loans btn + notif + avatar -->
     <div class="topbar-right">
-      <a href="{{ url_for('loans.my_loans') }}" class="topbar-nav-btn">
-        <span class="topbar-nav-btn-arrow">&#8592;</span> My Loans
-      </a>
       <div class="notif-wrap" id="notifWrap">
         <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
           <span class="topbar-icon topbar-icon--notif"></span>
@@ -61,22 +50,16 @@
           </div>
         </div>
       </div>
-
       <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
         {{ session.user_name[0]|upper if session.user_name else 'U' }}
       </a>
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════════
-       BODY ROW — sidebar + main side by side
-  ════════════════════════════════════════════════ -->
   <div class="body-row">
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
-
-      <!-- User block -->
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
         <div class="s-user-info">
@@ -132,19 +115,22 @@
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
+      <main class="page-body">
 
-      <!-- Page topbar (breadcrumb + loan title + status) -->
-      <div class="page-topbar">
-        <div class="page-topbar-left">
-          <h1 class="page-title">{{ loan.loan_no }}</h1>
-          <p class="page-sub">{{ loan.type_name }} &mdash; {{ loan.plan_name }}</p>
-        </div>
-        <div class="page-topbar-right">
+        <!-- PAGE HEADER — same style as my_loans -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <a href="{{ url_for('loans.my_loans') }}" class="btn-back">
+              <span class="btn-back-icon"></span>
+              My Loans
+            </a>
+            <div>
+              <h2 class="page-title">{{ loan.loan_no }}</h2>
+              <p class="page-sub">{{ loan.type_name }} &mdash; {{ loan.plan_name }}</p>
+            </div>
+          </div>
           <span class="loan-status-badge loan-status-badge--{{ loan.status }}">{{ loan.status | title }}</span>
         </div>
-      </div>
-
-      <main class="page-body">
 
         <!-- SUMMARY GRID -->
         <div class="summary-grid">
@@ -166,9 +152,13 @@
             <div class="sc-sub">
               {% if loan.next_due_date %}
                 {% set days_left = (loan.next_due_date - now).days %}
-                {% if days_left < 0 %}<span class="overdue-tag">Overdue by {{ days_left|abs }} day(s)</span>
-                {% elif days_left == 0 %}<span class="due-today-tag">Due today</span>
-                {% else %}{{ days_left }} day(s) remaining{% endif %}
+                {% if days_left < 0 %}
+                  <span class="overdue-tag">Overdue by {{ days_left|abs }} day(s)</span>
+                {% elif days_left == 0 %}
+                  <span class="due-today-tag">Due today</span>
+                {% else %}
+                  {{ days_left }} day(s) remaining
+                {% endif %}
               {% else %}&mdash;{% endif %}
             </div>
           </div>
@@ -183,7 +173,7 @@
             <div class="progress-bar-wrap">
               {% set pct_val = ((loan.principal_amount - loan.outstanding_balance) / loan.principal_amount * 100) if loan.principal_amount > 0 else 0 %}
               <div class="progress-bar">
-                <div class="progress-fill" style="width: {{ [pct_val, 100]|min }}%"></div>
+                <div class="progress-fill" data-width="{{ [pct_val, 100]|min }}"></div>
               </div>
             </div>
             <div class="sc-sub">paid off</div>
@@ -192,6 +182,8 @@
 
         <!-- DETAIL GRID -->
         <div class="detail-grid">
+
+          <!-- Loan Information -->
           <div class="card">
             <div class="card-header">
               <span class="card-icon card-icon--info"></span>
@@ -199,19 +191,49 @@
             </div>
             <div class="card-body">
               <div class="info-list">
-                <div class="info-row"><span class="info-label">Loan Number</span><span class="info-value fw-bold">{{ loan.loan_no }}</span></div>
-                <div class="info-row"><span class="info-label">Loan Type</span><span class="info-value">{{ loan.type_name }}</span></div>
-                <div class="info-row"><span class="info-label">Plan</span><span class="info-value">{{ loan.plan_name }}</span></div>
-                <div class="info-row"><span class="info-label">Interest Rate</span><span class="info-value">{{ loan.interest_rate }}% / yr</span></div>
-                <div class="info-row"><span class="info-label">Principal Amount</span><span class="info-value">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</span></div>
-                <div class="info-row"><span class="info-label">Loan Term</span><span class="info-value">{{ loan.term_months }} months</span></div>
-                <div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="loan-status loan-status--{{ loan.status }}">{{ loan.status | title }}</span></span></div>
-                <div class="info-row"><span class="info-label">Date Released</span><span class="info-value">{{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</span></div>
-                <div class="info-row"><span class="info-label">Maturity Date</span><span class="info-value">{{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date else '—' }}</span></div>
+                <div class="info-row">
+                  <span class="info-label">Loan Number</span>
+                  <span class="info-value fw-bold">{{ loan.loan_no }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Loan Type</span>
+                  <span class="info-value">{{ loan.type_name }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Plan</span>
+                  <span class="info-value">{{ loan.plan_name }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Interest Rate</span>
+                  <span class="info-value">{{ loan.interest_rate }}% / yr</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Principal Amount</span>
+                  <span class="info-value">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Loan Term</span>
+                  <span class="info-value">{{ loan.term_months }} months</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Status</span>
+                  <span class="info-value">
+                    <span class="loan-status loan-status--{{ loan.status }}">{{ loan.status | title }}</span>
+                  </span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Date Released</span>
+                  <span class="info-value">{{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Maturity Date</span>
+                  <span class="info-value">{{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date else '—' }}</span>
+                </div>
               </div>
             </div>
           </div>
 
+          <!-- Payment Summary -->
           <div class="card">
             <div class="card-header">
               <span class="card-icon card-icon--payment"></span>
@@ -219,22 +241,48 @@
             </div>
             <div class="card-body">
               <div class="info-list">
-                <div class="info-row"><span class="info-label">Monthly Payment</span><span class="info-value fw-bold">&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</span></div>
-                <div class="info-row"><span class="info-label">Total Payable</span><span class="info-value">&#8369;{{ "{:,.2f}".format(loan.monthly_payment * loan.term_months) }}</span></div>
-                <div class="info-row"><span class="info-label">Total Interest</span><span class="info-value">&#8369;{{ "{:,.2f}".format((loan.monthly_payment * loan.term_months) - loan.principal_amount) }}</span></div>
-                <div class="info-row"><span class="info-label">Amount Paid</span><span class="info-value info-value--success">&#8369;{{ "{:,.2f}".format(loan.principal_amount - loan.outstanding_balance) }}</span></div>
-                <div class="info-row"><span class="info-label">Outstanding Balance</span><span class="info-value fw-bold">&#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}</span></div>
-                <div class="info-row"><span class="info-label">Next Due Date</span><span class="info-value">{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else '—' }}</span></div>
-                <div class="info-row"><span class="info-label">Periods Remaining</span><span class="info-value">{% if schedule %}{{ schedule | selectattr('status', 'ne', 'paid') | list | length }} of {{ schedule | length }}{% else %}—{% endif %}</span></div>
+                <div class="info-row">
+                  <span class="info-label">Monthly Payment</span>
+                  <span class="info-value fw-bold">&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Total Payable</span>
+                  <span class="info-value">&#8369;{{ "{:,.2f}".format(loan.monthly_payment * loan.term_months) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Total Interest</span>
+                  <span class="info-value">&#8369;{{ "{:,.2f}".format((loan.monthly_payment * loan.term_months) - loan.principal_amount) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Amount Paid</span>
+                  <span class="info-value info-value--success">&#8369;{{ "{:,.2f}".format(loan.principal_amount - loan.outstanding_balance) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Outstanding Balance</span>
+                  <span class="info-value fw-bold">&#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Next Due Date</span>
+                  <span class="info-value">{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else '—' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Periods Remaining</span>
+                  <span class="info-value">
+                    {% if schedule %}
+                      {{ schedule | selectattr('status', 'ne', 'paid') | list | length }} of {{ schedule | length }}
+                    {% else %}—{% endif %}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
+
         </div>
 
         <!-- AMORTIZATION SCHEDULE -->
-        <div class="card mt-20">
+        <div class="card">
           <div class="card-header card-header--between">
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div class="card-header-left">
               <span class="card-icon card-icon--schedule"></span>
               <h2>Amortization Schedule</h2>
             </div>
@@ -244,26 +292,36 @@
               <button class="filter-tab" data-filter="paid">Paid</button>
             </div>
           </div>
-          <div class="card-body" style="padding:0;">
+          <div class="card-body card-body--table">
             {% if schedule %}
             <div class="table-wrap">
               <table class="data-table" id="scheduleTable">
                 <thead>
                   <tr>
-                    <th>#</th><th>Due Date</th><th>Principal</th><th>Interest</th>
-                    <th>Total Due</th><th>Balance After</th><th>Status</th>
+                    <th>#</th>
+                    <th>Due Date</th>
+                    <th>Principal</th>
+                    <th>Interest</th>
+                    <th>Total Due</th>
+                    <th>Balance After</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for row in schedule %}
-                  <tr class="sched-row {{ row.status if row.status else 'upcoming' }}" data-status="{{ row.status if row.status else 'upcoming' }}">
+                  <tr class="sched-row {{ row.status if row.status else 'upcoming' }}"
+                      data-status="{{ row.status if row.status else 'upcoming' }}">
                     <td class="td-period">{{ row.period_no }}</td>
                     <td>{{ row.due_date.strftime('%b %d, %Y') if row.due_date else '—' }}</td>
                     <td>&#8369;{{ "{:,.2f}".format(row.principal_due) }}</td>
                     <td>&#8369;{{ "{:,.2f}".format(row.interest_due) }}</td>
                     <td class="fw-bold">&#8369;{{ "{:,.2f}".format(row.total_due) }}</td>
                     <td>&#8369;{{ "{:,.2f}".format(row.balance_after) }}</td>
-                    <td><span class="sched-status sched-status--{{ row.status if row.status else 'upcoming' }}">{{ (row.status if row.status else 'upcoming') | title }}</span></td>
+                    <td>
+                      <span class="sched-status sched-status--{{ row.status if row.status else 'upcoming' }}">
+                        {{ (row.status if row.status else 'upcoming') | title }}
+                      </span>
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -279,112 +337,11 @@
         </div>
 
       </main>
-    </div><!-- /.main-content -->
+    </div>
 
-  </div><!-- /.body-row -->
-</div><!-- /.app-wrap -->
+  </div>
+</div>
 
-<script src="{{ url_for('loans.static', filename='loan_detail.js') }}"></script>
-<script>
-(function () {
-  'use strict';
-
-  /* ── Sidebar Toggle ── */
-  const burgerBtn      = document.getElementById('burgerBtn');
-  const sidebarOverlay = document.getElementById('sidebarOverlay');
-  const sidebar        = document.getElementById('sidebar');
-  const SIDEBAR_KEY    = 'hiraya_sidebar_open';
-  const isMobile       = () => window.innerWidth <= 768;
-
-  function openSidebar()  { document.body.classList.add('sidebar-open'); if (isMobile()) sidebarOverlay.classList.add('active'); if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '1'); }
-  function closeSidebar() { document.body.classList.remove('sidebar-open'); sidebarOverlay.classList.remove('active'); if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '0'); }
-  function toggleSidebar(){ document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar(); }
-
-  if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
-
-  burgerBtn?.addEventListener('click', toggleSidebar);
-  sidebarOverlay?.addEventListener('click', closeSidebar);
-  sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
-    link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
-  });
-  window.addEventListener('resize', () => {
-    if (!isMobile()) { sidebarOverlay.classList.remove('active'); if (localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar(); }
-    else closeSidebar();
-  });
-
-  /* ── User Dropdown ── */
-  const userToggle   = document.getElementById('userDropdownToggle');
-  const userDropdown = document.getElementById('userDropdown');
-  userToggle?.addEventListener('click', function(e) { e.stopPropagation(); userDropdown.classList.toggle('open'); userToggle.classList.toggle('open'); });
-  document.addEventListener('click', (e) => { if (!userToggle?.contains(e.target) && !userDropdown?.contains(e.target)) { userDropdown?.classList.remove('open'); userToggle?.classList.remove('open'); } });
-
-  /* ── Notification Icons ── */
-  const NOTIF_ICONS = {
-    loan_approved:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
-    loan_rejected:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E\")",
-    loan_disbursed:   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l6.59-6.59L18 9l-9 9z'/%3E%3C/svg%3E\")",
-    payment_due:      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E\")",
-    payment_received: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
-    id_verified:      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/%3E%3C/svg%3E\")",
-    id_rejected:      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E\")",
-    general:          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E\")",
-  };
-
-  /* ── Notifications ── */
-  const notifBtn      = document.getElementById('notifBtn');
-  const notifDropdown = document.getElementById('notifDropdown');
-  const notifDot      = document.getElementById('notifDot');
-  const notifList     = document.getElementById('notifList');
-  const notifMarkAll  = document.getElementById('notifMarkAll');
-
-  function fetchUnreadCount() {
-    fetch('/loans/api/notifications/count').then(r=>r.json()).then(data=>{
-      if (data.count > 0) { notifDot?.classList.remove('hidden'); if (notifDot) notifDot.textContent = data.count > 9 ? '9+' : data.count; }
-      else notifDot?.classList.add('hidden');
-    }).catch(()=>{});
-  }
-  fetchUnreadCount();
-  setInterval(fetchUnreadCount, 60000);
-
-  function fetchNotifications() {
-    if (!notifList) return;
-    notifList.innerHTML = `<div class="notif-loading"><div class="notif-spinner"></div><span>Loading notifications...</span></div>`;
-    fetch('/loans/api/notifications').then(r=>r.json()).then(data=>{
-      const items = data.notifications || [];
-      if (!items.length) { notifList.innerHTML = `<div class="notif-empty"><div class="notif-empty-icon"></div><p>You're all caught up!</p><small>No new notifications</small></div>`; return; }
-      notifList.innerHTML = items.map(renderNotifItem).join('');
-      notifList.querySelectorAll('.notif-item').forEach(el=>{
-        el.addEventListener('click', function(){
-          const id=this.dataset.id, link=this.dataset.link;
-          if (this.classList.contains('unread')) { markRead(id,()=>{ this.classList.remove('unread'); this.querySelector('.notif-unread-dot')?.remove(); fetchUnreadCount(); }); }
-          if (link && link!=='null' && link!=='') { notifDropdown.classList.remove('open'); window.location.href=link; }
-        });
-      });
-    }).catch(()=>{ notifList.innerHTML='<div class="notif-empty"><p>Could not load notifications.</p></div>'; });
-  }
-
-  function renderNotifItem(n) {
-    const iconPath = NOTIF_ICONS[n.type]||NOTIF_ICONS['general'], unread=!n.is_read;
-    return `<div class="notif-item${unread?' unread':''}" data-id="${n.id}" data-link="${n.link||''}">
-      <div class="notif-item-icon notif-icon--${n.type}"><span style="-webkit-mask-image:${iconPath};mask-image:${iconPath};"></span></div>
-      <div class="notif-item-body">
-        <div class="notif-item-title">${escHtml(n.title)}</div>
-        <div class="notif-item-msg">${escHtml(n.message||'')}</div>
-        <div class="notif-item-time">${escHtml(n.time_ago)}</div>
-      </div>${unread?'<span class="notif-unread-dot"></span>':''}
-    </div>`;
-  }
-
-  function markRead(id,cb){ fetch(`/loans/api/notifications/${id}/read`,{method:'POST'}).then(()=>cb&&cb()).catch(()=>cb&&cb()); }
-
-  notifBtn?.addEventListener('click', function(e){ e.stopPropagation(); const opening=!notifDropdown.classList.contains('open'); notifDropdown.classList.toggle('open'); if(opening) fetchNotifications(); });
-  document.addEventListener('click', (e)=>{ if (!document.getElementById('notifWrap')?.contains(e.target)) notifDropdown?.classList.remove('open'); });
-  notifMarkAll?.addEventListener('click', ()=>{
-    fetch('/loans/api/notifications/read-all',{method:'POST'}).then(()=>{ notifList.querySelectorAll('.notif-item.unread').forEach(el=>{ el.classList.remove('unread'); el.querySelector('.notif-unread-dot')?.remove(); }); notifDot?.classList.add('hidden'); }).catch(()=>{});
-  });
-
-  function escHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-})();
-</script>
+<script src="{{ url_for('loans.static', filename='loan_details.js') }}"></script>
 </body>
 </html>

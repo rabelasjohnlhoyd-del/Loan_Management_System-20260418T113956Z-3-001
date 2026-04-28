@@ -47,160 +47,212 @@
   </style>
 </head>
 <body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Management System</span></div>
+  <!-- TOPBAR — same as my_loans -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
     </div>
-
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">Borrower</div>
-      </div>
-      <span class="s-chevron"></span>
-    </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('borrower.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('loans.my_loans') }}"><span class="dd-icon dd-icon--loans"></span>My Loans</a>
-      <a href="{{ url_for('loans.my_applications') }}"><span class="dd-icon dd-icon--applications"></span>My Applications</a>
-      <a href="{{ url_for('loans.loan_types') }}"><span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans</a>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
-        <span class="nav-icon nav-icon--payment"></span>Make a Payment
-      </a>
-      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
-        <span class="nav-icon nav-icon--history"></span>Payment History
-      </a>
-      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
-        <span class="nav-icon nav-icon--docs"></span>Documents
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
+    <div class="topbar-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
         </button>
-      </form>
-    </div>
-  </aside>
-
-  <div class="main-content">
-    <header class="apply-page-header">
-  <div class="apply-page-header-left">
-    <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
-      <span class="btn-back-icon"></span>
-      Back to Dashboard
-    </a>
-    <div>
-      <h1 class="apply-page-title">Loan Application</h1>
-      <p class="apply-page-sub">Fill in the details to submit your loan request</p>
-    </div>
-  </div>
-  <a href="{{ url_for('loans.my_applications') }}" class="btn btn-ghost btn-sm apply-myapps-btn">
-    My Applications
-  </a>
-</header>
-
-    <main class="page-body">
-      <div class="apply-grid">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h3>Loan Details</h3>
-              <p>Select your loan type, plan, and enter the amount</p>
-            </div>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
           </div>
-          <div class="card-body">
-            <form method="POST" action="{{ url_for('loans.apply') }}" enctype="multipart/form-data" id="apply-form">
-              <div class="form-group">
-                <label>Loan Type <span class="req">*</span></label>
-                <div class="input-wrap">
-                  <select class="form-control" name="loan_type_id" id="loan_type_id" required>
-                    <option value="">— Select Loan Type —</option>
-                    {% for t in types %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
-                  </select>
-                </div>
-              </div>
-              <div class="form-group" id="plan-group" style="display:none;">
-                <label>Loan Plan <span class="req">*</span></label>
-                <div class="input-wrap">
-                  <select class="form-control" name="loan_plan_id" id="loan_plan_id" required>
-                    <option value="">— Select Plan —</option>
-                  </select>
-                </div>
-                <div class="field-hint" id="plan-hint"></div>
-              </div>
-              <div class="form-group" id="amount-group" style="display:none;">
-                <label>Loan Amount <span class="req">*</span></label>
-                <div class="input-wrap has-icon">
-                  <span class="field-icon field-icon--wallet"></span>
-                  <input class="form-control" type="number" name="amount" id="amount" placeholder="0.00" step="1000" min="0"/>
-                </div>
-                <div class="field-hint" id="amount-hint"></div>
-              </div>
-              <div class="form-group" id="term-group" style="display:none;">
-                <label>Loan Term <span class="req">*</span></label>
-                <div class="input-wrap">
-                  <select class="form-control" name="term_months" id="term_months" required>
-                    <option value="">— Select Term —</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Purpose / Notes</label>
-                <textarea class="form-control" name="purpose" rows="3" placeholder="Briefly describe the purpose of this loan..."></textarea>
-              </div>
-              <div class="form-group">
-                <label>Supporting Documents</label>
-                <div class="upload-zone" id="doc-zone">
-                  <input type="file" name="documents" id="documents" accept=".jpg,.jpeg,.png,.pdf" multiple/>
-                  <span class="up-icon up-icon--upload"></span>
-                  <h4>Upload Requirements</h4>
-                  <p>PDF, JPG or PNG · Multiple files allowed</p>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary btn-block btn-lg" id="submit-btn">
-                Submit Application <span class="btn-arrow-icon"></span>
-              </button>
-            </form>
+          <div class="notif-list" id="notifList">
+            <div class="notif-loading">Loading...</div>
           </div>
-        </div>
-
-        <div>
-          <div class="loan-calculator" id="calculator">
-            <h3>&#128202; Loan Calculator</h3>
-            <div class="calc-row cr-highlight">
-              <span class="cr-label">Monthly Payment</span>
-              <span class="cr-value" id="calc-monthly">&#8369;0.00</span>
-            </div>
-            <div class="calc-row"><span class="cr-label">Principal</span><span class="cr-value" id="calc-principal">&#8369;0.00</span></div>
-            <div class="calc-row"><span class="cr-label">Interest Rate</span><span class="cr-value" id="calc-rate">0%</span></div>
-            <div class="calc-row"><span class="cr-label">Term</span><span class="cr-value" id="calc-term">— months</span></div>
-            <div class="calc-row"><span class="cr-label">Total Interest</span><span class="cr-value" id="calc-interest">&#8369;0.00</span></div>
-            <div class="calc-row"><span class="cr-label">Total Payment</span><span class="cr-value" id="calc-total">&#8369;0.00</span></div>
+          <div class="notif-footer">
+            <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
           </div>
         </div>
       </div>
-    </main>
+      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+        {{ session.user_name[0]|upper if session.user_name else 'U' }}
+      </a>
+    </div>
+  </header>
+
+  <div class="body-row">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name }}</h4>
+          <div class="s-role-badge">Borrower</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('borrower.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('loans.my_loans') }}"><span class="dd-icon dd-icon--loans"></span>My Loans</a>
+        <a href="{{ url_for('loans.my_applications') }}"><span class="dd-icon dd-icon--applications"></span>My Applications</a>
+        <a href="{{ url_for('loans.loan_types') }}"><span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans</a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
+          <span class="nav-icon nav-icon--payment"></span>
+          <span class="nav-label">Make a Payment</span>
+        </a>
+        <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
+          <span class="nav-icon nav-icon--history"></span>
+          <span class="nav-label">Payment History</span>
+        </a>
+        <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
+          <span class="nav-icon nav-icon--docs"></span>
+          <span class="nav-label">Documents</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- PAGE HEADER — exact same pattern as my_loans -->
+        <div class="apply-page-header">
+          <div class="apply-page-header-left">
+            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
+              <span class="btn-back-icon"></span>
+              Back to Dashboard
+            </a>
+            <div>
+              <h2 class="apply-page-title">Loan Application</h2>
+              <p class="apply-page-sub">Fill in the details to submit your loan request</p>
+            </div>
+          </div>
+          <a href="{{ url_for('loans.my_applications') }}" class="btn-myapps">
+            My Applications
+          </a>
+        </div>
+
+        <!-- FORM + CALCULATOR -->
+        <div class="apply-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Loan Details</h3>
+                <p>Select your loan type, plan, and enter the amount</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <form method="POST" action="{{ url_for('loans.apply') }}" enctype="multipart/form-data" id="apply-form">
+                <div class="form-group">
+                  <label>Loan Type <span class="req">*</span></label>
+                  <div class="input-wrap">
+                    <select class="form-control" name="loan_type_id" id="loan_type_id" required>
+                      <option value="">— Select Loan Type —</option>
+                      {% for t in types %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group" id="plan-group" style="display:none;">
+                  <label>Loan Plan <span class="req">*</span></label>
+                  <div class="input-wrap">
+                    <select class="form-control" name="loan_plan_id" id="loan_plan_id" required>
+                      <option value="">— Select Plan —</option>
+                    </select>
+                  </div>
+                  <div class="field-hint" id="plan-hint"></div>
+                </div>
+                <div class="form-group" id="amount-group" style="display:none;">
+                  <label>Loan Amount <span class="req">*</span></label>
+                  <div class="input-wrap has-icon">
+                    <span class="field-icon field-icon--wallet"></span>
+                    <input class="form-control" type="number" name="amount" id="amount" placeholder="0.00" step="1000" min="0"/>
+                  </div>
+                  <div class="field-hint" id="amount-hint"></div>
+                </div>
+                <div class="form-group" id="term-group" style="display:none;">
+                  <label>Loan Term <span class="req">*</span></label>
+                  <div class="input-wrap">
+                    <select class="form-control" name="term_months" id="term_months" required>
+                      <option value="">— Select Term —</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Purpose / Notes</label>
+                  <textarea class="form-control" name="purpose" rows="3" placeholder="Briefly describe the purpose of this loan..."></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Supporting Documents</label>
+                  <div class="upload-zone" id="doc-zone">
+                    <input type="file" name="documents" id="documents" accept=".jpg,.jpeg,.png,.pdf" multiple/>
+                    <span class="up-icon up-icon--upload"></span>
+                    <h4>Upload Requirements</h4>
+                    <p>PDF, JPG or PNG · Multiple files allowed</p>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block btn-lg" id="submit-btn">
+                  Submit Application <span class="btn-arrow-icon"></span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div>
+            <div class="loan-calculator" id="calculator">
+              <h3>&#128202; Loan Calculator</h3>
+              <div class="calc-row cr-highlight">
+                <span class="cr-label">Monthly Payment</span>
+                <span class="cr-value" id="calc-monthly">&#8369;0.00</span>
+              </div>
+              <div class="calc-row"><span class="cr-label">Principal</span><span class="cr-value" id="calc-principal">&#8369;0.00</span></div>
+              <div class="calc-row"><span class="cr-label">Interest Rate</span><span class="cr-value" id="calc-rate">0%</span></div>
+              <div class="calc-row"><span class="cr-label">Term</span><span class="cr-value" id="calc-term">— months</span></div>
+              <div class="calc-row"><span class="cr-label">Total Interest</span><span class="cr-value" id="calc-interest">&#8369;0.00</span></div>
+              <div class="calc-row"><span class="cr-label">Total Payment</span><span class="cr-value" id="calc-total">&#8369;0.00</span></div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
   </div>
 </div>
+
 <script>
   const _PLANS_DATA = {{ plans | tojson }};
   const _SELECTED_PLAN_ID = {{ selected_plan_id | tojson if selected_plan_id else 'null' }};
 </script>
 <script src="{{ url_for('loans.static', filename='apply.js') }}"></script>
+<script src="{{ url_for('loans.static', filename='my_loans.js') }}"></script>
 <script>
   (function () {
     var toggle = document.getElementById('userDropdownToggle');

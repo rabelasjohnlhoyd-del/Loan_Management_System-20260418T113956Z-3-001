@@ -489,29 +489,49 @@ def loan_detail(loan_id):
             WHERE l.id = %s AND l.borrower_id = %s
         """, (loan_id, session['user_id']))
         loan = cursor.fetchone()
-
+ 
         if not loan:
             flash('Loan not found.', 'danger')
             return redirect(url_for('loans.my_loans'))
-
+ 
         cursor.execute("""
             SELECT * FROM amortization_schedule
             WHERE loan_id = %s
             ORDER BY period_no
         """, (loan_id,))
-        schedule = cursor.fetchall()
-
+        raw_schedule = cursor.fetchall()
+ 
         cursor.close()
         conn.close()
+ 
+        # ── FIX: I-convert ang is_paid (0/1) papuntang status string ──────
+        # Ang HTML template ay gumagamit ng row.status para sa badge at filter.
+        # Ang amortization_schedule table ay may is_paid column (boolean),
+        # hindi status string — kaya laging 'upcoming' dati ang naisa-show.
+        import datetime as dt
+        today = dt.date.today()
+ 
+        schedule = []
+        for row in raw_schedule:
+            if row.get('is_paid') == 1 or row.get('is_paid') is True:
+                row['status'] = 'paid'
+            else:
+                # Check if overdue
+                due = row.get('due_date')
+                if due and isinstance(due, dt.date) and due < today:
+                    row['status'] = 'overdue'
+                else:
+                    row['status'] = 'upcoming'
+            schedule.append(row)
+ 
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('loans.my_loans'))
-
+ 
     return render_template('loan_details.html',
                            loan=loan,
                            schedule=schedule,
-                           now=datetime.datetime.now().date())
-
+                           now=dt.datetime.now().date())
 
 # ================================================================
 # SECTION 6: NOTIFICATIONS SYSTEM
