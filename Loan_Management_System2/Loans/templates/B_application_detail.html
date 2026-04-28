@@ -11,16 +11,14 @@
 </head>
 <body>
 
-<!-- OVERLAY (mobile sidebar backdrop) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
-       TOPBAR — consistent with my_applications
-  ════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════
+       TOPBAR — clean, like my_applications
+  ════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
-
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
         <span></span><span></span><span></span>
@@ -34,33 +32,38 @@
       </div>
     </div>
 
-    <div class="topbar-center">
-      <h1 class="topbar-title">{{ app.reference_no }}</h1>
-      <p class="topbar-sub">{{ app.type_name }} &middot; {{ app.plan_name }}</p>
-    </div>
-
+    <!-- Right: notif + avatar only (like my_applications) -->
     <div class="topbar-right">
-      <a href="{{ url_for('loans.my_applications') }}" class="btn-topbar-outline">
-        <span class="btn-back-icon"></span>
-        <span class="btn-label">Back</span>
-      </a>
-      <span class="app-status app-status--{{ app.status }}">
-        {{ app.status | replace('_',' ') | title }}
-      </span>
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-loading">Loading...</div>
+          </div>
+          <div class="notif-footer">
+            <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
+          </div>
+        </div>
+      </div>
       <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
         {{ session.user_name[0]|upper if session.user_name else 'U' }}
       </a>
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════════
-       BODY ROW — sidebar + main
-  ════════════════════════════════════════════════ -->
   <div class="body-row">
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
-
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
         <div class="s-user-info">
@@ -117,6 +120,23 @@
     <!-- MAIN CONTENT -->
     <div class="main-content">
       <main class="page-body">
+
+        <!-- PAGE HEADER — like my_profile: back btn + title + status badge -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <a href="{{ url_for('loans.my_applications') }}" class="btn-back">
+              <span class="btn-back-icon"></span>
+              Applications
+            </a>
+            <div>
+              <h2 class="page-title">{{ app.reference_no }}</h2>
+              <p class="page-sub">{{ app.type_name }} &middot; {{ app.plan_name }}</p>
+            </div>
+          </div>
+          <span class="app-status app-status--{{ app.status }}">
+            {{ app.status | replace('_',' ') | title }}
+          </span>
+        </div>
 
         <!-- TWO-COLUMN LAYOUT -->
         <div class="detail-grid">
@@ -196,26 +216,28 @@
           <!-- RIGHT COLUMN — Payment Preview -->
           <div class="detail-right">
             <div class="payment-preview">
-              <h3 class="pp-title">&#128202; Payment Preview</h3>
-              <div class="pp-row pp-row--highlight">
-                <span class="pp-label">Monthly Payment</span>
-                <span class="pp-value pp-value--big">&#8369;{{ "{:,.2f}".format(monthly_payment) }}</span>
-              </div>
-              <div class="pp-row">
-                <span class="pp-label">Principal</span>
-                <span class="pp-value">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</span>
-              </div>
-              <div class="pp-row">
-                <span class="pp-label">Rate</span>
-                <span class="pp-value">{{ app.interest_rate }}% p.a.</span>
-              </div>
-              <div class="pp-row">
-                <span class="pp-label">Term</span>
-                <span class="pp-value">{{ app.term_months }} months</span>
-              </div>
-              <div class="pp-row">
-                <span class="pp-label">Total Payment</span>
-                <span class="pp-value">&#8369;{{ "{:,.2f}".format(monthly_payment * app.term_months) }}</span>
+              <h3 class="pp-title">📊 Payment Preview</h3>
+              <div class="pp-body">
+                <div class="pp-row pp-row--highlight">
+                  <span class="pp-label">Monthly Payment</span>
+                  <span class="pp-value pp-value--big">&#8369;{{ "{:,.2f}".format(monthly_payment) }}</span>
+                </div>
+                <div class="pp-row">
+                  <span class="pp-label">Principal</span>
+                  <span class="pp-value">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</span>
+                </div>
+                <div class="pp-row">
+                  <span class="pp-label">Rate</span>
+                  <span class="pp-value">{{ app.interest_rate }}% p.a.</span>
+                </div>
+                <div class="pp-row">
+                  <span class="pp-label">Term</span>
+                  <span class="pp-value">{{ app.term_months }} months</span>
+                </div>
+                <div class="pp-row">
+                  <span class="pp-label">Total Payment</span>
+                  <span class="pp-value">&#8369;{{ "{:,.2f}".format(monthly_payment * app.term_months) }}</span>
+                </div>
               </div>
             </div>
           </div>

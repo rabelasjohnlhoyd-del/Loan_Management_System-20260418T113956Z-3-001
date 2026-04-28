@@ -3,170 +3,199 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{{ loan_type.name }} Plans — Hiraya</title>
+  <title>Loan Plans — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('loans.static', filename='loan_plans.css') }}"/>
 </head>
-<body class="{% if session.role != 'borrower' %}admin-view{% endif %}">
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
-  <aside class="sidebar" id="sidebar">
-
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo">
-        </div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
+  <!-- TOPBAR — same as my_applications -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
     </div>
 
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
-      </div>
-      <span class="s-chevron"></span>
-    </div>
-
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('borrower.profile') }}">
-        <span class="dd-icon dd-icon--profile"></span>My Profile
-      </a>
-      {% if session.role == 'borrower' %}
-      <a href="{{ url_for('loans.my_loans') }}">
-        <span class="dd-icon dd-icon--reports"></span>My Loans
-      </a>
-      <a href="{{ url_for('loans.my_applications') }}">
-        <span class="dd-icon dd-icon--activity"></span>My Applications
-      </a>
-      <a href="{{ url_for('loans.loan_types') }}">
-        <span class="dd-icon dd-icon--manage-users"></span>Loan Types &amp; Plans
-      </a>
-      {% else %}
-      {% if session.role == 'super_admin' %}
-      <a href="{{ url_for('super_admin.manage_users') }}">
-        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
-      </a>
-      {% endif %}
-      <a href="{{ url_for('super_admin.reports_page') }}">
-        <span class="dd-icon dd-icon--reports"></span>Reports
-      </a>
-      <a href="{{ url_for('super_admin.activity_logs') }}">
-        <span class="dd-icon dd-icon--activity"></span>Activity Logs
-      </a>
-      {% endif %}
-    </div>
-
-    <nav class="sidebar-nav">
-
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-
-      {% if session.role == 'borrower' %}
-      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
-        <span class="nav-icon nav-icon--payment"></span>Make a Payment
-      </a>
-      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
-        <span class="nav-icon nav-icon--history"></span>Payment History
-      </a>
-      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
-        <span class="nav-icon nav-icon--docs"></span>Documents
-      </a>
-
-      {% else %}
-      <a href="{{ url_for('loans.loan_types') }}" class="nav-item active">
-        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
-      </a>
-      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-        <span class="nav-icon nav-icon--clock"></span>Applications
-        {% if stats and stats.get('pending_applications', 0) > 0 %}
-        <span class="nav-badge">{{ stats.pending_applications }}</span>
-        {% endif %}
-      </a>
-      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
-        <span class="nav-icon nav-icon--applications"></span>All Loans
-      </a>
-      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
-      </a>
-      <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loans"></span>Payment Verification
-        {% if stats and stats.get('pending_payments', 0) > 0 %}
-        <span class="nav-badge">{{ stats.pending_payments }}</span>
-        {% endif %}
-      </a>
-      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
-        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
-      </a>
-      {% endif %}
-
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
+    <div class="topbar-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
         </button>
-      </form>
-    </div>
-
-  </aside>
-  <!-- /SIDEBAR -->
-
-  <div class="main-content" id="mainContent">
-    <header class="topbar">
-      <div class="topbar-left">
-        <button class="menu-btn" id="menuBtn">&#9776;</button>
-        <div>
-          <div class="topbar-heading">{{ loan_type.name }}</div>
-          <div class="topbar-sub">{{ loan_type.description }}</div>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-loading">Loading...</div>
+          </div>
+          <div class="notif-footer">
+            <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
+          </div>
         </div>
       </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('loans.loan_types') }}" class="btn btn-ghost btn-sm">&#8592; All Types</a>
-        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'U' }}
+      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+        {{ session.user_name[0]|upper if session.user_name else 'U' }}
+      </a>
+    </div>
+  </header>
+
+  <div class="body-row">
+
+    <!-- SIDEBAR — same as my_applications -->
+    <aside class="sidebar" id="sidebar">
+
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name }}</h4>
+          <div class="s-role-badge">Borrower</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('borrower.profile') }}">
+          <span class="dd-icon dd-icon--profile"></span>My Profile
+        </a>
+        <a href="{{ url_for('loans.my_loans') }}">
+          <span class="dd-icon dd-icon--loans"></span>My Loans
+        </a>
+        <a href="{{ url_for('loans.my_applications') }}">
+          <span class="dd-icon dd-icon--applications"></span>My Applications
+        </a>
+        <a href="{{ url_for('loans.loan_types') }}">
+          <span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans
         </a>
       </div>
-    </header>
-    <main class="page-body">
-      <div class="plan-grid">
-        {% for plan in plans %}
-        <div class="plan-card">
-          <div class="plan-card-header">
-            <div class="plan-name">{{ plan.plan_name }}</div>
-            <div class="plan-rate">{{ plan.interest_rate }}<span>% / yr</span></div>
+
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
+          <span class="nav-icon nav-icon--payment"></span>
+          <span class="nav-label">Make a Payment</span>
+        </a>
+        <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
+          <span class="nav-icon nav-icon--history"></span>
+          <span class="nav-label">Payment History</span>
+        </a>
+        <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
+          <span class="nav-icon nav-icon--docs"></span>
+          <span class="nav-label">Documents</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- PAGE HEADER — same layout as my_applications -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <a href="{{ url_for('loans.loan_types') }}" class="btn-back">
+              <span class="btn-back-icon"></span>
+              Loan Types
+            </a>
+            <div>
+              <h2 class="page-title">{{ loan_type['name'] }}</h2>
+              <p class="page-sub">{{ loan_type['description'] }}</p>
+            </div>
           </div>
-          <div class="plan-details">
-            <div class="plan-detail-row"><span class="pd-label">Interest Type</span><span class="pd-value">{{ plan.interest_type | title }}</span></div>
-            <div class="plan-detail-row"><span class="pd-label">Minimum Amount</span><span class="pd-value">&#8369;{{ "{:,.2f}".format(plan.min_amount) }}</span></div>
-            <div class="plan-detail-row"><span class="pd-label">Maximum Amount</span><span class="pd-value">&#8369;{{ "{:,.2f}".format(plan.max_amount) }}</span></div>
-            <div class="plan-detail-row"><span class="pd-label">Term</span><span class="pd-value">{{ plan.term_months_min }}–{{ plan.term_months_max }} months</span></div>
-            <div class="plan-detail-row"><span class="pd-label">Processing Fee</span><span class="pd-value">{{ plan.processing_fee }}%</span></div>
-            <div class="plan-detail-row"><span class="pd-label">Collateral</span><span class="pd-value">{{ 'Required' if plan.collateral_required else 'Not Required' }}</span></div>
+        </div>
+
+        <!-- PLAN CARDS -->
+        {% if plans %}
+        <div class="plan-grid">
+          {% for plan in plans %}
+          <div class="plan-card">
+            <div class="plan-card-header">
+              <div class="plan-name">{{ plan['plan_name'] }}</div>
+              <div class="plan-rate">
+                {{ "%.2f"|format(plan['interest_rate']) }}<span>% / yr</span>
+              </div>
+            </div>
+
+            <div class="plan-details">
+              <div class="plan-detail-row">
+                <span class="pd-label">Interest Type</span>
+                <span class="pd-value">{{ plan['interest_type'] | title }}</span>
+              </div>
+              <div class="plan-detail-row">
+                <span class="pd-label">Minimum Amount</span>
+                <span class="pd-value">&#8369;{{ "{:,.2f}".format(plan['min_amount']) }}</span>
+              </div>
+              <div class="plan-detail-row">
+                <span class="pd-label">Maximum Amount</span>
+                <span class="pd-value">&#8369;{{ "{:,.2f}".format(plan['max_amount']) }}</span>
+              </div>
+              <div class="plan-detail-row">
+                <span class="pd-label">Term</span>
+                <span class="pd-value">{{ plan['term_months_min'] }}–{{ plan['term_months_max'] }} months</span>
+              </div>
+              <div class="plan-detail-row">
+                <span class="pd-label">Processing Fee</span>
+                <span class="pd-value">{{ "%.2f"|format(plan['processing_fee']) }}%</span>
+              </div>
+              <div class="plan-detail-row">
+                <span class="pd-label">Collateral</span>
+                <span class="pd-value">{{ 'Required' if plan['collateral_required'] else 'Not Required' }}</span>
+              </div>
+            </div>
+
+            {% if plan['collateral_notes'] %}
+            <div class="collateral-notes">
+              <span class="collateral-icon"></span>
+              {{ plan['collateral_notes'] }}
+            </div>
+            {% endif %}
+
+            <a href="{{ url_for('loans.apply', plan_id=plan['id']) }}" class="btn-apply-plan">
+              Apply with this Plan
+            </a>
           </div>
-          {% if plan.collateral_required and plan.collateral_notes %}
-          <div class="collateral-notes">
-            &#128203; {{ plan.collateral_notes }}
-          </div>
-          {% endif %}
-          {% if session.role == 'borrower' %}
-          <a href="{{ url_for('loans.apply') }}?plan={{ plan.id }}" class="btn btn-primary btn-block btn-sm">Apply with this Plan</a>
-          {% endif %}
+          {% endfor %}
         </div>
         {% else %}
-        <div class="plans-empty">No plans available for this loan type.</div>
-        {% endfor %}
-      </div>
-    </main>
+        <div class="plans-empty">
+          <span class="empty-icon"></span>
+          <p class="empty-title">No plans available</p>
+          <p class="empty-sub">There are no plans for this loan type yet.</p>
+        </div>
+        {% endif %}
+
+      </main>
+    </div>
+
   </div>
 </div>
 

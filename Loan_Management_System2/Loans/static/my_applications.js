@@ -84,4 +84,150 @@
     }
   });
 
+  /* ================================================================
+     NOTIFICATIONS
+     ================================================================ */
+  const notifBtn      = document.getElementById('notifBtn');
+  const notifDropdown = document.getElementById('notifDropdown');
+  const notifDot      = document.getElementById('notifDot');
+  const notifList     = document.getElementById('notifList');
+  const notifMarkAll  = document.getElementById('notifMarkAll');
+  const notifWrap     = document.getElementById('notifWrap');
+
+  let notifLoaded = false;
+
+  /* Toggle dropdown open/close */
+  notifBtn?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const isOpen = notifDropdown.classList.toggle('open');
+    if (isOpen && !notifLoaded) {
+      loadNotifications();
+    }
+  });
+
+  /* Close when clicking outside */
+  document.addEventListener('click', (e) => {
+    if (!notifWrap?.contains(e.target)) {
+      notifDropdown?.classList.remove('open');
+    }
+  });
+
+  /* Fetch notifications from backend */
+  function loadNotifications() {
+    notifLoaded = true;
+    notifList.innerHTML = '<div class="notif-loading">Loading...</div>';
+
+    fetch('/loans/api/notifications')
+      .then(res => res.json())
+      .then(data => renderNotifications(data))
+      .catch(() => {
+        notifList.innerHTML = '<div class="notif-empty"><p>Could not load notifications.</p><small>Please try again later.</small></div>';
+      });
+  }
+
+  function renderNotifications(data) {
+    const items = Array.isArray(data) ? data : (data.notifications || []);
+
+    /* Update the red dot */
+    const unreadCount = items.filter(n => !n.is_read).length;
+    if (unreadCount > 0) {
+      notifDot.classList.remove('hidden');
+    } else {
+      notifDot.classList.add('hidden');
+    }
+
+    if (items.length === 0) {
+      notifList.innerHTML = `
+        <div class="notif-empty">
+          <p>No notifications</p>
+          <small>You're all caught up!</small>
+        </div>`;
+      return;
+    }
+
+    notifList.innerHTML = items.map(n => `
+      <div class="notif-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}">
+        <div class="notif-item-icon">
+          <span style="
+            -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27currentColor%27%3E%3Cpath d=%27M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z%27/%3E%3C/svg%3E');
+            mask-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27currentColor%27%3E%3Cpath d=%27M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z%27/%3E%3C/svg%3E');
+            mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+            -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+          "></span>
+        </div>
+        <div class="notif-item-body">
+          <div class="notif-item-title">${escHtml(n.title || 'Notification')}</div>
+          <div class="notif-item-msg">${escHtml(n.message || '')}</div>
+          <div class="notif-item-time">${formatTime(n.created_at)}</div>
+        </div>
+        ${!n.is_read ? '<span class="notif-unread-dot"></span>' : ''}
+      </div>
+    `).join('');
+
+    /* Mark individual as read on click */
+    notifList.querySelectorAll('.notif-item').forEach(el => {
+      el.addEventListener('click', () => markAsRead(el.dataset.id, el));
+    });
+  }
+
+  /* Mark a single notification as read */
+  function markAsRead(id, el) {
+    if (!el.classList.contains('unread')) return;
+
+    fetch(`/loans/api/notifications/${id}/read`, { method: 'POST' })
+      .then(res => res.ok && updateUnreadUI(el))
+      .catch(() => {});
+  }
+
+  function updateUnreadUI(el) {
+    el.classList.remove('unread');
+    el.querySelector('.notif-unread-dot')?.remove();
+
+    /* Recount unread and update dot */
+    const remaining = notifList.querySelectorAll('.notif-item.unread').length;
+    if (remaining === 0) notifDot.classList.add('hidden');
+  }
+
+  /* Mark all as read */
+  notifMarkAll?.addEventListener('click', () => {
+    fetch('/loans/api/notifications/read-all', { method: 'POST' })
+      .then(res => {
+        if (res.ok) {
+          notifList.querySelectorAll('.notif-item.unread').forEach(el => updateUnreadUI(el));
+        }
+      })
+      .catch(() => {});
+  });
+
+  /* Check unread count on page load (for the dot) */
+  fetch('/loans/api/notifications/count')
+    .then(res => res.json())
+    .then(data => {
+      if ((data.count ?? 0) > 0) notifDot?.classList.remove('hidden');
+    })
+    .catch(() => {});
+
+  /* ================================================================
+     HELPERS
+     ================================================================ */
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '';
+    const date = new Date(ts);
+    if (isNaN(date)) return ts;
+    const now  = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60)   return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
 })();
