@@ -135,13 +135,6 @@
     <span class="nav-icon nav-icon--borrowers"></span>Borrowers
   </a>
 
-  <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
-    <span class="nav-icon nav-icon--loans"></span>Payment Verification
-    {% if stats and stats.get('pending_payments', 0) > 0 %}
-    <span class="nav-badge">{{ stats.pending_payments }}</span>
-    {% endif %}
-  </a>
-
   <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
     <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
   </a>
