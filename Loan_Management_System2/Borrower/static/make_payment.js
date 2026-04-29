@@ -1,66 +1,196 @@
 /**
- * make_payment.js — Fixed Flow with Live Polling + Inline E-Receipt (Step 5)
- * Step 1: Select Loan
- * Step 2: Select Payment Method + Continue
- * Step 3: QR Code + "I've Paid" button (submits to backend)
- * Step 4: Pending confirmation screen with live status polling
- * Step 5: Inline E-Receipt (fetched via AJAX from /borrower/payments/receipt-data/<pay_no>)
+ * make_payment.js
+ * Consolidated — sidebar toggle, notifications, user dropdown, payment flow
  */
 
 (function () {
   'use strict';
 
   /* ================================================================
-     STATE
+     SIDEBAR TOGGLE — same logic as dashboard
+  ================================================================ */
+  const burgerBtn      = document.getElementById('burgerBtn');
+  const sidebar        = document.getElementById('sidebar');
+  const mainContent    = document.getElementById('mainContent');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const SIDEBAR_KEY    = 'hiraya_sidebar_open';
+  const isMobile       = () => window.innerWidth <= 768;
+
+  function openSidebar() {
+    document.body.classList.add('sidebar-open');
+    if (isMobile()) sidebarOverlay.classList.add('active');
+    if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '1');
+  }
+
+  function closeSidebar() {
+    document.body.classList.remove('sidebar-open');
+    sidebarOverlay.classList.remove('active');
+    if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '0');
+  }
+
+  function toggleSidebar() {
+    document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
+  }
+
+  /* Restore desktop preference on load */
+  if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
+
+  burgerBtn?.addEventListener('click', toggleSidebar);
+  sidebarOverlay?.addEventListener('click', closeSidebar);
+
+  sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
+    link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
+  });
+
+  window.addEventListener('resize', () => {
+    if (!isMobile()) {
+      sidebarOverlay.classList.remove('active');
+      if (localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
+    } else {
+      closeSidebar();
+    }
+  });
+
+  /* ================================================================
+     USER DROPDOWN
+  ================================================================ */
+  const userToggle   = document.getElementById('userDropdownToggle');
+  const userDropdown = document.getElementById('userDropdown');
+
+  userToggle?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    userDropdown.classList.toggle('open');
+    userToggle.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!userToggle?.contains(e.target) && !userDropdown?.contains(e.target)) {
+      userDropdown?.classList.remove('open');
+      userToggle?.classList.remove('open');
+    }
+  });
+
+  /* ================================================================
+     NOTIFICATIONS
+  ================================================================ */
+  const notifBtn      = document.getElementById('notifBtn');
+  const notifDropdown = document.getElementById('notifDropdown');
+  const notifDot      = document.getElementById('notifDot');
+  const notifList     = document.getElementById('notifList');
+  const notifMarkAll  = document.getElementById('notifMarkAll');
+
+  function fetchUnreadCount() {
+    fetch('/loans/api/notifications/count')
+      .then(r => r.json())
+      .then(data => {
+        if (data.count > 0) notifDot?.classList.remove('hidden');
+        else                notifDot?.classList.add('hidden');
+      }).catch(() => {});
+  }
+
+  fetchUnreadCount();
+  setInterval(fetchUnreadCount, 60000);
+
+  function fetchNotifications() {
+    if (!notifList) return;
+    notifList.innerHTML = '<div class="notif-loading"><div class="notif-spinner"></div><span>Loading...</span></div>';
+    fetch('/loans/api/notifications')
+      .then(r => r.json())
+      .then(data => {
+        const items = data.notifications || [];
+        if (items.length === 0) {
+          notifList.innerHTML = '<div class="notif-empty"><p>You\'re all caught up!</p><small>No new notifications</small></div>';
+          return;
+        }
+        notifList.innerHTML = items.map(n => {
+          const unread = !n.is_read;
+          return `<div class="notif-item${unread ? ' unread' : ''}" data-id="${n.id}" data-link="${n.link || ''}">
+            <div class="notif-item-body">
+              <div class="notif-item-title">${escHtml(n.title)}</div>
+              <div class="notif-item-msg">${escHtml(n.message || '')}</div>
+              <div class="notif-item-time">${escHtml(n.time_ago)}</div>
+            </div>
+            ${unread ? '<span class="notif-unread-dot"></span>' : ''}
+          </div>`;
+        }).join('');
+        notifList.querySelectorAll('.notif-item').forEach(el => {
+          el.addEventListener('click', function () {
+            const id   = this.dataset.id;
+            const link = this.dataset.link;
+            if (this.classList.contains('unread')) {
+              fetch(`/loans/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
+              this.classList.remove('unread');
+              this.querySelector('.notif-unread-dot')?.remove();
+              fetchUnreadCount();
+            }
+            if (link && link !== 'null' && link !== '') {
+              notifDropdown.classList.remove('open');
+              window.location.href = link;
+            }
+          });
+        });
+      }).catch(() => {
+        notifList.innerHTML = '<div class="notif-empty"><p>Could not load notifications.</p></div>';
+      });
+  }
+
+  notifBtn?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const opening = !notifDropdown.classList.contains('open');
+    notifDropdown.classList.toggle('open');
+    if (opening) fetchNotifications();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('notifWrap')?.contains(e.target)) {
+      notifDropdown?.classList.remove('open');
+    }
+  });
+
+  notifMarkAll?.addEventListener('click', () => {
+    fetch('/loans/api/notifications/read-all', { method: 'POST' })
+      .then(() => {
+        notifList.querySelectorAll('.notif-item.unread').forEach(el => {
+          el.classList.remove('unread');
+          el.querySelector('.notif-unread-dot')?.remove();
+        });
+        notifDot?.classList.add('hidden');
+      }).catch(() => {});
+  });
+
+  /* ================================================================
+     AUTO-SHOW STEP 4 on redirect from POST
+  ================================================================ */
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === '1') {
+      document.addEventListener('DOMContentLoaded', function () {
+        window.showStep4(
+          params.get('ref')    || '',
+          params.get('amount') || '0',
+          params.get('method') || ''
+        );
+      });
+    }
+  })();
+
+  /* ================================================================
+     PAYMENT FLOW STATE
   ================================================================ */
   let selectedLoanData = null;
   let selectedMethod   = null;
   let currentStep      = 1;
   let _pollInterval    = null;
-  let _confirmedPayNo  = null; // PAY-XXXX mula sa backend, ginagamit sa Step 5 fetch
+  let _confirmedPayNo  = null;
 
   const methodDetails = {
-    gcash: {
-      name:       'GCash',
-      color:      '#0070e0',
-      colorLight: '#e8f4ff',
-      icon:       '💙',
-      account:    'Hiraya Lending',
-      num:        '+63 917 000 1234',
-      prefix:     'https://gcash.com/pay?amount={AMOUNT}&ref={REF}&to=09170001234',
-    },
-    maya: {
-      name:       'Maya',
-      color:      '#00b140',
-      colorLight: '#e8f9ee',
-      icon:       '💚',
-      account:    'Hiraya Lending',
-      num:        '09180001234',
-      prefix:     'https://maya.ph/pay?amount={AMOUNT}&ref={REF}&to=09180001234',
-    },
-    bank: {
-      name:       'BDO Transfer',
-      color:      '#003087',
-      colorLight: '#e8eeff',
-      icon:       '🏦',
-      account:    'Hiraya Lending Corp.',
-      num:        'Acct: 0012-3456-7890',
-      prefix:     'https://bdo.com.ph/pay?amount={AMOUNT}&ref={REF}&acct=0012345678',
-    },
-    cash: {
-      name:       'Cash / Manual',
-      color:      '#2a9080',
-      colorLight: '#eaf8f5',
-      icon:       '💵',
-      account:    'Hiraya Office',
-      num:        'Unit 3, ABC Bldg, Main St.',
-      prefix:     null,
-    },
+    gcash: { name: 'GCash',          color: '#0070e0', colorLight: '#e8f4ff', icon: '💙', account: 'Hiraya Lending',      num: '+63 917 000 1234',       prefix: 'https://gcash.com/pay?amount={AMOUNT}&ref={REF}&to=09170001234' },
+    maya:  { name: 'Maya',           color: '#00b140', colorLight: '#e8f9ee', icon: '💚', account: 'Hiraya Lending',      num: '09180001234',            prefix: 'https://maya.ph/pay?amount={AMOUNT}&ref={REF}&to=09180001234' },
+    bank:  { name: 'BDO Transfer',   color: '#003087', colorLight: '#e8eeff', icon: '🏦', account: 'Hiraya Lending Corp.', num: 'Acct: 0012-3456-7890',  prefix: 'https://bdo.com.ph/pay?amount={AMOUNT}&ref={REF}&acct=0012345678' },
+    cash:  { name: 'Cash / Manual',  color: '#2a9080', colorLight: '#eaf8f5', icon: '💵', account: 'Hiraya Office',       num: 'Unit 3, ABC Bldg, Main St.', prefix: null },
   };
 
-  /* ================================================================
-     INIT
-  ================================================================ */
+  /* ── Init ── */
   document.addEventListener('DOMContentLoaded', function () {
     hideSection('sectionStep2');
     hideSection('sectionStep3');
@@ -100,8 +230,19 @@
     if (el) el.value = val;
   }
 
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   /* ================================================================
-     STEP INDICATOR — Updated para suportahan ang 5 steps
+     STEP INDICATOR
   ================================================================ */
   function setStep(active) {
     currentStep = active;
@@ -123,7 +264,6 @@
     document.querySelectorAll('.loan-select-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
     selectedLoanData = { id, ref, amount, type, due };
-
     setTimeout(() => {
       hideSection('sectionSelectLoan');
       showSection('sectionStep2');
@@ -139,7 +279,6 @@
     selectedMethod = method;
     document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
-
     const btn = document.getElementById('btnContinueToQR');
     if (btn) { btn.disabled = false; btn.classList.add('ready'); }
   };
@@ -157,8 +296,7 @@
     hideSection('sectionStep2');
     showSection('sectionSelectLoan');
     document.querySelectorAll('.loan-select-card').forEach(c => c.classList.remove('selected'));
-    selectedLoanData = null;
-    selectedMethod   = null;
+    selectedLoanData = null; selectedMethod = null;
     scrollToSection('sectionSelectLoan');
     setStep(1);
   };
@@ -169,11 +307,9 @@
   function buildQRScreen() {
     const d    = methodDetails[selectedMethod];
     const loan = selectedLoanData;
-
     const ref    = 'HRY-' + loan.id + '-' + Date.now().toString(36).toUpperCase().slice(-6);
     const amount = parseFloat(loan.amount).toFixed(2);
-
-    const today   = new Date();
+    const today  = new Date();
     const payDate = today.getFullYear() + '-' +
                     String(today.getMonth() + 1).padStart(2, '0') + '-' +
                     String(today.getDate()).padStart(2, '0');
@@ -190,13 +326,13 @@
     document.getElementById('qrMethodBadge').textContent      = d.icon + ' ' + d.name;
     document.getElementById('qrMethodBadge').style.background = d.colorLight;
     document.getElementById('qrMethodBadge').style.color      = d.color;
-    document.getElementById('qrLoanRef').textContent          = loan.ref;
-    document.getElementById('qrLoanType').textContent         = loan.type;
-    document.getElementById('qrAmount').textContent           = '₱' + parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-    document.getElementById('qrDueDate').textContent          = loan.due;
-    document.getElementById('qrRefNum').textContent           = ref;
-    document.getElementById('qrAccountName').textContent      = d.account;
-    document.getElementById('qrAccountNum').textContent       = d.num;
+    setText('qrLoanRef',  loan.ref);
+    setText('qrLoanType', loan.type);
+    setText('qrDueDate',  loan.due);
+    setText('qrAmount',   '₱' + parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 }));
+    setText('qrRefNum',   ref);
+    setText('qrAccountName', d.account);
+    setText('qrAccountNum',  d.num);
 
     const form = document.getElementById('paymentForm');
     if (form) form.action = '/borrower/payments/make/' + loan.id;
@@ -210,71 +346,51 @@
     if (selectedMethod === 'cash') {
       document.getElementById('qrCodeWrap').style.display       = 'none';
       document.getElementById('cashInstructions').style.display = 'block';
-      if (document.getElementById('qrScanHint'))
-        document.getElementById('qrScanHint').style.display     = 'none';
+      const hint = document.getElementById('qrScanHint');
+      if (hint) hint.style.display = 'none';
     } else {
       document.getElementById('qrCodeWrap').style.display       = 'block';
       document.getElementById('cashInstructions').style.display = 'none';
-      if (document.getElementById('qrScanHint'))
-        document.getElementById('qrScanHint').style.display     = 'flex';
+      const hint = document.getElementById('qrScanHint');
+      if (hint) hint.style.display = 'flex';
       generateQR(qrData, d.color);
     }
   }
 
-  /* ================================================================
-     QR CODE GENERATION
-  ================================================================ */
   function generateQR(data, accentColor) {
     const canvas = document.getElementById('qrCanvas');
     if (!canvas) return;
-
     if (typeof QRious !== 'undefined') {
-      new QRious({
-        element:    canvas,
-        value:      data,
-        size:       200,
-        level:      'H',
-        foreground: '#1a3330',
-        background: '#ffffff',
-        padding:    10,
-      });
+      new QRious({ element: canvas, value: data, size: 200, level: 'H', foreground: '#1a3330', background: '#ffffff', padding: 10 });
       return;
     }
-
     const ctx = canvas.getContext('2d');
-    canvas.width  = 200;
-    canvas.height = 200;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 200, 200);
+    canvas.width = 200; canvas.height = 200;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 200, 200);
     drawQRCorner(ctx, 8,   8,   accentColor);
     drawQRCorner(ctx, 144, 8,   accentColor);
     drawQRCorner(ctx, 8,   144, accentColor);
-    ctx.fillStyle = '#5a7a76';
-    ctx.font      = '9px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Loading QR...', 100, 108);
-
-    loadQRious(function () {
+    ctx.fillStyle = '#5a7a76'; ctx.font = '9px monospace';
+    ctx.textAlign = 'center'; ctx.fillText('Loading QR...', 100, 108);
+    loadQRious(() => {
       if (typeof QRious !== 'undefined') {
-        new QRious({ element: canvas, value: data, size: 200, level: 'H',
-                     foreground: '#1a3330', background: '#ffffff', padding: 10 });
+        new QRious({ element: canvas, value: data, size: 200, level: 'H', foreground: '#1a3330', background: '#ffffff', padding: 10 });
       }
     });
   }
 
   function drawQRCorner(ctx, x, y, color) {
-    ctx.strokeStyle = color || '#1a3330';
-    ctx.lineWidth   = 4;
+    ctx.strokeStyle = color || '#1a3330'; ctx.lineWidth = 4;
     ctx.strokeRect(x, y, 48, 48);
-    ctx.fillStyle   = color || '#1a3330';
+    ctx.fillStyle = color || '#1a3330';
     ctx.fillRect(x + 10, y + 10, 28, 28);
   }
 
   function loadQRious(cb) {
     if (document.getElementById('qrious-script')) { cb(); return; }
-    const s  = document.createElement('script');
-    s.id     = 'qrious-script';
-    s.src    = 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js';
+    const s = document.createElement('script');
+    s.id = 'qrious-script';
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js';
     s.onload = cb;
     document.head.appendChild(s);
   }
@@ -292,10 +408,9 @@
   window.submitPayment = function () {
     const btn = document.getElementById('btnIvePaid');
     if (btn) {
-      btn.disabled  = true;
+      btn.disabled = true;
       btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Submitting…';
     }
-
     const form = document.getElementById('paymentForm');
     if (form && form.action && form.action !== '#' && !form.action.endsWith('#')) {
       form.submit();
@@ -305,47 +420,35 @@
         showSection('sectionStep4');
         scrollToSection('sectionStep4');
         setStep(4);
-        const pendingRef = document.getElementById('pendingRef');
-        if (pendingRef) pendingRef.textContent = window._paymentRef || '—';
+        setText('pendingRef', window._paymentRef || '—');
       }, 600);
     }
   };
 
   /* ================================================================
-     STEP 4 — SHOW RECEIPT + START POLLING
+     STEP 4 — SHOW + START POLLING
   ================================================================ */
   window.showStep4 = function (ref, amount, method) {
     ['sectionSelectLoan', 'sectionStep2', 'sectionStep3', 'sectionStep5'].forEach(hideSection);
     showSection('sectionStep4');
     setStep(4);
 
-    // I-save ang PAY-XXXX para gamitin sa Step 5 fetch
     _confirmedPayNo = ref || null;
 
-    const pendingRef = document.getElementById('pendingRef');
-    if (pendingRef && ref) pendingRef.textContent = ref;
+    setText('pendingRef', ref);
+    setText('receiptLoanRef', (selectedLoanData && selectedLoanData.ref) || '—');
 
-    const loanRefEl = document.getElementById('receiptLoanRef');
-    if (loanRefEl) loanRefEl.textContent = (selectedLoanData && selectedLoanData.ref) || '—';
-
-    const methodEl = document.getElementById('receiptMethod');
-    if (methodEl && method) {
+    if (method) {
       const icons = { gcash: '💙 GCash', maya: '💚 Maya', bank: '🏦 BDO Transfer', cash: '💵 Cash / Walk-in' };
-      methodEl.textContent = icons[method] || method;
+      setText('receiptMethod', icons[method] || method);
     }
 
-    const dateEl = document.getElementById('receiptDate');
-    if (dateEl) {
-      const now = new Date();
-      dateEl.textContent = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
-    }
+    const now = new Date();
+    setText('receiptDate', now.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }));
+    setText('receiptTxnRef', window._paymentRef || '—');
 
-    const txnEl = document.getElementById('receiptTxnRef');
-    if (txnEl) txnEl.textContent = window._paymentRef || '—';
-
-    const amtEl = document.getElementById('receiptAmount');
-    if (amtEl && amount) {
-      amtEl.textContent = '₱' + parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    if (amount) {
+      setText('receiptAmount', '₱' + parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 }));
     }
 
     if (ref) startPolling(ref);
@@ -356,12 +459,10 @@
   ================================================================ */
   function startPolling(payNo) {
     if (_pollInterval) clearInterval(_pollInterval);
-
     _pollInterval = setInterval(async function () {
       try {
         const res  = await fetch('/borrower/payments/status/' + payNo);
         const data = await res.json();
-
         if (data.status === 'completed' || data.status === 'approved' || data.status === 'verified') {
           clearInterval(_pollInterval);
           setTimelineCompleted();
@@ -369,98 +470,52 @@
           clearInterval(_pollInterval);
           setTimelineRejected();
         }
-      } catch (e) {
-        console.warn('Polling error:', e);
-      }
+      } catch (e) { console.warn('Polling error:', e); }
     }, 5000);
   }
 
   function setTimelineCompleted() {
-    const tlVerification = document.getElementById('tl-verification');
-    if (tlVerification) {
-      tlVerification.classList.remove('pending');
-      tlVerification.classList.add('done');
-      const sub = document.getElementById('tl-verification-sub');
-      if (sub) sub.textContent = 'Verified by admin';
-    }
-
-    const tlReceipt = document.getElementById('tl-receipt');
-    if (tlReceipt) {
-      tlReceipt.classList.remove('todo');
-      tlReceipt.classList.add('done');
-      const sub = document.getElementById('tl-receipt-sub');
-      if (sub) sub.textContent = 'Available now';
-    }
-
+    const tlV = document.getElementById('tl-verification');
+    if (tlV) { tlV.classList.remove('pending'); tlV.classList.add('done'); setText('tl-verification-sub', 'Verified by admin'); }
+    const tlR = document.getElementById('tl-receipt');
+    if (tlR) { tlR.classList.remove('todo'); tlR.classList.add('done'); setText('tl-receipt-sub', 'Available now'); }
     const banner = document.getElementById('receiptIssuedBanner');
-    if (banner) {
-      banner.style.display = 'flex';
-      banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    if (banner) { banner.style.display = 'flex'; banner.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   }
 
   function setTimelineRejected() {
-    const tlVerification = document.getElementById('tl-verification');
-    if (tlVerification) {
-      tlVerification.classList.remove('pending');
-      tlVerification.classList.add('rejected');
-      const sub = document.getElementById('tl-verification-sub');
-      if (sub) sub.textContent = 'Payment was rejected';
-    }
-
+    const tlV = document.getElementById('tl-verification');
+    if (tlV) { tlV.classList.remove('pending'); tlV.classList.add('rejected'); setText('tl-verification-sub', 'Payment was rejected'); }
     const banner = document.getElementById('receiptRejectedBanner');
-    if (banner) {
-      banner.style.display = 'flex';
-      banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    if (banner) { banner.style.display = 'flex'; banner.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   }
 
   /* ================================================================
      STEP 4 → STEP 5: LOAD INLINE E-RECEIPT
-     Tinatawag ng "View E-Receipt →" button sa approved banner
   ================================================================ */
   window.loadAndShowReceipt = function () {
     const payNo = _confirmedPayNo;
-    if (!payNo) {
-      console.warn('No confirmed pay_no available for receipt fetch.');
-      return;
-    }
+    if (!payNo) return;
 
-    // GUARD: I-verify muna ang status bago pumunta sa Step 5.
-    // Kung 'pending' pa rin, huwag ituloy — ibig sabihin
-    // hindi pa na-approve ng admin at hindi available ang receipt.
     fetch('/borrower/payments/status/' + payNo)
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
+      .then(r => r.json())
+      .then(data => {
         if (data.status !== 'approved' && data.status !== 'completed' && data.status !== 'verified') {
-          // Hindi pa approved — ibalik sa Step 4, huwag ituloy
-          console.warn('Receipt not yet available, status:', data.status);
-          const banner = document.getElementById('receiptIssuedBanner');
-          if (banner) banner.style.display = 'none'; // itago muli ang banner
-          // Ipakita ang maliit na mensahe sa approved banner area
-          const errMsg = document.getElementById('receiptIssuedBanner');
-          // Mag-alert lang para hindi malito ang user
+          document.getElementById('receiptIssuedBanner').style.display = 'none';
           alert('Payment is not yet approved. Please wait for admin verification.');
           return;
         }
-        // Approved na — ituloy ang Step 5
         _goToStep5WithReceipt(payNo);
       })
-      .catch(function () {
-        // Kung nag-fail ang status check, ituloy pa rin ang fetch
-        // (baka network blip lang) — mas mabuti kaysa magblock
-        _goToStep5WithReceipt(payNo);
-      });
+      .catch(() => _goToStep5WithReceipt(payNo));
   };
 
   function _goToStep5WithReceipt(payNo) {
-    // I-show ang Step 5, reset states
     hideSection('sectionStep4');
     showSection('sectionStep5');
     scrollToSection('sectionStep5');
     setStep(5);
 
-    // Reset UI states sa loob ng Step 5
     const loadingEl = document.getElementById('receiptLoading');
     const errorEl   = document.getElementById('receiptError');
     const cardEl    = document.getElementById('erCard');
@@ -469,42 +524,27 @@
     if (errorEl)   errorEl.style.display   = 'none';
     if (cardEl)    cardEl.style.display     = 'none';
 
-    // Fetch receipt data mula sa JSON endpoint
     fetch('/borrower/payments/receipt-data/' + payNo)
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
-      .then(function (data) {
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(data => {
         if (data.error) throw new Error(data.error);
         populateReceiptCard(data);
         if (loadingEl) loadingEl.style.display = 'none';
         if (cardEl)    cardEl.style.display     = 'block';
       })
-      .catch(function (err) {
+      .catch(err => {
         console.error('Receipt fetch error:', err);
         if (loadingEl) loadingEl.style.display = 'none';
-        if (errorEl) {
-          errorEl.style.display = 'flex';
-          const msgEl = document.getElementById('receiptErrorMsg');
-          if (msgEl) msgEl.textContent = 'Could not load receipt. Please try again.';
-        }
+        if (errorEl)   errorEl.style.display   = 'flex';
+        setText('receiptErrorMsg', 'Could not load receipt. Please try again.');
       });
   }
 
-  /* ================================================================
-     POPULATE RECEIPT CARD (Step 5)
-     Mga id prefix "er" = "e-receipt" para walang conflict sa Step 4
-  ================================================================ */
   function populateReceiptCard(data) {
-    // Payment reference
     setText('erPayNo', data.payment_no);
-
-    // Amount
     const amt = parseFloat(data.amount_paid);
     setText('erAmountVal', '₱' + amt.toLocaleString('en-PH', { minimumFractionDigits: 2 }));
 
-    // Method badge
     const methodBadgeEl = document.getElementById('erMethodBadge');
     if (methodBadgeEl) {
       const badgeMap = {
@@ -513,26 +553,19 @@
         bank:  '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:#e8eeff;color:#003087;font-size:12px;font-weight:700;">🏦 BDO Transfer</span>',
         cash:  '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:#eaf8f5;color:#2a9080;font-size:12px;font-weight:700;">💵 Cash / Walk-in</span>',
       };
-      methodBadgeEl.innerHTML = badgeMap[data.payment_method] ||
-        '<span style="font-weight:600">' + (data.payment_method || '—') + '</span>';
+      methodBadgeEl.innerHTML = badgeMap[data.payment_method] || '<span style="font-weight:600">' + (data.payment_method || '—') + '</span>';
     }
 
-    // Other fields
-    setText('erTxnRef',      data.reference_number || '—');
-    setText('erPaymentDate', data.payment_date     || '—');
-    setText('erDateVerified',data.date_verified    || '—');
-    setText('erLoanRef',     data.loan_ref         || '—');
-    setText('erLoanType',    data.type_name        || '—');
-    setText('erBorrowerName',data.borrower_name    || '—');
-  }
-
-  function setText(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
+    setText('erTxnRef',       data.reference_number || '—');
+    setText('erPaymentDate',  data.payment_date     || '—');
+    setText('erDateVerified', data.date_verified    || '—');
+    setText('erLoanRef',      data.loan_ref         || '—');
+    setText('erLoanType',     data.type_name        || '—');
+    setText('erBorrowerName', data.borrower_name    || '—');
   }
 
   /* ================================================================
-     STEP 5: BACK TO STEP 4
+     STEP 5: BACK + PRINT
   ================================================================ */
   window.backToStep4 = function () {
     hideSection('sectionStep5');
@@ -541,20 +574,11 @@
     setStep(4);
   };
 
-  /* ================================================================
-     STEP 5: PRINT RECEIPT
-     I-hide lang ang top actions bago i-print, i-restore pagkatapos
-  ================================================================ */
   window.printReceipt = function () {
     const topActions = document.querySelector('.er-top-actions');
     if (topActions) topActions.style.display = 'none';
-
     window.print();
-
-    // I-restore pagkatapos ng print dialog
-    setTimeout(function () {
-      if (topActions) topActions.style.display = '';
-    }, 1000);
+    setTimeout(() => { if (topActions) topActions.style.display = ''; }, 1000);
   };
 
   /* ================================================================

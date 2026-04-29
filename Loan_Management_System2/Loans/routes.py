@@ -18,15 +18,11 @@ loans_bp = Blueprint(
 # ================================================================
 # SECTION 1: UPLOAD PATH CONFIGURATION
 # ================================================================
-# ✅ FIX: Centralized upload root — both loans.py and borrower.py
-#         now read/write from the same folder under Authentication.
-#         This ensures view_doc, view_payment_proof, and upload_document
-#         all look at the same physical path.
-_BASE_DIR        = os.path.dirname(__file__)                     # .../Loans/
+_BASE_DIR        = os.path.dirname(__file__)
 _AUTH_STATIC     = os.path.join(_BASE_DIR, '..', 'Authentication', 'static')
-UPLOAD_ROOT      = os.path.join(_AUTH_STATIC, 'uploads')        # .../Authentication/static/uploads/
-UPLOAD_DOCS      = os.path.join(UPLOAD_ROOT, 'documents')       # .../uploads/documents/
-UPLOAD_PROOFS    = os.path.join(UPLOAD_ROOT, 'proofs')          # .../uploads/proofs/
+UPLOAD_ROOT      = os.path.join(_AUTH_STATIC, 'uploads')
+UPLOAD_DOCS      = os.path.join(UPLOAD_ROOT, 'documents')
+UPLOAD_PROOFS    = os.path.join(UPLOAD_ROOT, 'proofs')
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
@@ -112,7 +108,6 @@ def build_amortization(principal, annual_rate, months, start_date):
 # SECTION 3: LOAN TYPES & PLANS
 # ================================================================
 
-# 3.1 LOAN TYPES LIST
 @loans_bp.route('/loan-types')
 @login_required
 def loan_types():
@@ -138,7 +133,6 @@ def loan_types():
     return render_template('loan_types.html', types=types)
 
 
-# 3.2 VIEW PLANS UNDER A LOAN TYPE
 @loans_bp.route('/loan-types/<int:type_id>/plans')
 @login_required
 def loan_plans(type_id):
@@ -167,7 +161,6 @@ def loan_plans(type_id):
     return render_template('loan_plans.html', loan_type=loan_type, plans=plans)
 
 
-# 3.3 API: GET PLANS BY LOAN TYPE (AJAX)
 @loans_bp.route('/api/plans/<int:type_id>')
 @login_required
 def api_plans(type_id):
@@ -190,7 +183,6 @@ def api_plans(type_id):
         return jsonify({'error': str(e)}), 500
 
 
-# 3.4 API: LOAN CALCULATOR (AJAX)
 @loans_bp.route('/api/calculate', methods=['POST'])
 @login_required
 def api_calculate():
@@ -215,7 +207,6 @@ def api_calculate():
 # SECTION 4: LOAN APPLICATION FLOW
 # ================================================================
 
-# 4.1 APPLY FOR LOAN (GET/POST)
 @loans_bp.route('/apply', methods=['GET', 'POST'])
 @login_required
 @role_required('borrower')
@@ -243,12 +234,10 @@ def apply():
         conn.close()
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-        # ✅ FIX: was url_for('loans_bp.dashboard') — invalid endpoint
         return redirect(url_for('borrower.borrower_dashboard'))
 
     if user['id_verification_status'] != 'verified':
         flash('Your ID must be verified before applying for a loan.', 'warning')
-        # ✅ FIX: was url_for('loans_bp.borrower_dashboard') — invalid endpoint
         return redirect(url_for('borrower.borrower_dashboard'))
 
     if request.method == 'POST':
@@ -349,7 +338,6 @@ def apply():
                            selected_plan_id=selected_plan_id)
 
 
-# 4.2 MY APPLICATIONS (LIST)
 @loans_bp.route('/my-applications')
 @login_required
 @role_required('borrower')
@@ -395,7 +383,6 @@ def my_applications():
                            notifications=notifications)
 
 
-# 4.3 APPLICATION DETAIL
 @loans_bp.route('/applications/<int:app_id>')
 @login_required
 @role_required('borrower')
@@ -445,7 +432,6 @@ def application_detail(app_id):
 # SECTION 5: ACTIVE LOANS MANAGEMENT
 # ================================================================
 
-# 5.1 MY LOANS (LIST)
 @loans_bp.route('/my-loans')
 @login_required
 @role_required('borrower')
@@ -471,7 +457,6 @@ def my_loans():
     return render_template('my_loans.html', loans=my_loan_list)
 
 
-# 5.2 LOAN DETAIL
 @loans_bp.route('/my-loans/<int:loan_id>')
 @login_required
 @role_required('borrower')
@@ -504,10 +489,6 @@ def loan_detail(loan_id):
         cursor.close()
         conn.close()
  
-        # ── FIX: I-convert ang is_paid (0/1) papuntang status string ──────
-        # Ang HTML template ay gumagamit ng row.status para sa badge at filter.
-        # Ang amortization_schedule table ay may is_paid column (boolean),
-        # hindi status string — kaya laging 'upcoming' dati ang naisa-show.
         import datetime as dt
         today = dt.date.today()
  
@@ -516,7 +497,6 @@ def loan_detail(loan_id):
             if row.get('is_paid') == 1 or row.get('is_paid') is True:
                 row['status'] = 'paid'
             else:
-                # Check if overdue
                 due = row.get('due_date')
                 if due and isinstance(due, dt.date) and due < today:
                     row['status'] = 'overdue'
@@ -537,7 +517,6 @@ def loan_detail(loan_id):
 # SECTION 6: NOTIFICATIONS SYSTEM
 # ================================================================
 
-# 6.1 FULL NOTIFICATIONS PAGE
 @loans_bp.route('/notifications')
 @login_required
 def notifications_page():
@@ -571,7 +550,6 @@ def notifications_page():
                            unread_count=unread_count)
 
 
-# 6.2 API: GET UNREAD NOTIFICATION COUNT (AJAX)
 @loans_bp.route('/api/notifications/count')
 @login_required
 def notif_count():
@@ -590,7 +568,6 @@ def notif_count():
         return jsonify({'count': 0})
 
 
-# 6.3 API: GET NOTIFICATIONS LIST (AJAX)
 @loans_bp.route('/api/notifications')
 @login_required
 def notif_list():
@@ -627,7 +604,6 @@ def notif_list():
         return jsonify({'notifications': [], 'error': str(e)})
 
 
-# 6.4 API: MARK SINGLE NOTIFICATION AS READ (AJAX)
 @loans_bp.route('/api/notifications/<int:notif_id>/read', methods=['POST'])
 @login_required
 def notif_mark_read(notif_id):
@@ -646,7 +622,6 @@ def notif_mark_read(notif_id):
         return jsonify({'success': False, 'error': str(e)})
 
 
-# 6.5 API: MARK ALL NOTIFICATIONS AS READ (AJAX)
 @loans_bp.route('/api/notifications/read-all', methods=['POST'])
 @login_required
 def notif_mark_all_read():
@@ -669,28 +644,17 @@ def notif_mark_all_read():
 # SECTION 7: DOCUMENT VIEWING & PDF GENERATION
 # ================================================================
 
-# 7.1 VIEW KYC / APPLICATION / ID DOCUMENTS
 @loans_bp.route('/view-doc/<string:filename>')
 @login_required
 def view_doc(filename):
-    """
-    ✅ FIX: Now checks both UPLOAD_DOCS and UPLOAD_ROOT (for ID/selfie files).
-    Both borrower.py and loans.py save to the same Authentication/static/uploads
-    paths defined at the top of this file.
-    """
     if os.path.exists(os.path.join(UPLOAD_DOCS, filename)):
         return send_from_directory(UPLOAD_DOCS, filename)
     return send_from_directory(UPLOAD_ROOT, filename)
 
 
-# 7.2 VIEW PAYMENT PROOFS
 @loans_bp.route('/payment-proof/<int:payment_id>')
 @login_required
 def view_payment_proof(payment_id):
-    """
-    ✅ FIX: Uses centralized UPLOAD_PROOFS path.
-    Both borrower.py (make_payment) and this view now point to the same folder.
-    """
     conn   = get_db()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
@@ -705,11 +669,9 @@ def view_payment_proof(payment_id):
         return send_from_directory(UPLOAD_PROOFS, res['screenshot_path'])
 
     flash('File not found.', 'danger')
-    # ✅ FIX: was url_for('auth.my_documents') — moved to borrower blueprint
     return redirect(url_for('borrower.my_documents'))
 
 
-# 7.3 PDF RECEIPT DOWNLOAD
 @loans_bp.route('/download-receipt/<int:payment_id>')
 @login_required
 def download_receipt(payment_id):
@@ -755,7 +717,7 @@ def download_receipt(payment_id):
     )
 
 
-# 7.4 PDF LOAN AGREEMENT
+# 7.4 PDF LOAN AGREEMENT - FIXED with inline viewing
 @loans_bp.route('/download-agreement/<int:loan_id>')
 @login_required
 def download_agreement(loan_id):
@@ -774,41 +736,375 @@ def download_agreement(loan_id):
 
         if not loan:
             flash('Loan record not found.', 'danger')
-            # ✅ FIX: was url_for('auth.my_documents')
             return redirect(url_for('borrower.my_documents'))
 
         html = f"""
-        <html>
-          <body style="font-family:Helvetica;padding:30px;">
-            <h1 style="text-align:center;">LOAN AGREEMENT</h1>
-            <p>This document certifies that <strong>{loan['full_name']}</strong>
-               has an active loan with reference number:
-               <strong>{loan['loan_no']}</strong>.</p>
-            <p>Principal Amount: PHP {float(loan['principal_amount']):,.2f}</p>
-            <p>Date of Issue: {datetime.datetime.now().strftime('%Y-%m-%d')}</p>
-            <br><br>
-            <p>__________________________</p>
-            <p>Authorized Signature</p>
-          </body>
-        </html>
-        """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @page {{
+    size: A4;
+    margin: 1.5cm;
+  }}
+
+  * {{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }}
+
+  body {{
+    font-family: Helvetica, Arial, sans-serif;
+    background: #fff;
+    color: #2c3e2f;
+    font-size: 11pt;
+    line-height: 1.5;
+  }}
+
+  .header {{
+    background: #1a6b5e;
+    padding: 25px 30px 20px;
+    margin-bottom: 25px;
+    text-align: center;
+  }}
+
+  .logo {{
+    font-size: 28px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 8px;
+  }}
+
+  .brand-name {{
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+  }}
+
+  .brand-sub {{
+    font-size: 10px;
+    color: #c8e6e0;
+    margin-bottom: 15px;
+  }}
+
+  .header-title {{
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 2px;
+    margin: 15px 0 10px;
+  }}
+
+  .ref-pill {{
+    background: #0d5247;
+    padding: 5px 15px;
+    font-size: 9pt;
+    color: #e0f0ec;
+    display: inline-block;
+  }}
+
+  .body {{
+    padding: 0 10px;
+  }}
+
+  .section-label {{
+    font-size: 11pt;
+    font-weight: bold;
+    color: #1a6b5e;
+    border-bottom: 2px solid #1a6b5e;
+    margin: 20px 0 12px 0;
+    padding-bottom: 5px;
+  }}
+
+  .section-label-first {{
+    font-size: 11pt;
+    font-weight: bold;
+    color: #1a6b5e;
+    border-bottom: 2px solid #1a6b5e;
+    margin: 0 0 12px 0;
+    padding-bottom: 5px;
+  }}
+
+  .overview-text {{
+    background: #f0f8f6;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    text-align: justify;
+    border: 1px solid #d0e6e0;
+  }}
+
+  .loan-details-card {{
+    border: 1px solid #d0e6e0;
+    margin-bottom: 20px;
+    background: #fff;
+  }}
+
+  .details-header {{
+    background: #e8f3f0;
+    padding: 8px 15px;
+    border-bottom: 1px solid #d0e6e0;
+    font-weight: bold;
+    font-size: 10pt;
+    color: #1a6b5e;
+  }}
+
+  .details-table {{
+    width: 100%;
+    border-collapse: collapse;
+  }}
+
+  .details-table td {{
+    padding: 10px 15px;
+    vertical-align: top;
+    border-bottom: 1px solid #f0f0f0;
+  }}
+
+  .detail-label {{
+    font-size: 8pt;
+    font-weight: bold;
+    color: #6b8f88;
+    display: block;
+    text-transform: uppercase;
+  }}
+
+  .detail-value {{
+    font-size: 11pt;
+    font-weight: bold;
+    color: #2c3e2f;
+  }}
+
+  .status-badge {{
+    background: #e8f5f2;
+    color: #1a6b5e;
+    padding: 2px 8px;
+    font-size: 9pt;
+    font-weight: bold;
+    display: inline-block;
+  }}
+
+  .term-item {{
+    margin-bottom: 12px;
+    text-align: justify;
+  }}
+
+  .term-number {{
+    font-weight: bold;
+    color: #1a6b5e;
+  }}
+
+  .acknowledge-box {{
+    background: #fef9e8;
+    border-left: 4px solid #d4a373;
+    padding: 12px 15px;
+    margin: 20px 0 25px;
+    text-align: center;
+  }}
+
+  .signatures {{
+    margin: 25px 0 20px;
+  }}
+
+  .sig-table {{
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }}
+
+  .sig-table td {{
+    width: 50%;
+    padding: 0 15px;
+    vertical-align: top;
+  }}
+
+  .sig-table td:first-child {{
+    padding-left: 0;
+  }}
+
+  .sig-table td:last-child {{
+    padding-right: 0;
+  }}
+
+  .sig-card {{
+    background: #fafdfc;
+    border: 1px solid #d0e6e0;
+    padding: 25px 15px 15px 15px;
+    text-align: center;
+  }}
+
+  .sig-line {{
+    border-top: 1px solid #b8d4cc;
+    width: 80%;
+    margin: 0 auto 8px auto;
+  }}
+
+  .sig-name {{
+    font-size: 11pt;
+    font-weight: bold;
+    color: #2c3e2f;
+    margin: 5px 0 2px;
+  }}
+
+  .sig-role {{
+    font-size: 9pt;
+    color: #6b8f88;
+  }}
+
+  .sig-date {{
+    font-size: 8pt;
+    color: #9bbdb5;
+    margin-top: 8px;
+  }}
+
+  .divider {{
+    border-top: 1px solid #d0e6e0;
+    margin: 15px 0 10px;
+  }}
+
+  .footer {{
+    border-top: 1px solid #d0e6e0;
+    padding-top: 12px;
+    margin-top: 20px;
+    font-size: 8pt;
+    color: #9bbdb5;
+    text-align: center;
+  }}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Hiraya</div>
+  <div class="brand-name">Management System</div>
+  <div class="brand-sub">Financial Services</div>
+  <div class="header-title">LOAN AGREEMENT</div>
+  <div class="ref-pill">
+    Reference No. {loan['loan_no']} &nbsp;|&nbsp; Issued {datetime.datetime.now().strftime('%B %d, %Y')}
+  </div>
+</div>
+
+<div class="body">
+
+  <div class="section-label-first">Overview</div>
+  <div class="overview-text">
+    This Loan Agreement is entered into as of <strong>{datetime.datetime.now().strftime('%B %d, %Y')}</strong>,
+    between <strong>Hiraya Management System</strong> (the "Lender") and
+    <strong>{loan['full_name']}</strong> (the "Borrower"). By accepting or signing this agreement,
+    the Borrower agrees to all terms and conditions set forth herein.
+  </div>
+
+  <div class="section-label">Loan Details</div>
+  <div class="loan-details-card">
+    <div class="details-header">📋 Loan Information</div>
+    <table class="details-table">
+      <tr>
+        <td style="width: 50%;">
+          <span class="detail-label">Loan Reference No.</span>
+          <span class="detail-value">{loan['loan_no']}</span>
+        </td>
+        <td style="width: 50%;">
+          <span class="detail-label">Date of Issue</span>
+          <span class="detail-value">{datetime.datetime.now().strftime('%B %d, %Y')}</span>
+         </td>
+      </tr>
+      <tr>
+        <tr>
+          <span class="detail-label">Borrower</span>
+          <span class="detail-value">{loan['full_name']}</span>
+        </td>
+        <td>
+          <span class="detail-label">Status</span>
+          <span class="status-badge">{loan.get('status', 'Active').title()}</span>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <span class="detail-label">Principal Amount</span>
+          <span class="detail-value">PHP {float(loan['principal_amount']):,.2f}</span>
+        </td>
+        <td>
+          <span class="detail-label">Document Type</span>
+          <span class="detail-value">Loan Agreement</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section-label">Terms &amp; Conditions</div>
+  <div class="terms">
+    <div class="term-item"><span class="term-number">1. Repayment.</span> The Borrower agrees to repay the full loan amount plus applicable interest on the agreed schedule. Failure to pay on time may result in penalties and additional charges as defined in the company policy.</div>
+    <div class="term-item"><span class="term-number">2. Interest.</span> Interest shall be computed based on the loan type and plan selected at the time of application, as reflected in the amortization schedule provided to the Borrower upon loan release.</div>
+    <div class="term-item"><span class="term-number">3. Late Payment.</span> A penalty charge of <strong>2% per month</strong> shall be imposed on any overdue amount. Continued non-payment may result in loan restructuring or legal action without further notice.</div>
+    <div class="term-item"><span class="term-number">4. Prepayment.</span> The Borrower may prepay all or part of the outstanding balance at any time without penalty. Prepayments shall be applied first to accrued interest, then to the remaining principal balance.</div>
+    <div class="term-item"><span class="term-number">5. Default.</span> The loan shall be in default if payment is not received within <strong>30 days</strong> of the due date, making the entire outstanding balance immediately due and payable.</div>
+    <div class="term-item"><span class="term-number">6. Governing Law.</span> This Agreement shall be governed by the laws of the Republic of the Philippines. Any disputes shall be settled in the proper courts of jurisdiction in the city where the Lender operates.</div>
+  </div>
+
+  <div class="acknowledge-box">
+    <strong>📄 Acknowledgment</strong><br/>
+    By signing below, the Borrower acknowledges having read, understood, and agreed to all the
+    terms and conditions of this Loan Agreement. The Borrower confirms that all information provided
+    is true and correct.
+  </div>
+
+  <div class="section-label">Signatures</div>
+  <div class="signatures">
+    <table class="sig-table">
+      <tr>
+        <td>
+          <div class="sig-card">
+            <div class="sig-line"></div>
+            <div class="sig-name">{loan['full_name']}</div>
+            <div class="sig-role">Borrower</div>
+            <div class="sig-date">Date: _________________</div>
+          </div>
+        </td>
+        <td>
+          <div class="sig-card">
+            <div class="sig-line"></div>
+            <div class="sig-name">Hiraya Management System</div>
+            <div class="sig-role">Authorized Signatory</div>
+            <div class="sig-date">Date: _________________</div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="footer">
+    Generated by Hiraya Management System &nbsp;|&nbsp; {datetime.datetime.now().strftime('%B %d, %Y')}
+    &nbsp;|&nbsp; Ref: {loan['loan_no']} &nbsp;|&nbsp; <strong>CONFIDENTIAL</strong>
+  </div>
+
+</div>
+</body>
+</html>
+"""
+
         pdf_out = io.BytesIO()
         pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf_out)
         pdf_out.seek(0)
 
+        # Get inline parameter from request
+        # ?inline=1 = display in browser (for View button)
+        # no inline or ?inline=0 = download (for Download button)
+        inline = request.args.get('inline', '0') == '1'
+
         return send_file(
             pdf_out,
             mimetype='application/pdf',
-            as_attachment=True,
+            as_attachment=not inline,  # If inline=True, don't force download
             download_name=f"Agreement_{loan['loan_no']}.pdf"
         )
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-        # ✅ FIX: was url_for('auth.my_documents')
         return redirect(url_for('borrower.my_documents'))
 
 
-# 7.5 PDF AMORTIZATION SCHEDULE
+# 7.5 PDF AMORTIZATION SCHEDULE - Consistent with Loan Agreement design
 @loans_bp.route('/amortization-pdf/<int:loan_id>')
 @login_required
 def amortization_pdf(loan_id):
@@ -816,8 +1112,12 @@ def amortization_pdf(loan_id):
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT l.*, u.full_name
-            FROM loans l JOIN users u ON l.borrower_id = u.id
+            SELECT l.*, lt.name AS type_name, lp.plan_name, lp.interest_rate,
+                   u.full_name, u.email
+            FROM loans l 
+            JOIN users u ON l.borrower_id = u.id
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            JOIN loan_plans lp ON l.loan_plan_id = lp.id
             WHERE l.id = %s
         """, (loan_id,))
         loan = cursor.fetchone()
@@ -830,38 +1130,238 @@ def amortization_pdf(loan_id):
         cursor.close()
         conn.close()
 
-        rows = ''.join([
-            f"<tr><td>{s['period_no']}</td><td>{s['due_date']}</td>"
-            f"<td>₱{float(s['principal_due']):,.2f}</td>"
-            f"<td>₱{float(s['interest_due']):,.2f}</td>"
-            f"<td>₱{float(s['total_due']):,.2f}</td>"
-            f"<td>₱{float(s['balance_after']):,.2f}</td>"
-            f"<td>{'Paid' if s['is_paid'] else 'Unpaid'}</td></tr>"
-            for s in schedule
-        ])
+        if not loan:
+            flash('Loan not found.', 'danger')
+            return redirect(url_for('borrower.my_documents'))
+
+        # Build schedule rows
+        rows = ''
+        for s in schedule:
+            status_text = '✓ Paid' if s['is_paid'] else '○ Upcoming'
+            rows += f"""
+            <tr>
+                <td style="padding: 8px; text-align: center; border-bottom: 1px solid #deecea;">{s['period_no']}</td>
+                <td style="padding: 8px; text-align: center; border-bottom: 1px solid #deecea;">{s['due_date'].strftime('%b %d, %Y') if s['due_date'] else '—'}</td>
+                <td style="padding: 8px; text-align: right; border-bottom: 1px solid #deecea;">₱{float(s['principal_due']):,.2f}</td>
+                <td style="padding: 8px; text-align: right; border-bottom: 1px solid #deecea;">₱{float(s['interest_due']):,.2f}</td>
+                <td style="padding: 8px; text-align: right; border-bottom: 1px solid #deecea; font-weight: bold;">₱{float(s['total_due']):,.2f}</td>
+                <td style="padding: 8px; text-align: right; border-bottom: 1px solid #deecea;">₱{float(s['balance_after']):,.2f}</td>
+                <td style="padding: 8px; text-align: center; border-bottom: 1px solid #deecea;">
+                    <span style="background: {'#e8f5f2' if s['is_paid'] else '#fffbea'}; color: {'#1a6b5e' if s['is_paid'] else '#d97706'}; padding: 2px 8px; border-radius: 12px; font-size: 9px;">
+                        {status_text}
+                    </span>
+                </td>
+            </tr>
+            """
 
         html = f"""
-        <html>
-          <body style="font-family:Helvetica;padding:20px;">
-            <h2>Amortization Schedule — {loan['loan_no']}</h2>
-            <p>Borrower: {loan['full_name']}</p>
-            <table border="1" cellpadding="4" cellspacing="0" width="100%">
-              <thead>
-                <tr><th>#</th><th>Due Date</th><th>Principal</th>
-                    <th>Interest</th><th>Total</th><th>Balance</th><th>Status</th></tr>
-              </thead>
-              <tbody>{rows}</tbody>
-            </table>
-          </body>
-        </html>
-        """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @page {{
+    size: A4 landscape;
+    margin: 1.5cm;
+  }}
+
+  * {{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }}
+
+  body {{
+    font-family: Helvetica, Arial, sans-serif;
+    background: #fff;
+    color: #2c3e2f;
+    font-size: 10pt;
+    line-height: 1.5;
+  }}
+
+  .header {{
+    background: #1a6b5e;
+    padding: 20px 30px 15px;
+    margin-bottom: 20px;
+    text-align: center;
+  }}
+
+  .logo {{
+    font-size: 22px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 5px;
+  }}
+
+  .brand-sub {{
+    font-size: 9px;
+    color: #c8e6e0;
+    margin-bottom: 10px;
+  }}
+
+  .header-title {{
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 1px;
+    margin: 8px 0 8px;
+  }}
+
+  .ref-pill {{
+    background: #0d5247;
+    padding: 4px 12px;
+    font-size: 8pt;
+    color: #e0f0ec;
+    display: inline-block;
+  }}
+
+  .body {{
+    padding: 0 10px;
+  }}
+
+  .section-label {{
+    font-size: 11pt;
+    font-weight: bold;
+    color: #1a6b5e;
+    border-bottom: 2px solid #1a6b5e;
+    margin: 15px 0 12px 0;
+    padding-bottom: 5px;
+  }}
+
+  .loan-info {{
+    background: #f0f8f6;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border: 1px solid #d0e6e0;
+  }}
+
+  .info-table {{
+    width: 100%;
+    border-collapse: collapse;
+  }}
+
+  .info-table td {{
+    padding: 5px 8px;
+    vertical-align: top;
+  }}
+
+  .info-label {{
+    font-size: 8pt;
+    font-weight: bold;
+    color: #6b8f88;
+    width: 100px;
+  }}
+
+  .info-value {{
+    font-size: 10pt;
+    color: #2c3e2f;
+  }}
+
+  table {{
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }}
+
+  th {{
+    background: #e8f3f0;
+    padding: 8px 6px;
+    font-size: 9pt;
+    font-weight: bold;
+    color: #1a6b5e;
+    text-align: center;
+    border-bottom: 1px solid #d0e6e0;
+  }}
+
+  td {{
+    border-bottom: 1px solid #deecea;
+  }}
+
+  .footer {{
+    border-top: 1px solid #d0e6e0;
+    padding-top: 10px;
+    margin-top: 20px;
+    font-size: 8pt;
+    color: #9bbdb5;
+    text-align: center;
+  }}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Hiraya</div>
+  <div class="brand-sub">Management System</div>
+  <div class="header-title">AMORTIZATION SCHEDULE</div>
+  <div class="ref-pill">
+    Loan Reference: {loan['loan_no']} &nbsp;|&nbsp; Generated {datetime.datetime.now().strftime('%B %d, %Y')}
+  </div>
+</div>
+
+<div class="body">
+
+  <div class="section-label">Loan Information</div>
+  <div class="loan-info">
+    <table class="info-table">
+      <tr>
+        <td><span class="info-label">Borrower:</span></td>
+        <td><span class="info-value">{loan['full_name']}</span></td>
+        <td><span class="info-label">Loan Type:</span></td>
+        <td><span class="info-value">{loan['type_name']}</span></td>
+      </tr>
+      <tr>
+        <td><span class="info-label">Principal Amount:</span></td>
+        <td><span class="info-value">₱{float(loan['principal_amount']):,.2f}</span></td>
+        <td><span class="info-label">Interest Rate:</span></td>
+        <td><span class="info-value">{loan['interest_rate']}%</span></td>
+      </tr>
+      <tr>
+        <td><span class="info-label">Term:</span></td>
+        <td><span class="info-value">{len(schedule)} months</span></td>
+        <td><span class="info-label">Plan:</span></td>
+        <td><span class="info-value">{loan['plan_name']}</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section-label">Payment Schedule</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Due Date</th>
+        <th>Principal</th>
+        <th>Interest</th>
+        <th>Total Due</th>
+        <th>Balance</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Generated by Hiraya Management System &nbsp;|&nbsp; {datetime.datetime.now().strftime('%B %d, %Y')}
+    &nbsp;|&nbsp; Ref: {loan['loan_no']} &nbsp;|&nbsp; CONFIDENTIAL
+  </div>
+
+</div>
+</body>
+</html>
+"""
+
         pdf = io.BytesIO()
         pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf)
         pdf.seek(0)
+        
+        inline = request.args.get('inline', '0') == '1'
+        
         return send_file(
             pdf,
             mimetype='application/pdf',
-            as_attachment=True,
+            as_attachment=not inline,
             download_name=f"Amortization_{loan['loan_no']}.pdf"
         )
     except Exception as e:
@@ -869,7 +1369,7 @@ def amortization_pdf(loan_id):
         return redirect(url_for('borrower.my_documents'))
 
 
-# 7.6 PDF PAYMENT HISTORY
+# 7.6 PDF PAYMENT HISTORY - Consistent with Loan Agreement design
 @loans_bp.route('/payment-history-pdf/<int:loan_id>')
 @login_required
 def payment_history_pdf(loan_id):
@@ -877,8 +1377,12 @@ def payment_history_pdf(loan_id):
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT l.*, u.full_name
-            FROM loans l JOIN users u ON l.borrower_id = u.id
+            SELECT l.*, lt.name AS type_name, lp.plan_name,
+                   u.full_name, u.email
+            FROM loans l 
+            JOIN users u ON l.borrower_id = u.id
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            JOIN loan_plans lp ON l.loan_plan_id = lp.id
             WHERE l.id = %s
         """, (loan_id,))
         loan = cursor.fetchone()
@@ -892,37 +1396,271 @@ def payment_history_pdf(loan_id):
         cursor.close()
         conn.close()
 
-        rows = ''.join([
-            f"<tr><td>{p['payment_no']}</td><td>{p['payment_date']}</td>"
-            f"<td>₱{float(p['amount_paid']):,.2f}</td>"
-            f"<td>{p['payment_method']}</td><td>{p['status']}</td></tr>"
-            for p in payments
-        ])
+        # Calculate totals
+        total_paid = sum(float(p['amount_paid']) for p in payments) if payments else 0
+        remaining_balance = float(loan['principal_amount']) - total_paid if loan else 0
+
+        # Build payment rows
+        rows = ''
+        for p in payments:
+            if p['status'] == 'approved':
+                status_badge = '<span style="background:#e8f5f2; color:#1a6b5e; padding:2px 8px; border-radius:12px; font-size:9px;">✓ Approved</span>'
+            elif p['status'] == 'pending':
+                status_badge = '<span style="background:#fffbea; color:#d97706; padding:2px 8px; border-radius:12px; font-size:9px;">⏳ Pending</span>'
+            else:
+                status_badge = '<span style="background:#fdf0f0; color:#e05252; padding:2px 8px; border-radius:12px; font-size:9px;">✗ Rejected</span>'
+            
+            rows += f"""
+            <tr>
+                <td style="padding: 8px; text-align: center; border-bottom: 1px solid #deecea;">{p['payment_no']}</td>
+                <td style="padding: 8px; text-align: center; border-bottom: 1px solid #deecea;">{p['payment_date'].strftime('%b %d, %Y') if p['payment_date'] else '—'}</td>
+                <td style="padding: 8px; text-align: right; border-bottom: 1px solid #deecea; font-weight: bold;">₱{float(p['amount_paid']):,.2f}</td>
+                <td style="padding: 8px; text-align: center; border-bottom: 1px solid #deecea;">{p['payment_method'] or '—'}</td>
+                <td style="padding: 8px; text-align: center; border-bottom: 1px solid #deecea;">{status_badge}</td>
+            </tr>
+            """
 
         html = f"""
-        <html>
-          <body style="font-family:Helvetica;padding:20px;">
-            <h2>Payment History — {loan['loan_no']}</h2>
-            <p>Borrower: {loan['full_name']}</p>
-            <table border="1" cellpadding="4" cellspacing="0" width="100%">
-              <thead>
-                <tr><th>Ref</th><th>Date</th><th>Amount</th>
-                    <th>Method</th><th>Status</th></tr>
-              </thead>
-              <tbody>{rows}</tbody>
-            </table>
-          </body>
-        </html>
-        """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @page {{
+    size: A4;
+    margin: 1.5cm;
+  }}
+
+  * {{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }}
+
+  body {{
+    font-family: Helvetica, Arial, sans-serif;
+    background: #fff;
+    color: #2c3e2f;
+    font-size: 10pt;
+    line-height: 1.5;
+  }}
+
+  .header {{
+    background: #1a6b5e;
+    padding: 20px 30px 15px;
+    margin-bottom: 20px;
+    text-align: center;
+  }}
+
+  .logo {{
+    font-size: 22px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 5px;
+  }}
+
+  .brand-sub {{
+    font-size: 9px;
+    color: #c8e6e0;
+    margin-bottom: 10px;
+  }}
+
+  .header-title {{
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 1px;
+    margin: 8px 0 8px;
+  }}
+
+  .ref-pill {{
+    background: #0d5247;
+    padding: 4px 12px;
+    font-size: 8pt;
+    color: #e0f0ec;
+    display: inline-block;
+  }}
+
+  .body {{
+    padding: 0 10px;
+  }}
+
+  .section-label {{
+    font-size: 11pt;
+    font-weight: bold;
+    color: #1a6b5e;
+    border-bottom: 2px solid #1a6b5e;
+    margin: 15px 0 12px 0;
+    padding-bottom: 5px;
+  }}
+
+  .loan-info {{
+    background: #f0f8f6;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border: 1px solid #d0e6e0;
+  }}
+
+  .info-table {{
+    width: 100%;
+    border-collapse: collapse;
+  }}
+
+  .info-table td {{
+    padding: 5px 8px;
+    vertical-align: top;
+  }}
+
+  .info-label {{
+    font-size: 8pt;
+    font-weight: bold;
+    color: #6b8f88;
+    width: 100px;
+  }}
+
+  .info-value {{
+    font-size: 10pt;
+    color: #2c3e2f;
+  }}
+
+  .summary-box {{
+    background: #f0f8f6;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    border: 1px solid #d0e6e0;
+    text-align: center;
+  }}
+
+  .summary-value {{
+    font-size: 14pt;
+    font-weight: bold;
+    color: #1a6b5e;
+  }}
+
+  table {{
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }}
+
+  th {{
+    background: #e8f3f0;
+    padding: 8px 6px;
+    font-size: 9pt;
+    font-weight: bold;
+    color: #1a6b5e;
+    text-align: center;
+    border-bottom: 1px solid #d0e6e0;
+  }}
+
+  td {{
+    border-bottom: 1px solid #deecea;
+  }}
+
+  .footer {{
+    border-top: 1px solid #d0e6e0;
+    padding-top: 10px;
+    margin-top: 20px;
+    font-size: 8pt;
+    color: #9bbdb5;
+    text-align: center;
+  }}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Hiraya</div>
+  <div class="brand-sub">Management System</div>
+  <div class="header-title">PAYMENT HISTORY STATEMENT</div>
+  <div class="ref-pill">
+    Loan Reference: {loan['loan_no']} &nbsp;|&nbsp; Generated {datetime.datetime.now().strftime('%B %d, %Y')}
+  </div>
+</div>
+
+<div class="body">
+
+  <div class="section-label">Loan Information</div>
+  <div class="loan-info">
+    <table class="info-table">
+      <tr>
+        <td><span class="info-label">Borrower:</span></td>
+        <td><span class="info-value">{loan['full_name']}</span></td>
+        <td><span class="info-label">Loan Type:</span></td>
+        <td><span class="info-value">{loan['type_name']}</span></td>
+      </tr>
+      <tr>
+        <td><span class="info-label">Principal Amount:</span></td>
+        <td><span class="info-value">₱{float(loan['principal_amount']):,.2f}</span></td>
+        <td><span class="info-label">Plan:</span></td>
+        <td><span class="info-value">{loan['plan_name']}</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section-label">Payment Summary</div>
+  <div class="summary-box">
+    <table style="width: 100%; text-align: center;">
+      <tr>
+        <td style="border: none;"><span class="info-label">Total Paid</span><br/><span class="summary-value">₱{total_paid:,.2f}</span></td>
+        <td style="border: none;"><span class="info-label">Remaining Balance</span><br/><span class="summary-value">₱{max(remaining_balance, 0):,.2f}</span></td>
+        <td style="border: none;"><span class="info-label">Payments Made</span><br/><span class="summary-value">{len(payments)}</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section-label">Payment History</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Reference No.</th>
+        <th>Payment Date</th>
+        <th>Amount Paid</th>
+        <th>Payment Method</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows if rows else '<tr><td colspan="5" style="text-align: center; padding: 30px;">No payment records found.</td></tr>'}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Generated by Hiraya Management System &nbsp;|&nbsp; {datetime.datetime.now().strftime('%B %d, %Y')}
+    &nbsp;|&nbsp; Ref: {loan['loan_no']} &nbsp;|&nbsp; CONFIDENTIAL
+  </div>
+
+</div>
+</body>
+</html>
+"""
+
         pdf = io.BytesIO()
         pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf)
         pdf.seek(0)
+        
+        inline = request.args.get('inline', '0') == '1'
+        
         return send_file(
             pdf,
             mimetype='application/pdf',
-            as_attachment=True,
+            as_attachment=not inline,
             download_name=f"PaymentHistory_{loan['loan_no']}.pdf"
         )
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('borrower.my_documents'))
+
+
+# ================================================================
+# SECTION 8: ADDITIONAL ROUTE FOR VIEWING AGREEMENT (OPTIONAL)
+# ================================================================
+
+@loans_bp.route('/view-agreement/<int:loan_id>')
+@login_required
+def view_agreement(loan_id):
+    """
+    Alternative route that forces inline display (for View button)
+    This is cleaner than using ?inline=1 parameter
+    """
+    return download_agreement(loan_id)

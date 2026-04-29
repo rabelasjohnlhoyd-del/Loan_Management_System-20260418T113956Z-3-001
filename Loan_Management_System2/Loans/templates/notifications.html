@@ -8,182 +8,230 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('loans.static', filename='notifications.css') }}"/>
-  <link rel="stylesheet" href="{{ url_for('loans.static', filename='notifications_addon.css') }}"/>
 </head>
 <body>
+
+<!-- OVERLAY (mobile sidebar backdrop) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Management System</span></div>
+  <!-- TOPBAR -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
     </div>
 
-    {% if session.role == 'borrower' %}
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">Borrower</div>
-      </div>
-      <span class="s-chevron"></span>
+    <div class="topbar-right">
+      <!-- Notification bell removed from this page as requested -->
+      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+        {{ session.user_name[0]|upper if session.user_name else 'U' }}
+      </a>
     </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('borrower.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('loans.my_loans') }}"><span class="dd-icon dd-icon--loans"></span>My Loans</a>
-      <a href="{{ url_for('loans.my_applications') }}"><span class="dd-icon dd-icon--applications"></span>My Applications</a>
-      <a href="{{ url_for('loans.loan_types') }}"><span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans</a>
-    </div>
-    {% else %}
-    <div class="sidebar-user">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title }}</div>
-      </div>
-    </div>
-    {% endif %}
+  </header>
 
-    <nav class="sidebar-nav">
+  <!-- BODY ROW -->
+  <div class="body-row">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
       {% if session.role == 'borrower' %}
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
-        <span class="nav-icon nav-icon--payment"></span>Make a Payment
-      </a>
-      <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
-        <span class="nav-icon nav-icon--history"></span>Payment History
-      </a>
-      <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
-        <span class="nav-icon nav-icon--docs"></span>Documents
-      </a>
-      {% else %}
-      <div class="nav-section-label">Overview</div>
-      <a href="{{ url_for('borrower.dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <div class="nav-section-label nav-section--spaced">Loan Management</div>
-      <a href="{{ url_for('loans.loan_types') }}" class="nav-item"><span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans</a>
-      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-        <span class="nav-icon nav-icon--clock"></span>Applications
-        {% if stats is defined and stats.pending_verifications > 0 %}<span class="nav-badge">{{ stats.pending_verifications }}</span>{% endif %}
-      </a>
-      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>All Loans</a>
-      <div class="nav-section-label nav-section--spaced">Borrowers</div>
-      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <div class="nav-section-label nav-section--spaced">Payments</div>
-      <a href="#" class="nav-item"><span class="nav-icon nav-icon--loans"></span>Payment Verification</a>
-      <div class="nav-section-label nav-section--spaced">Reports</div>
-      <a href="#" class="nav-item"><span class="nav-icon nav-icon--reports"></span>Reports</a>
-      {% endif %}
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
-        </button>
-      </form>
-    </div>
-  </aside>
-
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="back-link">&#8592; Dashboard</a>
-        <h1>Notifications</h1>
-        <p>
-          {% if unread_count > 0 %}
-            <span class="unread-badge">{{ unread_count }} unread</span>
-          {% else %}
-            All caught up!
-          {% endif %}
-        </p>
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name }}</h4>
+          <div class="s-role-badge">Borrower</div>
+        </div>
+        <span class="s-chevron"></span>
       </div>
-      <div class="topbar-right">
-        {% if unread_count > 0 %}
-        <button class="btn-mark-all" id="markAllBtn" type="button">&#10003; Mark all as read</button>
-        {% endif %}
-        <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'U' }}
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('borrower.profile') }}">
+          <span class="dd-icon dd-icon--profile"></span>My Profile
+        </a>
+        <a href="{{ url_for('loans.my_loans') }}">
+          <span class="dd-icon dd-icon--loans"></span>My Loans
+        </a>
+        <a href="{{ url_for('loans.my_applications') }}">
+          <span class="dd-icon dd-icon--applications"></span>My Applications
+        </a>
+        <a href="{{ url_for('loans.loan_types') }}">
+          <span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans
         </a>
       </div>
-    </header>
-
-    <main class="page-body">
-      <div class="notif-page-wrap">
-        <div class="notif-tabs" id="notifTabs">
-          <button class="notif-tab active" data-filter="all">
-            <span class="tab-icon tab-icon--all"></span>All
-          </button>
-          <button class="notif-tab" data-filter="unread">
-            <span class="tab-icon tab-icon--unread"></span>Unread
-            {% if unread_count > 0 %}<span class="tab-count">{{ unread_count }}</span>{% endif %}
-          </button>
-          <button class="notif-tab" data-filter="loan_approved">
-            <span class="tab-icon tab-icon--approval"></span>Approvals
-          </button>
-          <button class="notif-tab" data-filter="payment_due">
-            <span class="tab-icon tab-icon--payment"></span>Payments
-          </button>
-        </div>
-
-        <div class="notif-page-card">
-          {% if notifications %}
-          <div class="notif-page-list" id="notifPageList">
-            {% for n in notifications %}
-            <div class="npi {{ 'npi--unread' if not n.is_read else '' }}"
-                 data-id="{{ n.id }}"
-                 data-type="{{ n.type }}"
-                 data-read="{{ '1' if n.is_read else '0' }}"
-                 data-link="{{ n.link or '' }}">
-              <div class="npi-icon notif-icon--{{ n.type }}">
-                <span class="npi-svg npi-svg--{{ n.type }}"></span>
-              </div>
-              <div class="npi-body">
-                <div class="npi-title">{{ n.title }}</div>
-                {% if n.message %}<div class="npi-msg">{{ n.message }}</div>{% endif %}
-                <div class="npi-time">{{ n.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
-              </div>
-              <div class="npi-actions">
-                {% if not n.is_read %}<span class="npi-dot" title="Unread"></span>{% endif %}
-                {% if n.link %}<a href="{{ n.link }}" class="npi-view" onclick="event.stopPropagation()">View &#8594;</a>{% endif %}
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          <div class="notif-page-empty">
-            <div class="npe-icon-wrap"><div class="npe-icon"></div></div>
-            <h3>No notifications yet</h3>
-            <p>You'll see loan updates, payment reminders, and more here.</p>
-            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="npe-btn">Dashboard</a>
-          </div>
-          {% endif %}
+      {% else %}
+      <div class="sidebar-user">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name }}</h4>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title }}</div>
         </div>
       </div>
-    </main>
+      {% endif %}
+
+      <nav class="sidebar-nav">
+        {% if session.role == 'borrower' %}
+        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item">
+          <span class="nav-icon nav-icon--payment"></span>
+          <span class="nav-label">Make a Payment</span>
+        </a>
+        <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
+          <span class="nav-icon nav-icon--history"></span>
+          <span class="nav-label">Payment History</span>
+        </a>
+        <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
+          <span class="nav-icon nav-icon--docs"></span>
+          <span class="nav-label">Documents</span>
+        </a>
+        {% else %}
+        <div class="nav-section-label">Overview</div>
+        <a href="{{ url_for('borrower.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <div class="nav-section-label nav-section--spaced">Loan Management</div>
+        <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
+          <span class="nav-icon nav-icon--loan-types"></span>
+          <span class="nav-label">Loan Types &amp; Plans</span>
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--clock"></span>
+          <span class="nav-label">Applications</span>
+          {% if stats is defined and stats.pending_verifications > 0 %}
+          <span class="nav-badge">{{ stats.pending_verifications }}</span>
+          {% endif %}
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span>
+          <span class="nav-label">All Loans</span>
+        </a>
+        <div class="nav-section-label nav-section--spaced">Borrowers</div>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span>
+          <span class="nav-label">Borrowers</span>
+        </a>
+        <div class="nav-section-label nav-section--spaced">Payments</div>
+        <a href="#" class="nav-item">
+          <span class="nav-icon nav-icon--loans"></span>
+          <span class="nav-label">Payment Verification</span>
+        </a>
+        <div class="nav-section-label nav-section--spaced">Reports</div>
+        <a href="#" class="nav-item">
+          <span class="nav-icon nav-icon--reports"></span>
+          <span class="nav-label">Reports</span>
+        </a>
+        {% endif %}
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- Page header -->
+        <div class="notif-page-header">
+          <div class="notif-page-header-left">
+            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
+              <span class="btn-back-icon"></span>
+              Dashboard
+            </a>
+            <div>
+              <h2 class="notif-page-title">Notifications</h2>
+              <p class="notif-page-sub">
+                {% if unread_count > 0 %}
+                  <span class="unread-badge">{{ unread_count }} unread</span>
+                {% else %}
+                  All caught up!
+                {% endif %}
+              </p>
+            </div>
+          </div>
+          {% if unread_count > 0 %}
+          <button class="btn-mark-all" id="markAllBtn" type="button">✓ Mark all as read</button>
+          {% endif %}
+        </div>
+
+        <div class="notif-page-wrap">
+          <!-- Tabs -->
+          <div class="notif-tabs" id="notifTabs">
+            <button class="notif-tab active" data-filter="all">
+              <span class="tab-icon tab-icon--all"></span>All
+            </button>
+            <button class="notif-tab" data-filter="unread">
+              <span class="tab-icon tab-icon--unread"></span>Unread
+              {% if unread_count > 0 %}<span class="tab-count">{{ unread_count }}</span>{% endif %}
+            </button>
+            <button class="notif-tab" data-filter="loan_approved">
+              <span class="tab-icon tab-icon--approval"></span>Approvals
+            </button>
+            <button class="notif-tab" data-filter="payment_due">
+              <span class="tab-icon tab-icon--payment"></span>Payments
+            </button>
+          </div>
+
+          <!-- Notification list card -->
+          <div class="notif-page-card">
+            {% if notifications %}
+            <div class="notif-page-list" id="notifPageList">
+              {% for n in notifications %}
+              <div class="npi {{ 'npi--unread' if not n.is_read else '' }}"
+                   data-id="{{ n.id }}"
+                   data-type="{{ n.type }}"
+                   data-read="{{ '1' if n.is_read else '0' }}"
+                   data-link="{{ n.link or '' }}">
+                <div class="npi-icon notif-icon--{{ n.type }}">
+                  <span class="npi-svg npi-svg--{{ n.type }}"></span>
+                </div>
+                <div class="npi-body">
+                  <div class="npi-title">{{ n.title }}</div>
+                  {% if n.message %}<div class="npi-msg">{{ n.message }}</div>{% endif %}
+                  <div class="npi-time">{{ n.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
+                </div>
+                <div class="npi-actions">
+                  {% if not n.is_read %}<span class="npi-dot" title="Unread"></span>{% endif %}
+                  {% if n.link %}<a href="{{ n.link }}" class="npi-view" onclick="event.stopPropagation()">View →</a>{% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="notif-page-empty">
+              <div class="npe-icon-wrap"><div class="npe-icon"></div></div>
+              <h3>No notifications yet</h3>
+              <p>You'll see loan updates, payment reminders, and more here.</p>
+              <a href="{{ url_for('borrower.borrower_dashboard') }}" class="npe-btn">Dashboard</a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+      </main>
+    </div>
+
   </div>
 </div>
+
 <script src="{{ url_for('loans.static', filename='notifications.js') }}"></script>
-<script>
-  (function () {
-    var toggle = document.getElementById('userDropdownToggle');
-    var dropdown = document.getElementById('userDropdown');
-    if (!toggle || !dropdown) return;
-    toggle.addEventListener('click', function (e) {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-      toggle.classList.toggle('open');
-    });
-    document.addEventListener('click', function (e) {
-      if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.classList.remove('open');
-        toggle.classList.remove('open');
-      }
-    });
-  })();
-</script>
 </body>
 </html>

@@ -636,7 +636,7 @@ def view_receipt(pay_no):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('borrower.payment_history'))
 
-    return render_template('e_receipt.html', payment=payment)
+    return render_template('e_receipt_page.html', payment=payment)
 
 
 
@@ -851,3 +851,170 @@ def upload_document():
         flash(f'Upload error: {str(e)}', 'danger')
 
     return redirect(url_for('borrower.my_documents'))
+
+# ================================================================
+# SECTION 7: NOTIFICATION API (FOR FRONTEND DROPDOWN)
+# ================================================================
+
+@borrower_bp.route('/notifications/api/count')
+@login_required
+def notif_api_count():
+    """Get unread notification count for badge dot"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM notifications
+            WHERE user_id = %s AND is_read = 0
+        """, (session['user_id'],))
+        count = cursor.fetchone()['cnt']
+        cursor.close()
+        conn.close()
+        return jsonify({'count': count})
+    except Exception as e:
+        return jsonify({'count': 0, 'error': str(e)}), 500
+
+
+@borrower_bp.route('/notifications/api/unread')
+@login_required
+def notif_api_unread():
+    """Get unread and recent notifications for dropdown"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id, type, title, message, link, is_read,
+                   DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') as created_at
+            FROM notifications
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            LIMIT 10
+        """, (session['user_id'],))
+        notifs = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifs
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@borrower_bp.route('/notifications/api/mark-read/<int:notif_id>', methods=['POST'])
+@login_required
+def notif_api_mark_read(notif_id):
+    """Mark a single notification as read"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE notifications SET is_read = 1
+            WHERE id = %s AND user_id = %s
+        """, (notif_id, session['user_id']))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@borrower_bp.route('/notifications/api/mark-all-read', methods=['POST'])
+@login_required
+def notif_api_mark_all_read():
+    """Mark all notifications as read"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE notifications SET is_read = 1
+            WHERE user_id = %s AND is_read = 0
+        """, (session['user_id'],))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ================================================================
+# SECTION 8: PAYMENT STATUS & RECEIPT API
+# ================================================================
+
+@borrower_bp.route('/payments/status-by-id/<int:payment_id>')
+@login_required
+def payment_status_by_id(payment_id):
+    """Get payment status and check if proof exists"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT status, payment_no, screenshot_path 
+            FROM payments 
+            WHERE id = %s AND borrower_id = %s
+        """, (payment_id, session['user_id']))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if row:
+            return jsonify({
+                'status': row['status'],
+                'payment_no': row['payment_no'],
+                'has_proof': bool(row.get('screenshot_path'))
+            })
+        return jsonify({'error': 'not_found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ================================================================
+# SECTION 9: E-RECEIPT PAGE (HTML VIEW)
+# ================================================================
+
+@borrower_bp.route('/payments/receipt/<string:pay_no>')
+@login_required
+@role_required('borrower')
+def view_receipt_page(pay_no):
+    """View e-receipt as HTML page (for approved payments)"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT p.payment_no,
+                   p.amount_paid,
+                   p.payment_method,
+                   p.reference_number,
+                   p.payment_date,
+                   p.updated_at,
+                   p.status,
+                   l.loan_no AS loan_ref,
+                   lt.name   AS type_name,
+                   u.full_name AS borrower_name
+            FROM payments p
+            JOIN loans l      ON p.loan_id      = l.id
+            JOIN loan_types lt ON l.loan_type_id = lt.id
+            JOIN users u       ON p.borrower_id  = u.id
+            WHERE p.payment_no  = %s
+              AND p.borrower_id = %s
+        """, (pay_no, session['user_id']))
+        payment = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not payment:
+            flash('Receipt not found.', 'warning')
+            return redirect(url_for('borrower.payment_history'))
+            
+        if payment['status'] not in ['approved', 'verified', 'completed']:
+            flash('Payment not yet approved. No official receipt available.', 'warning')
+            return redirect(url_for('borrower.payment_history'))
+
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('borrower.payment_history'))
+
+    return render_template('e_receipt_page.html', payment=payment)
