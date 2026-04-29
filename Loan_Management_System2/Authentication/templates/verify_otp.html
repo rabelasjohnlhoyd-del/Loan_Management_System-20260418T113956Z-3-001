@@ -8,13 +8,41 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('auth.static', filename='verify_otp.css') }}" />
+  
+  <style>
+    /* LOADING SPINNER CSS */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+        pointer-events: none;
+    }
+    .btn-loading::after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        top: 50%;
+        left: 50%;
+        margin-top: -9px;
+        margin-left: -9px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .resend-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+        text-decoration: none;
+    }
+  </style>
 </head>
 <body>
 
   <div class="page">
-
     <div class="card">
-
       <!-- LOGO -->
       <div class="logo-wrap">
         <div class="logo-icon">
@@ -31,43 +59,28 @@
       <!-- FLASK FLASH MESSAGES -->
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-          <div class="flash-stack">
+          <div class="flash-stack" id="flash-container">
             {% for category, message in messages %}
               <div class="flash-msg {{ category }}">
                 <span>{{ message }}</span>
-                <button class="f-close" aria-label="Close">&times;</button>
+                <button class="f-close" type="button" onclick="this.parentElement.remove()">&times;</button>
               </div>
             {% endfor %}
           </div>
         {% endif %}
       {% endwith %}
 
-      <!-- STEP INDICATOR (Updated to 5 Steps) -->
+      <!-- STEP INDICATOR -->
       <div class="steps">
-        <div class="step done">
-          <div class="step-num">&#10003;</div>
-          <div class="step-name">Details</div>
-        </div>
+        <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Details</div></div>
         <div class="step-connector done"></div>
-        <div class="step done">
-          <div class="step-num">&#10003;</div>
-          <div class="step-name">Address</div>
-        </div>
+        <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Address</div></div>
         <div class="step-connector done"></div>
-        <div class="step done">
-          <div class="step-num">&#10003;</div>
-          <div class="step-name">Work</div>
-        </div>
+        <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Work</div></div>
         <div class="step-connector done"></div>
-        <div class="step active">
-          <div class="step-num">4</div>
-          <div class="step-name">Verify</div>
-        </div>
+        <div class="step active"><div class="step-num">4</div><div class="step-name">Verify</div></div>
         <div class="step-connector"></div>
-        <div class="step">
-          <div class="step-num">5</div>
-          <div class="step-name">ID</div>
-        </div>
+        <div class="step"><div class="step-num">5</div><div class="step-name">ID</div></div>
       </div>
 
       <p class="form-heading">Verify Your Email</p>
@@ -77,15 +90,10 @@
         <strong class="otp-email-tag">{{ email }}</strong>
       </p>
 
-      <form method="POST" action="{{ url_for('auth.verify_otp') }}" novalidate>
-
-        <!-- Hidden fields populated by JS before submit -->
-        <input type="hidden" name="otp1" id="h1" />
-        <input type="hidden" name="otp2" id="h2" />
-        <input type="hidden" name="otp3" id="h3" />
-        <input type="hidden" name="otp4" id="h4" />
-        <input type="hidden" name="otp5" id="h5" />
-        <input type="hidden" name="otp6" id="h6" />
+      <form id="otpForm" method="POST" action="{{ url_for('auth.verify_otp') }}" novalidate>
+        <input type="hidden" name="otp1" id="h1" /><input type="hidden" name="otp2" id="h2" />
+        <input type="hidden" name="otp3" id="h3" /><input type="hidden" name="otp4" id="h4" />
+        <input type="hidden" name="otp5" id="h5" /><input type="hidden" name="otp6" id="h6" />
 
         <div class="otp-row">
           <input class="otp-box" type="text" maxlength="1" inputmode="numeric" autocomplete="one-time-code" id="otp-1" />
@@ -97,27 +105,87 @@
         </div>
 
         <span class="inline-error" id="otp-error"></span>
-
         <button type="submit" class="btn-login" id="verify-btn">VERIFY &amp; CONTINUE</button>
-
       </form>
 
       <div class="resend-row">
-        <span>Code expires in <span id="timer-display" class="timer-countdown">2:00</span></span>
+        <span id="timer-text">Code expires in <span id="timer-display" class="timer-countdown">02:00</span></span>
         <span>Didn't receive it?
-          <button class="resend-btn" id="resend-btn" disabled>Resend OTP</button>
+          <button class="resend-btn" id="resend-btn" type="button" disabled>Resend OTP</button>
         </span>
       </div>
 
       <div class="auth-foot">
         <a href="{{ url_for('auth.register') }}">&#8592; Back to Registration</a>
       </div>
-
     </div>
-
     <p class="copyright">&copy; 2024 Loan Management System. All rights reserved.</p>
-
   </div>
+
+  <!-- JavaScript Logic for Timer & Resend -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let timeLeft = 120; // 2 minutes in seconds
+        const timerDisplay = document.getElementById('timer-display');
+        const resendBtn = document.getElementById('resend-btn');
+        const timerText = document.getElementById('timer-text');
+        const verifyBtn = document.getElementById('verify-btn');
+        const otpForm = document.getElementById('otpForm');
+
+        // 1. COUNTDOWN TIMER
+        function startTimer() {
+            const timer = setInterval(() => {
+                timeLeft--;
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    resendBtn.disabled = false;
+                    timerText.style.color = "#ef4444";
+                    timerDisplay.textContent = "Expired";
+                }
+            }, 1000);
+        }
+
+        // 2. RESEND OTP LOGIC
+        resendBtn.addEventListener('click', async () => {
+            resendBtn.classList.add('btn-loading');
+            resendBtn.disabled = true;
+
+            try {
+                const response = await fetch("{{ url_for('auth.resend_otp') }}", { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert("A new verification code has been sent!");
+                    // Reset Timer
+                    timeLeft = 120;
+                    resendBtn.disabled = true;
+                    resendBtn.classList.remove('btn-loading');
+                    timerText.style.color = "inherit";
+                    startTimer();
+                } else {
+                    alert("Error: " + result.message);
+                    resendBtn.disabled = false;
+                    resendBtn.classList.remove('btn-loading');
+                }
+            } catch (err) {
+                alert("Failed to connect to server.");
+                resendBtn.disabled = false;
+                resendBtn.classList.remove('btn-loading');
+            }
+        });
+
+        // 3. SHOW SPINNER ON VERIFY
+        otpForm.addEventListener('submit', () => {
+            verifyBtn.classList.add('btn-loading');
+        });
+
+        startTimer();
+    });
+  </script>
 
   <script src="{{ url_for('auth.static', filename='verify_otp.js') }}"></script>
 </body>

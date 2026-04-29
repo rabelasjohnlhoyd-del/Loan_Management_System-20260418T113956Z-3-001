@@ -49,7 +49,8 @@
       {% endif %}
     {% endwith %}
 
-    <form id="regForm" method="POST" action="{{ url_for('auth.register') }}" novalidate>
+    
+<form id="regForm" method="POST" action="{{ url_for('auth.register') }}" novalidate autocomplete="off">
       
       <!-- STEP 1: PERSONAL INFORMATION -->
       <div class="step-content active" id="step1">
@@ -214,6 +215,10 @@
   </div>
 </div>
 
+<script>
+    
+    const backendStep = {{ active_step|default('null') }};
+</script>
 <script src="{{ url_for('auth.static', filename='register.js') }}"></script>
 </body>
 </html>

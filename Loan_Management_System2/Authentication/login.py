@@ -39,7 +39,6 @@ GEMINI_MODELS = [
 # SECTION 2: HELPER FUNCTIONS (PDF Section 12 Audit Trail)
 # ================================================================
 def log_activity(user_id, action, status="success", details=None):
-    """PDF Section 12: Audit Trail - Records security and financial events"""
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -101,8 +100,6 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
-
-        # Generic message para hindi malaman ng hacker kung tama ang email
         error_msg = "Invalid email or password."
 
         try:
@@ -114,51 +111,58 @@ def login():
             conn.close()
 
             if user:
-                # ✅ PDF SECTION 2: Hard Lockout (5 attempts)
+                # 1. Hard Lockout Check
                 if user.get('failed_attempts', 0) >= 5:
-                    log_activity(user['id'], "login_attempt", "locked", {"reason": "brute_force_protection"})
+                    log_activity(user['id'], "login_attempt", "locked", {"reason": "brute_force"})
                     flash('Account locked. Please reset your password to unlock.', 'danger')
                     return render_template('login.html')
 
+                # 2. Verify Password
                 if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-                    conn = get_db()
-                    cursor = conn.cursor()
+                    
+                    # ✅ SUCCESS: Reset failed attempts
+                    conn = get_db(); cursor = conn.cursor()
                     cursor.execute("UPDATE users SET failed_attempts = 0, last_login = %s WHERE id = %s",
                                    (datetime.datetime.now(), user['id']))
-                    conn.commit()
-                    cursor.close()
-                    conn.close()
+                    conn.commit(); cursor.close(); conn.close()
 
-                    # Prevent Session Fixation
+                  
+                    if user['id_verification_status'] == 'pending_otp':
+                        session['otp_email'] = email
+                        session['reg_data'] = {'email': email, 'full_name': user['full_name']} 
+                        flash('Please verify your email to continue.', 'warning')
+                        return redirect(url_for('auth.verify_otp'))
+                    
+                    elif user['id_verification_status'] == 'pending_id':
+                        session['otp_verified'] = True 
+                        session['otp_email'] = email
+                        session['reg_data'] = {'email': email, 'full_name': user['full_name']}
+                        flash('Complete your registration by uploading an ID.', 'info')
+                        return redirect(url_for('auth.upload_id'))
+
+                    # --- NORMAL LOGIN ---
                     session.clear()
-                    session.permanent = 'remember' in request.form
-
                     session.update({
                         'logged_in': True,
                         'user_id': user['id'],
                         'user_name': user['full_name'],
                         'user_email': user['email'],
-                        'role': user['role'],
-                        'verified': user['id_verification_status']
+                        'role': user['role']
                     })
-
                     log_activity(user['id'], "login", "success")
                     flash(f'Welcome back, {user["full_name"]}!', 'success')
                     return redirect(url_for('auth.dashboard'))
+                
                 else:
-                    # Increment failed attempts record
-                    conn = get_db()
-                    cursor = conn.cursor()
+                    # ❌ WRONG PASSWORD
+                    conn = get_db(); cursor = conn.cursor()
                     cursor.execute("UPDATE users SET failed_attempts = failed_attempts + 1 WHERE id = %s", (user['id'],))
-                    conn.commit()
-                    cursor.close()
-                    conn.close()
+                    conn.commit(); cursor.close(); conn.close()
                     log_activity(user['id'], "login", "failed", {"reason": "incorrect_password"})
                     flash(error_msg, 'danger')
             else:
                 flash(error_msg, 'danger')
-
-        except Exception as e:
+        except:
             flash("System busy. Please try again later.", 'danger')
 
     return render_template('login.html')
@@ -167,7 +171,8 @@ def login():
 def logout():
     user_id = session.get('user_id')
     if user_id:
-        log_activity('logout', 'User logged out successfully')
+        
+        log_activity(user_id, 'logout', 'success', {"message": "User logged out"})
     session.clear()
     flash('You have been logged out successfully.', 'info')
     return redirect(url_for('auth.login'))
@@ -180,70 +185,164 @@ def register():
     if is_logged_in(): return redirect(url_for('auth.dashboard'))
 
     if request.method == 'POST':
+        # --- 1. BASIC INFO ---
         email = request.form.get('email', '').strip()
-        password = request.form.get('password')
-        confirm = request.form.get('confirm_password')
-        phone = request.form.get('contact_number', '').strip()
-
-        if password != confirm:
-            flash('Passwords do not match.', 'danger')
-            return render_template('register.html', form_data=request.form)
-
-        # ✅ SECURITY: Backend Age & Name Verification
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm_password', '')
+        contact = request.form.get('contact_number', '').strip()
         dob = request.form.get('dob', '').strip()
         age = calculate_age(dob)
-        if age < 18:
-            flash('Compliance Error: You must be at least 18 years old.', 'danger')
-            return render_template('register.html', form_data=request.form)
+        
+        # Names
+        fn = request.form.get('first_name', '').strip()
+        mn = request.form.get('middle_name', '').strip()
+        ln = request.form.get('last_name', '').strip()
+        full_name = f"{fn} {mn} {ln}".replace('  ', ' ').strip()
 
-        first_name = (request.form.get('first_name', '') or '').strip()
-        last_name = (request.form.get('last_name', '') or '').strip()
-        full_name = f"{first_name} {last_name}"
+        # --- 2. ADDRESS INFO ---
+        province = request.form.get('province', '').strip()
+        city = request.form.get('city', '').strip()
+        barangay = request.form.get('barangay', '').strip()
+        zip_code = request.form.get('zip_code', '').strip()
+        house_street = request.form.get('house_street', '').strip()
 
-        session['reg_data'] = {
-            'full_name': full_name,
-            'email': email,
-            'contact_number': phone,
-            'dob': dob,
-            'age': age,
-            'password': bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
-            'terms_version': '1.0-SECURE',
-            'terms_timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            # Address and Work details
-            'province': request.form.get('province'), 'city': request.form.get('city'),
-            'barangay': request.form.get('barangay'), 'zip_code': request.form.get('zip_code'),
-            'house_street': request.form.get('house_street'),
-            'employment_type': request.form.get('employment_type'),
-            'job_role': request.form.get('job_role'),
-            'employer_business': request.form.get('employer_business'),
-            'nature_of_work': request.form.get('nature_of_work'),
-            'source_of_funds': request.form.get('source_of_funds'),
-            'monthly_transactions': request.form.get('monthly_transactions')
-        }
+        # --- 3. EMPLOYMENT/FINANCIAL ---
+        emp_type = request.form.get('employment_type', 'Unemployed').strip()
+        job_role = request.form.get('job_role', '').strip()
+        employer = request.form.get('employer_business', '').strip()
+        nature_work = request.form.get('nature_of_work', '').strip()
+        funds = request.form.get('source_of_funds', '').strip()
+        transactions = request.form.get('monthly_transactions', '0').strip()
 
-        # OTP Logic
-        otp = str(random.randint(100000, 999999))
-        session.update({'otp': otp, 'otp_expiry': (datetime.datetime.now() + datetime.timedelta(minutes=10)).isoformat(), 'otp_email': email})
+        # Security Check
+        if not password or len(password) < 8 or password != confirm:
+            flash('Check your password details.', 'danger')
+            return render_template('register.html', form_data=request.form, active_step=3)
+
+        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
         try:
-            msg = Message('Your Secure OTP', recipients=[email])
-            msg.body = f"Your verification code: {otp}"
-            mail.send(msg)
-            flash(f'OTP sent to {email}.', 'success')
-        except: flash(f'Dev OTP: {otp}', 'warning')
-        return redirect(url_for('auth.verify_otp'))
+            conn = get_db(); cursor = conn.cursor()
+            
+            # --- 4. THE GIANT INSERT QUERY (Anti-NULL Version) ---
+            query = """
+                INSERT INTO users 
+                (full_name, first_name, middle_name, last_name, email, password, 
+                 contact_number, date_of_birth, age, 
+                 gender, nationality, civil_status,
+                 province, city, barangay, zip_code, house_street,
+                 employment_type, job_role, employer_business, nature_of_work, 
+                 source_of_funds, monthly_transactions,
+                 role, id_verification_status, is_active, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'borrower', 'pending_otp', 1, %s)
+            """
+            
+            cursor.execute(query, (
+                full_name, fn, mn, ln, email, hashed_pw, 
+                contact, dob, age, 
+                request.form.get('gender', ''), 
+                request.form.get('nationality', ''), 
+                request.form.get('civil_status', ''),
+                province, city, barangay, zip_code, house_street,
+                emp_type, job_role, employer, nature_work, 
+                funds, transactions,
+                datetime.datetime.now()
+            ))
+            conn.commit(); cursor.close(); conn.close()
+            
+            # --- 5. OTP SENDING ---
+            otp = str(random.randint(100000, 999999))
+            session.update({'otp': otp, 'otp_email': email})
+            try:
+                msg = Message('Verification Code', recipients=[email])
+                msg.body = f"Your OTP is: {otp}"
+                mail.send(msg)
+                flash('OTP sent to your email.', 'success')
+            except:
+                flash("OTP failed to send, but account created.", "warning")
 
-    return render_template('register.html', form_data={})
+            return redirect(url_for('auth.verify_otp'))
+
+        except Exception as e:
+            print(f"ERROR: {str(e)}")
+            flash(f"Database Error: {str(e)}", "danger")
+            return render_template('register.html', form_data=request.form, active_step=3)
+
+   
+    session.pop('otp', None)
+    session.pop('otp_email', None)
+    session.pop('otp_verified', None)
+    session.pop('reg_data', None) 
+
+    return render_template('register.html', form_data={}, active_step=0)
 
 @auth.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
-    if 'reg_data' not in session: return redirect(url_for('auth.register'))
+    if 'otp_email' not in session: 
+        return redirect(url_for('auth.login'))
+    
+    email = session.get('otp_email')
+
     if request.method == 'POST':
         entered_otp = ''.join([request.form.get(f'otp{i}', '') for i in range(1, 7)])
-        if entered_otp == session.get('otp') and datetime.datetime.now() <= datetime.datetime.fromisoformat(session.get('otp_expiry')):
-            session['otp_verified'] = True
-            return redirect(url_for('auth.upload_id'))
-        flash('Invalid or expired OTP.', 'danger')
-    return render_template('verify_otp.html', email=session.get('otp_email', ''))
+        
+      
+        otp_expiry = session.get('otp_expiry')
+        current_time = datetime.datetime.now().timestamp()
+
+        # 2. CHECK EXPIRATION FIRST
+        if otp_expiry and current_time > otp_expiry:
+            flash('This OTP has already expired. Please request a new one.', 'danger')
+            
+            session.pop('otp', None) 
+            return render_template('verify_otp.html', email=email)
+
+        # 3. CHECK IF MATCH
+        if entered_otp == session.get('otp'):
+            try:
+                conn = get_db(); cursor = conn.cursor()
+                cursor.execute("UPDATE users SET id_verification_status = 'pending_id' WHERE email = %s", (email,))
+                conn.commit(); cursor.close(); conn.close()
+                
+             
+                session.pop('otp', None)
+                session.pop('otp_expiry', None)
+
+                session['otp_verified'] = True
+                flash('Email verified! Proceed to ID upload.', 'success')
+                return redirect(url_for('auth.upload_id'))
+            except Exception as e:
+                flash("Database error.", "danger")
+        else:
+            flash('Invalid OTP code.', 'danger')
+
+    return render_template('verify_otp.html', email=email)  
+
+@auth.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    email = session.get('otp_email')
+    if not email:
+        return jsonify({'success': False, 'message': 'Session expired. Please register again.'}), 400
+
+    # Generate new OTP
+        otp = str(random.randint(100000, 999999))
+
+    expiry_time = datetime.datetime.now() + datetime.timedelta(minutes=5)
+
+    session.update({
+    'otp': otp, 
+    'otp_email': email,
+    'otp_expiry': expiry_time.timestamp() 
+     })
+
+    try:
+        msg = Message('Your NEW Verification Code', recipients=[email])
+        msg.body = f"Your new OTP is: {otp}. Use this to verify your account."
+        mail.send(msg)
+        return jsonify({'success': True, 'message': 'New OTP sent to your email.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 # 4.4 VALIDATE ID (GEMINI AI — IDENTITY CROSS-CHECK)
 @auth.route('/validate-id-api', methods=['POST'])
@@ -310,56 +409,58 @@ def validate_id_api():
         return jsonify({'action': 'review', 'overall_reason': 'AI check failed. Manual review required.'})
 
 # 4.5 UPLOAD ID — THE GUARD (Final Save)
+# 4.5 UPLOAD ID — THE GUARD (Final Save)
+# ================================================================
+# 4.5 UPLOAD ID — THE GUARD (Final Save)
+# ================================================================
 @auth.route('/upload-id', methods=['GET', 'POST'])
 def upload_id():
-    if 'reg_data' not in session or not session.get('otp_verified'):
-        return redirect(url_for('auth.register'))
+    # Siguraduhin na dumaan sa OTP (Para hindi ma-bypass)
+    if not session.get('otp_verified'):
+        return redirect(url_for('auth.login'))
 
     if request.method == 'POST':
         id_file = request.files.get('valid_id')
         selfie_b64 = request.form.get('selfie_base64', '')
 
-        # ✅ HARD SECURITY CHECK: Only trust the session result (cannot be faked by user)
-        gemini_result = session.get('gemini_result', 'reject')
-        gemini_approved = session.get('gemini_approved', False)
-
-        if gemini_result not in ('approve', 'review'):
-            flash('ID Verification rejected. Please try again with clear documents.', 'danger')
+        if not id_file or not selfie_b64:
+            flash("Please provide both ID and Selfie.", "warning")
             return render_template('upload_id.html')
 
-        verification_status = 'verified' if (gemini_result == 'approve' and gemini_approved) else 'pending'
-
-        # File Handling
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        id_fn = secure_filename(f"id_{uuid.uuid4().hex}_{id_file.filename}")
-        id_file.save(os.path.join(UPLOAD_FOLDER, id_fn))
-        selfie_data = _base64.b64decode(selfie_b64.split(',')[-1])
-        selfie_fn = secure_filename(f"selfie_{uuid.uuid4().hex}.jpg")
-        with open(os.path.join(UPLOAD_FOLDER, selfie_fn), 'wb') as f: f.write(selfie_data)
-
-        reg = session['reg_data']
         try:
+            # 1. Generate unique filenames
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            id_fn = secure_filename(f"id_{uuid.uuid4().hex}_{id_file.filename}")
+            selfie_fn = secure_filename(f"selfie_{uuid.uuid4().hex}.jpg")
+            
+            # 2. Save files
+            id_file.save(os.path.join(UPLOAD_FOLDER, id_fn))
+            selfie_data = _base64.b64decode(selfie_b64.split(',')[-1])
+            with open(os.path.join(UPLOAD_FOLDER, selfie_fn), 'wb') as f:
+                f.write(selfie_data)
+
+            # 3. Update database status
             conn = get_db(); cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO users
-                    (full_name, email, date_of_birth, age, password, contact_number,
-                     role, id_document_path, selfie_path, id_verification_status, 
-                     terms_version, terms_accepted_at, failed_attempts, created_at, is_active)
-                VALUES (%s,%s,%s,%s,%s,%s,'borrower',%s,%s,%s,%s,%s,0,%s,1)
-            """, (
-                reg['full_name'], reg['email'], reg['dob'], reg['age'],
-                reg['password'], reg['contact_number'], id_fn, selfie_fn, 
-                verification_status, reg['terms_version'], reg['terms_timestamp'],
-                datetime.datetime.now()
-            ))
+            query = """
+                UPDATE users 
+                SET id_document_path = %s, selfie_path = %s, id_verification_status = %s 
+                WHERE email = %s
+            """
+          
+            target_email = session.get('otp_email') or session.get('reg_data', {}).get('email')
+            
+            cursor.execute(query, (id_fn, selfie_fn, 'pending', target_email))
             conn.commit(); cursor.close(); conn.close()
 
-            log_activity(None, "user_registration", "success", {"email": reg['email']})
+            # Clear session after successful submission
             session.clear()
-            flash('Success! Account created. Verification Status: ' + verification_status, 'success')
+            flash('Success! Verification documents submitted for review.', 'success')
             return redirect(url_for('auth.login'))
-        except Exception as e: flash(f'Database error: {str(e)}', 'danger')
+            
+        except Exception as e:
+            flash(f"Database error: {str(e)}", "danger")
 
+    # Kapag GET request (Load the page)
     return render_template('upload_id.html')
 
 

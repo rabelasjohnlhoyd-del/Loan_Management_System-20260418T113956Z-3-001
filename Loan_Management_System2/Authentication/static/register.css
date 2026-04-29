@@ -162,7 +162,7 @@ body {
   font-weight: 700;
   color: var(--gray-800);
   text-align: center;
-  text-transform: uppercase;
+  
   letter-spacing: 0.5px;
   margin-bottom: 20px;
 }
@@ -581,4 +581,30 @@ body {
   margin-top: 4px;
   padding-left: 2px;
   font-weight: 500;
+}
+
+
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+.btn-loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-top: -8px;
+    margin-left: -8px;
+    border: 2px solid white;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
