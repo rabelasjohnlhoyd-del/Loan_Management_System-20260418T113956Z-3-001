@@ -146,30 +146,15 @@
 
         <!-- STEP INDICATOR -->
         <div class="steps">
-          <div class="step active" id="step1">
-            <div class="step-num">1</div>
-            <div class="step-label">Select Loan</div>
-          </div>
+          <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Select Loan</div></div>
           <div class="step-line" id="line1"></div>
-          <div class="step todo" id="step2">
-            <div class="step-num">2</div>
-            <div class="step-label">Payment Method</div>
-          </div>
+          <div class="step todo" id="step2"><div class="step-num">2</div><div class="step-label">Method</div></div>
           <div class="step-line" id="line2"></div>
-          <div class="step todo" id="step3">
-            <div class="step-num">3</div>
-            <div class="step-label">Pay via QR</div>
-          </div>
+          <div class="step todo" id="step3"><div class="step-num">3</div><div class="step-label">Pay via QR</div></div>
           <div class="step-line" id="line3"></div>
-          <div class="step todo" id="step4">
-            <div class="step-num">4</div>
-            <div class="step-label">Confirmation</div>
-          </div>
+          <div class="step todo" id="step4"><div class="step-num">4</div><div class="step-label">Processing</div></div>
           <div class="step-line" id="line4"></div>
-          <div class="step todo" id="step5">
-            <div class="step-num">5</div>
-            <div class="step-label">E-Receipt</div>
-          </div>
+          <div class="step todo" id="step5"><div class="step-num">5</div><div class="step-label">Success Receipt</div></div>
         </div>
 
         <!-- ══ STEP 1: SELECT LOAN ══ -->
@@ -181,8 +166,8 @@
           <div class="loan-select-grid">
             {% for loan in active_loans %}
             <div class="loan-select-card"
-                 onclick="selectLoan(this, {{ loan.id }}, '{{ loan.reference_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}', '{{ loan.next_due.strftime('%b %d, %Y') if loan.next_due else 'N/A' }}')"
-                 data-id="{{ loan.id }}">
+     onclick="selectLoan(this, {{ loan.id }}, '{{ loan.loan_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}', '{{ loan.next_due.strftime('%b %d, %Y') if loan.next_due else 'N/A' }}')"
+     data-id="{{ loan.id }}">
               <div class="loan-card-top">
                 <div>
                   <div class="loan-card-ref">{{ loan.reference_no }}</div>
@@ -237,39 +222,61 @@
             <button class="btn-back1" onclick="backToStep1()">← Change Loan</button>
           </div>
           <div class="method-grid">
-            <div class="method-card" onclick="selectMethod('gcash', this)" data-method="gcash">
-              <div class="method-card-icon" style="background:#e8f4ff; color:#0070e0">💙</div>
-              <div class="method-card-info">
-                <div class="method-card-name">GCash</div>
-                <div class="method-card-desc">Scan QR to pay via GCash</div>
-              </div>
-              <div class="method-card-check">✓</div>
-            </div>
-            <div class="method-card" onclick="selectMethod('maya', this)" data-method="maya">
-              <div class="method-card-icon" style="background:#e8f9ee; color:#00b140">💚</div>
-              <div class="method-card-info">
-                <div class="method-card-name">Maya</div>
-                <div class="method-card-desc">Scan QR to pay via Maya</div>
-              </div>
-              <div class="method-card-check">✓</div>
-            </div>
-            <div class="method-card" onclick="selectMethod('bank', this)" data-method="bank">
-              <div class="method-card-icon" style="background:#e8eeff; color:#003087">🏦</div>
-              <div class="method-card-info">
-                <div class="method-card-name">BDO Bank Transfer</div>
-                <div class="method-card-desc">Transfer to BDO account</div>
-              </div>
-              <div class="method-card-check">✓</div>
-            </div>
-            <div class="method-card" onclick="selectMethod('cash', this)" data-method="cash">
-              <div class="method-card-icon" style="background:#eaf8f5; color:#2a9080">💵</div>
-              <div class="method-card-info">
-                <div class="method-card-name">Cash / Walk-in</div>
-                <div class="method-card-desc">Pay at the Hiraya office</div>
-              </div>
-              <div class="method-card-check">✓</div>
-            </div>
-          </div>
+  <!-- GCash -->
+  <div class="method-card" onclick="selectMethod('gcash', this)" data-method="gcash">
+    <div class="method-card-icon" style="background:#e8f4ff; color:#0070e0">💙</div>
+    <div class="method-card-info">
+      <div class="method-card-name">GCash</div>
+      <div class="method-card-desc">Instant auto-credit via GCash</div>
+    </div>
+    <div class="method-card-check">✓</div>
+  </div>
+  <!-- Maya -->
+  <div class="method-card" onclick="selectMethod('maya', this)" data-method="maya">
+    <div class="method-card-icon" style="background:#e8f9ee; color:#00b140">💚</div>
+    <div class="method-card-info">
+      <div class="method-card-name">Maya</div>
+      <div class="method-card-desc">Instant auto-credit via Maya</div>
+    </div>
+    <div class="method-card-check">✓</div>
+  </div>
+  <!-- BDO -->
+  <div class="method-card" onclick="selectMethod('bdo', this)" data-method="bdo">
+    <div class="method-card-icon" style="background:#e8eeff; color:#003087">🏦</div>
+    <div class="method-card-info">
+      <div class="method-card-name">BDO Unibank</div>
+      <div class="method-card-desc">Direct bank transfer</div>
+    </div>
+    <div class="method-card-check">✓</div>
+  </div>
+  <!-- BPI -->
+  <div class="method-card" onclick="selectMethod('bpi', this)" data-method="bpi">
+    <div class="method-card-icon" style="background:#fff0f0; color:#b31f24">🏛️</div>
+    <div class="method-card-info">
+      <div class="method-card-name">BPI</div>
+      <div class="method-card-desc">Bank of the Philippine Islands</div>
+    </div>
+    <div class="method-card-check">✓</div>
+  </div>
+  <!-- Landbank -->
+  <div class="method-card" onclick="selectMethod('landbank', this)" data-method="landbank">
+    <div class="method-card-icon" style="background:#eaf8f0; color:#008000">🌾</div>
+    <div class="method-card-info">
+      <div class="method-card-name">Landbank</div>
+      <div class="method-card-desc">Government bank transfer</div>
+    </div>
+    <div class="method-card-check">✓</div>
+  </div>
+  <!-- Visa/Mastercard -->
+  <div class="method-card" onclick="selectMethod('visa', this)" data-method="visa">
+    <div class="method-card-icon" style="background:#f7f7f7; color:#1a1f71">💳</div>
+    <div class="method-card-info">
+      <div class="method-card-name">Visa / Mastercard</div>
+      <div class="method-card-desc">Debit or Credit Card</div>
+    </div>
+    <div class="method-card-check">✓</div>
+  </div>
+</div>
           <button class="btn-continue" id="btnContinueToQR" disabled onclick="proceedToStep3()">
             Continue
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -355,7 +362,9 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                I've Paid — Notify Admin
+                Confirm Direct Payment
+              </button>
+              <p class="paid-disclaimer">Your payment will be auto-credited to your balance instantly.</p>
               </button>
               <p class="paid-disclaimer">Only tap this after completing payment in your app.</p>
             </div>
@@ -366,13 +375,9 @@
         <div id="sectionStep4" class="page-section hidden">
           <div class="pending-screen">
             <div class="receipt-header">
-              <div class="receipt-check-icon">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <h2 class="pending-title">Payment Submitted!</h2>
-              <p class="pending-desc">Awaiting admin verification. You'll receive your official e-receipt once confirmed.</p>
+              <div class="receipt-check-icon" style="background: #2a9080;">✓</div>
+              <h2 class="pending-title">Payment Successful!</h2>
+              <p class="pending-desc">Your payment has been auto-credited to your account instantly.</p>
             </div>
             <div class="receipt-body">
               <div class="pending-ref-box">
@@ -450,73 +455,83 @@
         </div>
 
         <!-- ══ STEP 5: INLINE E-RECEIPT ══ -->
+        <!-- ══ STEP 5: SUCCESS RECEIPT ══ -->
         <div id="sectionStep5" class="page-section hidden">
+          <!-- Loading State -->
           <div id="receiptLoading" class="er-loading">
             <div class="er-loading-spinner"></div>
-            <p>Loading your e-receipt…</p>
+            <p>Generating your official e-receipt...</p>
           </div>
+
+          <!-- Error State -->
           <div id="receiptError" class="er-error" style="display:none">
             <div class="er-error-icon">⚠️</div>
             <p id="receiptErrorMsg">Could not load receipt. Please try again.</p>
-            <button class="btn-back" style="margin-top:12px" onclick="loadAndShowReceipt()">Retry</button>
+            <button class="btn-back" style="margin-top:12px" onclick="location.reload()">Retry</button>
           </div>
+
+          <!-- Mismong Receipt Card -->
           <div id="erCard" class="er-wrap" style="display:none">
-            <div class="er-top-actions">
-              <button type="button" class="btn-back" onclick="backToStep4()">← Back</button>
+            <div class="er-top-actions" style="justify-content: flex-end;">
+              <!-- Tinanggal ang Back button dito para rekta Success na -->
               <button type="button" class="er-btn-print" onclick="printReceipt()">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
+                  <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
                 </svg>
                 Print / Save PDF
               </button>
             </div>
+
             <div class="er-card" id="erPrintArea">
               <div class="er-header">
                 <div class="er-logo">
                   <div class="er-logo-icon">$</div>
                   <div class="er-logo-name">Hiraya Lending</div>
                 </div>
-                <div class="er-check-circle">
+                <div class="er-check-circle" style="background: #2a9080;">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                 </div>
                 <h2 class="er-title">Official E-Receipt</h2>
-                <p class="er-subtitle">Payment successfully verified by Hiraya Lending</p>
+                <p class="er-subtitle">Payment successfully auto-credited via Hiraya Direct Pay</p>
+                
                 <div class="er-pay-no-banner">
                   <div class="er-pay-no-label">Payment Reference</div>
                   <div class="er-pay-no-val" id="erPayNo">—</div>
                 </div>
               </div>
+
               <div class="er-amount-section">
                 <div class="er-amount-label">Amount Paid</div>
                 <div class="er-amount-val" id="erAmountVal">₱0.00</div>
               </div>
+
               <div class="er-divider"><div class="er-divider-line"></div></div>
+
               <div class="er-details">
+                <!-- Payment Information -->
                 <div class="er-detail-group">
                   <div class="er-detail-group-title">Payment Information</div>
                   <div class="er-detail-row">
                     <span class="er-detail-label">Status</span>
-                    <span class="er-detail-val er-status-approved">✓ Approved</span>
+                    <span class="er-detail-val er-status-approved" style="color: #2a9080; font-weight: 700;">✓ Auto-Credited</span>
                   </div>
                   <div class="er-detail-row">
-                    <span class="er-detail-label">Payment Method</span>
+                    <span class="er-detail-label">Method</span>
                     <span class="er-detail-val" id="erMethodBadge">—</span>
                   </div>
                   <div class="er-detail-row">
-                    <span class="er-detail-label">Transaction Reference</span>
+                    <span class="er-detail-label">Transaction Ref</span>
                     <span class="er-detail-val er-mono" id="erTxnRef">—</span>
-                  </div>
-                  <div class="er-detail-row">
-                    <span class="er-detail-label">Payment Date</span>
-                    <span class="er-detail-val" id="erPaymentDate">—</span>
                   </div>
                   <div class="er-detail-row">
                     <span class="er-detail-label">Date Verified</span>
                     <span class="er-detail-val" id="erDateVerified">—</span>
                   </div>
                 </div>
+
+                <!-- Loan Information -->
                 <div class="er-detail-group">
                   <div class="er-detail-group-title">Loan Information</div>
                   <div class="er-detail-row">
@@ -528,21 +543,25 @@
                     <span class="er-detail-val" id="erLoanType">—</span>
                   </div>
                 </div>
+
+                <!-- Borrower Info -->
                 <div class="er-detail-group">
-                  <div class="er-detail-group-title">Borrower Information</div>
+                  <div class="er-detail-group-title">Borrower</div>
                   <div class="er-detail-row">
                     <span class="er-detail-label">Name</span>
                     <span class="er-detail-val" id="erBorrowerName">—</span>
                   </div>
                 </div>
               </div>
+
               <div class="er-divider"><div class="er-divider-line"></div></div>
+
               <div class="er-footer">
                 <p>This is an official electronic receipt issued by <strong>Hiraya Lending Management System</strong>.<br>
-                Please keep this for your records. For inquiries, contact our office.</p>
+                Your account balance has been updated. Please keep this for your records.</p>
               </div>
-            </div>
-          </div>
+            </div> <!-- End er-card -->
+          </div> <!-- End er-wrap -->
         </div>
 
       </main>

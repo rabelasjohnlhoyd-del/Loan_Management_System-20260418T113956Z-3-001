@@ -161,18 +161,80 @@
   /* ================================================================
      AUTO-SHOW STEP 4 on redirect from POST
   ================================================================ */
+  /* ================================================================
+     AUTO-POPULATE & DIRECT TO STEP 5 (REKTA FLOW)
+  ================================================================ */
   (function () {
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === '1') {
-      document.addEventListener('DOMContentLoaded', function () {
-        window.showStep4(
-          params.get('ref')    || '',
-          params.get('amount') || '0',
-          params.get('method') || ''
-        );
+      window.addEventListener('load', function () {
+        const payNo   = params.get('ref');
+        const amount  = params.get('amount') || '0';
+        const method  = params.get('method') || '';
+        const loanRef = params.get('loan_ref') || '—';
+
+        if (payNo) {
+          // 1. ITAGO ANG MGA UNANG SECTIONS (Pero huwag ang Topbar/Step Indicator)
+          const selectLoanSection = document.getElementById('sectionSelectLoan');
+          if (selectLoanSection) selectLoanSection.style.display = 'none';
+          
+          hideSection('sectionStep2');
+          hideSection('sectionStep3');
+          hideSection('sectionStep4');
+
+          // 2. I-SET ANG STEP INDICATOR SA STEP 5 (Success Receipt)
+          setStep(5);
+
+          // 3. IPAKITA ANG RECEIPT SECTION
+          showSection('sectionStep5');
+          _confirmedPayNo = payNo;
+
+          // 4. LOAD THE RECEIPT DATA
+          _goToStep5WithReceipt(payNo);
+
+          // 5. FORCE FILL ANG DATA PARA WALANG DASHES (—)
+          setTimeout(() => {
+              // I-fill ang Loan Ref at Method agad
+              setText('erPayNo', payNo);
+              setText('erLoanRef', loanRef);
+              
+              const methodNames = { 
+                gcash: '💙 GCash', maya: '💚 Maya', bdo: '🏦 BDO Unibank', 
+                bpi: '🏛️ BPI', landbank: '🌾 Landbank', visa: '💳 Visa/Card' 
+              };
+              
+              const badgeLabel = methodNames[method] || method;
+              const methodBadge = document.getElementById('erMethodBadge');
+              if (methodBadge) methodBadge.innerHTML = badgeLabel;
+              
+              // I-scroll pataas para makita ang Step Indicator
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 800);
+        }
       });
     }
   })();
+
+  // Submit Payment function
+  window.submitPayment = function () {
+    const btn = document.getElementById('btnIvePaid');
+    const form = document.getElementById('paymentForm');
+    
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spinner"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg> Processing Rekta Payment...';
+    }
+
+    if (form) {
+      form.submit();
+    } else {
+      alert("Error: Payment form not found.");
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = "Confirm Direct Payment";
+      }
+    }
+  };
 
   /* ================================================================
      PAYMENT FLOW STATE
@@ -184,11 +246,29 @@
   let _confirmedPayNo  = null;
 
   const methodDetails = {
-    gcash: { name: 'GCash',          color: '#0070e0', colorLight: '#e8f4ff', icon: '💙', account: 'Hiraya Lending',      num: '+63 917 000 1234',       prefix: 'https://gcash.com/pay?amount={AMOUNT}&ref={REF}&to=09170001234' },
-    maya:  { name: 'Maya',           color: '#00b140', colorLight: '#e8f9ee', icon: '💚', account: 'Hiraya Lending',      num: '09180001234',            prefix: 'https://maya.ph/pay?amount={AMOUNT}&ref={REF}&to=09180001234' },
-    bank:  { name: 'BDO Transfer',   color: '#003087', colorLight: '#e8eeff', icon: '🏦', account: 'Hiraya Lending Corp.', num: 'Acct: 0012-3456-7890',  prefix: 'https://bdo.com.ph/pay?amount={AMOUNT}&ref={REF}&acct=0012345678' },
-    cash:  { name: 'Cash / Manual',  color: '#2a9080', colorLight: '#eaf8f5', icon: '💵', account: 'Hiraya Office',       num: 'Unit 3, ABC Bldg, Main St.', prefix: null },
+    gcash:    { name: 'GCash',          color: '#0070e0', colorLight: '#e8f4ff', icon: '💙', account: 'Hiraya Lending',      num: '0917-000-1234', prefix: 'https://gcash.com/pay' },
+    maya:     { name: 'Maya',           color: '#00b140', colorLight: '#e8f9ee', icon: '💚', account: 'Hiraya Lending',      num: '0918-000-5678', prefix: 'https://maya.ph/pay' },
+    bdo:      { name: 'BDO Unibank',    color: '#003087', colorLight: '#e8eeff', icon: '🏦', account: 'Hiraya Lending Corp.', num: '0012-3456-7890',  prefix: 'bdo-link' },
+    bpi:      { name: 'BPI',            color: '#b31f24', colorLight: '#fff0f0', icon: '🏛️', account: 'Hiraya Corp.',         num: '1234-5678-90',   prefix: 'bpi-link' },
+    landbank: { name: 'Landbank',       color: '#008000', colorLight: '#eaf8f0', icon: '🌾', account: 'Hiraya Lending',      num: '5555-4444-22',   prefix: 'lbp-link' },
+    visa:     { name: 'Visa/Mastercard', color: '#1a1f71', colorLight: '#f7f7f7', icon: '💳', account: 'Direct Pay',         num: 'Secure Checkout', prefix: 'visa-link' }
   };
+// In startPolling, since the backend now marks it 'verified' immediately, 
+// the user will see the success screen almost instantly.
+function startPolling(payNo) {
+    if (_pollInterval) clearInterval(_pollInterval);
+    // Faster check for auto-credit
+    _pollInterval = setInterval(async function () {
+        try {
+            const res  = await fetch('/borrower/payments/status/' + payNo);
+            const data = await res.json();
+            if (data.status === 'verified' || data.status === 'approved') {
+                clearInterval(_pollInterval);
+                setTimelineCompleted(); // Jumps to E-Receipt
+            }
+        } catch (e) { console.warn('Polling error:', e); }
+    }, 2000); 
+}
 
   /* ── Init ── */
   document.addEventListener('DOMContentLoaded', function () {
@@ -307,53 +387,63 @@
   function buildQRScreen() {
     const d    = methodDetails[selectedMethod];
     const loan = selectedLoanData;
-    const ref    = 'HRY-' + loan.id + '-' + Date.now().toString(36).toUpperCase().slice(-6);
+    
+    // 1. GENERATE AUTOMATIC TRANSACTION REFERENCE (Para hindi na mag-type ang user)
+    // Format: TXN-METHOD-TIMESTAMP (e.g., TXN-GCASH-K99NKD)
+    const randomSuffix = Math.random().toString(36).toUpperCase().slice(-6);
+    const txnRef = `TXN-${selectedMethod.toUpperCase()}-${randomSuffix}`;
+    
     const amount = parseFloat(loan.amount).toFixed(2);
     const today  = new Date();
     const payDate = today.getFullYear() + '-' +
                     String(today.getMonth() + 1).padStart(2, '0') + '-' +
                     String(today.getDate()).padStart(2, '0');
 
-    window._paymentRef = ref;
+    window._paymentRef = txnRef; // I-save sa global variable
 
-    let qrData;
-    if (d.prefix) {
-      qrData = d.prefix.replace('{AMOUNT}', amount).replace('{REF}', ref);
-    } else {
-      qrData = `HIRAYA-PAYMENT|REF:${ref}|AMOUNT:${amount}|LOAN:${loan.ref}|METHOD:CASH`;
+    // 2. UPDATE UI (Para mawala ang mga "undefined" at "—")
+    const badgeEl = document.getElementById('qrMethodBadge');
+    if (badgeEl) {
+        badgeEl.innerHTML = `<span>${d.icon}</span> ${d.name}`;
+        badgeEl.style.background = d.colorLight;
+        badgeEl.style.color = d.color;
     }
 
-    document.getElementById('qrMethodBadge').textContent      = d.icon + ' ' + d.name;
-    document.getElementById('qrMethodBadge').style.background = d.colorLight;
-    document.getElementById('qrMethodBadge').style.color      = d.color;
-    setText('qrLoanRef',  loan.ref);
-    setText('qrLoanType', loan.type);
+    setText('qrLoanRef',  loan.ref);  // Ito yung LN-2026-XXXX
+    setText('qrLoanType', loan.type); // Ito yung Car Loan, etc.
     setText('qrDueDate',  loan.due);
     setText('qrAmount',   '₱' + parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 }));
-    setText('qrRefNum',   ref);
+    setText('qrRefNum',   txnRef);    // Ito yung TXN reference
+    
     setText('qrAccountName', d.account);
     setText('qrAccountNum',  d.num);
 
+    // 3. I-SET ANG HIDDEN INPUTS (Para ma-receive ng Python/borrower.py)
     const form = document.getElementById('paymentForm');
     if (form) form.action = '/borrower/payments/make/' + loan.id;
 
     setHidden('hiddenLoanId', loan.id);
-    setHidden('hiddenMethod',  selectedMethod);
-    setHidden('hiddenRef',     ref);
-    setHidden('hiddenAmount',  amount);
-    setHidden('hiddenDate',    payDate);
+    setHidden('hiddenMethod', selectedMethod);
+    setHidden('hiddenRef',    txnRef);   // Ito ang magiging reference_number sa DB
+    setHidden('hiddenAmount', amount);
+    setHidden('hiddenDate',   payDate);
 
+    // 4. GENERATE QR CODE DATA (Para sa Defense/Demo)
+    // Kapag ni-scan ito, makikita ang detalye ng payment
+    const qrData = `HIRAYA DIRECT PAY\n` +
+                   `Method: ${d.name}\n` +
+                   `Loan: ${loan.ref}\n` +
+                   `Amount: PHP ${parseFloat(amount).toLocaleString()}\n` +
+                   `Ref: ${txnRef}`;
+
+    // 5. HANDLING DISPLAY (QR vs Cash)
     if (selectedMethod === 'cash') {
-      document.getElementById('qrCodeWrap').style.display       = 'none';
+      document.getElementById('qrCodeWrap').style.display = 'none';
       document.getElementById('cashInstructions').style.display = 'block';
-      const hint = document.getElementById('qrScanHint');
-      if (hint) hint.style.display = 'none';
     } else {
-      document.getElementById('qrCodeWrap').style.display       = 'block';
+      document.getElementById('qrCodeWrap').style.display = 'block';
       document.getElementById('cashInstructions').style.display = 'none';
-      const hint = document.getElementById('qrScanHint');
-      if (hint) hint.style.display = 'flex';
-      generateQR(qrData, d.color);
+      generateQR(qrData, d.color); // Tawagin ang QR generator
     }
   }
 
@@ -474,13 +564,24 @@
     }, 5000);
   }
 
-  function setTimelineCompleted() {
+ function setTimelineCompleted() {
     const tlV = document.getElementById('tl-verification');
-    if (tlV) { tlV.classList.remove('pending'); tlV.classList.add('done'); setText('tl-verification-sub', 'Verified by admin'); }
+    if (tlV) { 
+        tlV.classList.remove('pending'); 
+        tlV.classList.add('done'); 
+        setText('tl-verification-sub', 'Auto-credited successfully'); // Ito ang bagong text
+    }
     const tlR = document.getElementById('tl-receipt');
-    if (tlR) { tlR.classList.remove('todo'); tlR.classList.add('done'); setText('tl-receipt-sub', 'Available now'); }
+    if (tlR) { 
+        tlR.classList.remove('todo'); 
+        tlR.classList.add('done'); 
+        setText('tl-receipt-sub', 'Official receipt generated'); 
+    }
     const banner = document.getElementById('receiptIssuedBanner');
-    if (banner) { banner.style.display = 'flex'; banner.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    if (banner) { 
+        banner.style.display = 'flex'; 
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+    }
   }
 
   function setTimelineRejected() {
