@@ -1053,6 +1053,97 @@ def activity_logs():
                            search=search,
                            date_from=date_from,
                            date_to=date_to)
+    
+# ═════════════════════════════════════════════
+# ADMIN: NOTIFICATIONS PAGE
+# ═════════════════════════════════════════════
+
+@super_admin_bp.route('/notifications')
+@login_required
+@role_required('admin', 'super_admin')
+def notifications_page():
+    """Full notifications page for admin — pending apps + all activity logs"""
+    stats = {
+        'pending_applications': 0,
+        'pending_payments': 0,
+    }
+    pending_applications_notif = []
+    all_activity_logs          = []
+
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # ── Pending applications (specific, for notif rows) ──
+        cursor.execute("""
+            SELECT la.id, la.reference_no, la.amount_requested,
+                   la.status, la.submitted_at,
+                   u.full_name AS borrower_name,
+                   lt.name    AS type_name
+            FROM loan_applications la
+            JOIN users u      ON u.id  = la.borrower_id
+            JOIN loan_types lt ON lt.id = la.loan_type_id
+            WHERE la.status IN ('submitted', 'under_review')
+            ORDER BY la.submitted_at DESC
+            LIMIT 50
+        """)
+        pending_applications_notif = cursor.fetchall()
+
+        # ── All activity logs (for activity section) ──
+        cursor.execute("""
+            SELECT al.*, u.full_name AS actor_name
+            FROM audit_logs al
+            LEFT JOIN users u ON u.id = al.user_id
+            ORDER BY al.created_at DESC
+            LIMIT 100
+        """)
+        all_activity_logs = cursor.fetchall()
+
+        # Mark logs created in the last 24 hours as "new"
+        now = datetime.datetime.now()
+        for log in all_activity_logs:
+            created = log.get('created_at')
+            if created and isinstance(created, datetime.datetime):
+                log['is_new'] = (now - created).total_seconds() < 86400
+            else:
+                log['is_new'] = False
+
+        # ── Stats for sidebar badges ──
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM loan_applications
+            WHERE status IN ('submitted', 'under_review')
+        """)
+        stats['pending_applications'] = cursor.fetchone()['cnt']
+
+        cursor.execute("SELECT COUNT(*) AS cnt FROM payments WHERE status = 'pending'")
+        stats['pending_payments'] = cursor.fetchone()['cnt']
+
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        flash(f'Error loading notifications: {str(e)}', 'warning')
+
+    return render_template('notification_admin.html',
+        pending_applications_notif=pending_applications_notif,
+        all_activity_logs=all_activity_logs,
+        stats=stats)
+
+
+@super_admin_bp.route('/notifications/mark-all-read', methods=['POST'])
+@login_required
+@role_required('admin', 'super_admin')
+def notifications_mark_all_read():
+    """Marks all admin notifications as read — redirects back to notifications page"""
+    # If you add a notifications table in the future, update read status here.
+    # For now, we just log the action and redirect.
+    try:
+        log_activity('mark_notifications_read', 'Admin marked all notifications as read')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'warning')
+
+    flash('All notifications marked as read.', 'success')
+    return redirect(url_for('super_admin.notifications_page'))
 
 
 # ═════════════════════════════════════════════

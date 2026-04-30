@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notifications — Hiraya Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='notification_admin.css') }}"/>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app-wrap">
+
+  <!-- TOPBAR -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <h1 class="topbar-title">Notifications</h1>
+      <p class="topbar-sub">All system alerts and activity</p>
+    </div>
+
+    <div class="topbar-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-empty-item">
+              <span class="notif-empty-icon-img"></span>
+              <p>You're viewing all notifications.</p>
+            </li>
+          </ul>
+          <div class="notif-footer">
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">See all notifications →</a>
+          </div>
+        </div>
+      </div>
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
+        {{ session.user_name[0]|upper if session.user_name else 'A' }}
+      </a>
+    </div>
+  </header>
+
+  <div class="body-row">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        {% if session.role == 'super_admin' %}
+        <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
+        {% endif %}
+        <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
+        <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--clock"></span><span class="nav-label">Applications</span>
+          {% if stats and stats.get('pending_applications', 0) > 0 %}
+          <span class="nav-badge">{{ stats.pending_applications }}</span>
+          {% endif %}
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">All Loans</span>
+        </a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+          <span class="nav-icon nav-icon--warning"></span><span class="nav-label">Penalties &amp; Overdue</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- PAGE HEADER -->
+        <div class="notif-page-header">
+          <div class="notif-page-header-left">
+            <h2>All Notifications</h2>
+            <p>Showing pending applications and system activity</p>
+          </div>
+          <div class="notif-page-header-right">
+            <!-- Filter Tabs -->
+            <div class="notif-filter-tabs" id="filterTabs">
+              <button class="nf-tab active" data-filter="all">All</button>
+              <button class="nf-tab" data-filter="applications">Applications</button>
+              <button class="nf-tab" data-filter="activity">Activity</button>
+            </div>
+            <form method="POST" action="{{ url_for('super_admin.notifications_mark_all_read') }}">
+              <button type="submit" class="btn-mark-all-page">
+                <span class="btn-mark-icon"></span>
+                Mark all as read
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- NOTIFICATIONS FEED -->
+        <div class="notif-page-feed" id="notifPageFeed">
+
+          {# ══════════════════════════════════════
+             SECTION: Pending Applications
+          ══════════════════════════════════════ #}
+          {% if pending_applications_notif %}
+          <div class="notif-section" data-section="applications">
+            <div class="notif-section-label">
+              <span class="nsl-dot nsl-dot--warning"></span>
+              Pending Applications
+              <span class="nsl-count">{{ pending_applications_notif | length }}</span>
+            </div>
+
+            {% for app in pending_applications_notif %}
+            <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}"
+               class="notif-row notif-row--unread" data-type="applications">
+              <div class="notif-row-icon notif-row-icon--warning">
+                <span class="nri-img nri-img--warning"></span>
+              </div>
+              <div class="notif-row-body">
+                <div class="notif-row-title">
+                  New Application — <strong>{{ app.reference_no }}</strong>
+                </div>
+                <div class="notif-row-meta">
+                  <span class="notif-row-badge badge--pending">Pending Review</span>
+                  <span>{{ app.borrower_name }}</span>
+                  <span>{{ app.type_name }}</span>
+                  <span>₱{{ "{:,.2f}".format(app.amount_requested) }}</span>
+                </div>
+                <div class="notif-row-time">
+                  {{ app.submitted_at.strftime('%B %d, %Y at %I:%M %p') if app.submitted_at else '—' }}
+                </div>
+              </div>
+              <div class="notif-row-action">
+                <span class="nra-btn">Review →</span>
+              </div>
+              <span class="notif-row-unread-dot"></span>
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {# ══════════════════════════════════════
+             SECTION: Activity Logs
+          ══════════════════════════════════════ #}
+          {% if all_activity_logs %}
+          <div class="notif-section" data-section="activity">
+            <div class="notif-section-label">
+              <span class="nsl-dot nsl-dot--blue"></span>
+              System Activity
+              <span class="nsl-count">{{ all_activity_logs | length }}</span>
+            </div>
+
+            {% for log in all_activity_logs %}
+            <a href="{{ url_for('super_admin.activity_logs') }}"
+               class="notif-row {% if log.is_new %}notif-row--unread{% endif %}" data-type="activity">
+              <div class="notif-row-icon
+                {% if 'approved' in log.action or 'verified' in log.action or 'paid' in log.action %}notif-row-icon--green
+                {% elif 'rejected' in log.action or 'overdue' in log.action %}notif-row-icon--red
+                {% elif 'disbursed' in log.action %}notif-row-icon--teal
+                {% else %}notif-row-icon--activity{% endif %}">
+                <span class="nri-img
+                  {% if 'approved' in log.action or 'paid' in log.action %}nri-img--check
+                  {% elif 'rejected' in log.action %}nri-img--reject
+                  {% elif 'disbursed' in log.action %}nri-img--disburse
+                  {% else %}nri-img--activity{% endif %}">
+                </span>
+              </div>
+              <div class="notif-row-body">
+                <div class="notif-row-title">{{ log.action | replace('_',' ') | title }}</div>
+                <div class="notif-row-meta">
+                  {% if log.details %}<span>{{ log.details }}</span>{% endif %}
+                  {% if log.actor_name %}<span>by {{ log.actor_name }}</span>{% endif %}
+                </div>
+                <div class="notif-row-time">
+                  {{ log.created_at.strftime('%B %d, %Y at %I:%M %p') if log.created_at else '—' }}
+                </div>
+              </div>
+              {% if log.is_new %}<span class="notif-row-unread-dot"></span>{% endif %}
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {# ══ Empty state ══ #}
+          {% if not pending_applications_notif and not all_activity_logs %}
+          <div class="notif-page-empty">
+            <div class="notif-page-empty-icon"></div>
+            <h3>You're all caught up!</h3>
+            <p>No pending applications or recent activity to show.</p>
+            <a href="{{ url_for('auth.dashboard') }}" class="btn-back-dash">← Back to Dashboard</a>
+          </div>
+          {% endif %}
+
+        </div><!-- /.notif-page-feed -->
+
+      </main>
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
+<script src="{{ url_for('super_admin.static', filename='notifications_admin.js') }}"></script>
+</body>
+</html>

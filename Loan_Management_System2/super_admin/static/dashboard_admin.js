@@ -1,187 +1,179 @@
 /* ================================================================
-   dashboard_admin.js — All interactivity for the Admin Dashboard
+   dashboard_admin.js — Admin Dashboard
+   Sidebar toggle matches borrower dashboard pattern exactly
    ================================================================ */
 
 (function () {
   'use strict';
 
-  /* ── Mobile sidebar toggle ── */
-  const sidebar  = document.getElementById('sidebar');
-  const menuBtn  = document.getElementById('menuBtn');
+  /* ================================================================
+     SIDEBAR TOGGLE — same pattern as borrower dashboard
+     ================================================================ */
+  const burgerBtn      = document.getElementById('burgerBtn');
+  const sidebar        = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const SIDEBAR_KEY    = 'hiraya_admin_sidebar_open';
+  const isMobile       = () => window.innerWidth <= 768;
 
-  menuBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    sidebar?.classList.toggle('mobile-open');
+  function openSidebar() {
+    document.body.classList.add('sidebar-open');
+    if (isMobile()) sidebarOverlay.classList.add('active');
+    if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '1');
+  }
+
+  function closeSidebar() {
+    document.body.classList.remove('sidebar-open');
+    sidebarOverlay.classList.remove('active');
+    if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '0');
+  }
+
+  function toggleSidebar() {
+    document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
+  }
+
+  /* Restore desktop preference on page load */
+  if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
+    openSidebar();
+  }
+
+  burgerBtn?.addEventListener('click', toggleSidebar);
+
+  /* Close via overlay tap (mobile) */
+  sidebarOverlay?.addEventListener('click', closeSidebar);
+
+  /* Close sidebar when a nav link is clicked on mobile */
+  sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
+    link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
-  document.addEventListener('click', (e) => {
-    if (
-      window.innerWidth <= 768 &&
-      sidebar?.classList.contains('mobile-open') &&
-      !sidebar.contains(e.target) &&
-      e.target !== menuBtn
-    ) {
-      sidebar.classList.remove('mobile-open');
+  /* Re-evaluate on resize */
+  window.addEventListener('resize', () => {
+    if (!isMobile()) {
+      sidebarOverlay.classList.remove('active');
+      if (localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
+    } else {
+      closeSidebar();
     }
   });
 
-  /* ── Active nav highlight ── */
-  const path = window.location.pathname;
-  document.querySelectorAll('.nav-item').forEach((el) => {
+  /* ================================================================
+     USER DROPDOWN (sidebar)
+     ================================================================ */
+  const userToggle   = document.getElementById('userDropdownToggle');
+  const userDropdown = document.getElementById('userDropdown');
+
+  userToggle?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    userDropdown.classList.toggle('open');
+    userToggle.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!userToggle?.contains(e.target) && !userDropdown?.contains(e.target)) {
+      userDropdown?.classList.remove('open');
+      userToggle?.classList.remove('open');
+    }
+  });
+
+  /* ================================================================
+     NOTIFICATION DROPDOWN
+     ================================================================ */
+  const notifBtn      = document.getElementById('notifBtn');
+  const notifDropdown = document.getElementById('notifDropdown');
+  const notifDot      = document.getElementById('notifDot');
+  const notifMarkAll  = document.getElementById('notifMarkAll');
+  const notifWrap     = document.getElementById('notifWrap');
+
+  /* Show red dot if there are unread notifications on load */
+  const unreadCount = document.querySelectorAll('.notif-item.unread').length;
+  if (unreadCount > 0) {
+    notifDot?.classList.remove('hidden');
+  } else {
+    notifDot?.classList.add('hidden');
+  }
+
+  notifBtn?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    notifDropdown?.classList.toggle('open');
+  });
+
+  /* Mark all as read — removes unread class + dot, closes dropdown */
+  notifMarkAll?.addEventListener('click', () => {
+    document.querySelectorAll('.notif-item.unread').forEach(el => {
+      el.classList.remove('unread');
+      el.querySelector('.notif-unread-dot')?.remove();
+    });
+    notifDot?.classList.add('hidden');
+  });
+
+  /* Close when clicking outside */
+  document.addEventListener('click', (e) => {
+    if (!notifWrap?.contains(e.target)) {
+      notifDropdown?.classList.remove('open');
+    }
+  });
+
+  /* ================================================================
+     ALERT BANNER DISMISS
+     ================================================================ */
+  document.getElementById('closeAlert')?.addEventListener('click', () => {
+    document.getElementById('pendingAlert')?.classList.add('hidden');
+  });
+
+  /* ================================================================
+     ACTIVE NAV HIGHLIGHT
+     ================================================================ */
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-item[href]').forEach((el) => {
     const href = el.getAttribute('href');
-    if (href && href !== '#' && path.startsWith(href)) {
+    if (href && href !== '#' && currentPath.startsWith(href) && href !== '/') {
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       el.classList.add('active');
     }
   });
 
-  /* ── Notification dropdown ── */
-  const notifBtn      = document.getElementById('notifBtn');
-  const notifDropdown = document.getElementById('notifDropdown');
-  const notifDot      = document.getElementById('notifDot');
-  const notifClear    = document.getElementById('notifClear');
-
-  notifBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    notifDropdown?.classList.toggle('open');
-  });
-
-  notifClear?.addEventListener('click', () => {
-    document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
-    notifDot?.classList.add('hidden');
-    notifDropdown?.classList.remove('open');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!notifDropdown?.contains(e.target) && e.target !== notifBtn) {
-      notifDropdown?.classList.remove('open');
-    }
-  });
-
-  /* ── Dismiss alert banner ── */
-  document.getElementById('closeAlert')?.addEventListener('click', () => {
-    document.getElementById('pendingAlert')?.classList.add('hidden');
-  });
-
-  /* ── Animated stat counters ── */
-  function animateCounter(card) {
-    const el = card.querySelector('.stat-value');
-    if (!el) return;
-    const target   = parseInt(card.dataset.count, 10) || 0;
-    const prefix   = card.dataset.prefix || '';
-    const fmt      = card.dataset.format;
-    const duration = 900;
-    const start    = performance.now();
-
-    function formatVal(v) {
-      if (fmt === 'currency') return prefix + v.toLocaleString('en-PH');
-      return prefix + v.toLocaleString();
-    }
-
-    function step(now) {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased    = 1 - Math.pow(1 - progress, 3);
-      el.textContent = formatVal(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  }
-
-  /* ── Stat card entrance animation ──
-     Works for cards WITH data-animate (IntersectionObserver)
-     AND cards WITHOUT it (simple staggered timeout fallback)      */
-  const animatedCards = document.querySelectorAll('.stat-card[data-animate]');
-  const plainCards    = document.querySelectorAll('.stat-card:not([data-animate])');
-
-  if (animatedCards.length) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
-        if (!entry.isIntersecting) return;
-        setTimeout(() => {
-          entry.target.classList.add('visible');
-          animateCounter(entry.target);
-        }, i * 100);
-        observer.unobserve(entry.target);
-      });
-    }, { threshold: 0.2 });
-
-    animatedCards.forEach(c => observer.observe(c));
-  }
-
-  if (plainCards.length) {
-    plainCards.forEach((card, i) => {
-      setTimeout(() => card.classList.add('visible'), i * 120);
+  /* ================================================================
+     STAT CARD ENTRANCE ANIMATION
+     ================================================================ */
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (!entry.isIntersecting) return;
+      setTimeout(() => entry.target.classList.add('visible'), i * 100);
+      obs.unobserve(entry.target);
     });
-  }
+  }, { threshold: 0.2 });
 
-  /* ── Table search ── */
+  document.querySelectorAll('.stat-card[data-animate]').forEach(c => obs.observe(c));
+
+  /* Fallback for cards without data-animate */
+  document.querySelectorAll('.stat-card:not([data-animate])').forEach((card, i) => {
+    setTimeout(() => card.classList.add('visible'), i * 120);
+  });
+
+  /* ================================================================
+     TABLE SEARCH
+     ================================================================ */
   const appSearch = document.getElementById('appSearch');
   const appTable  = document.getElementById('applicationsTable');
 
   appSearch?.addEventListener('input', () => {
     const q = appSearch.value.trim().toLowerCase();
     appTable?.querySelectorAll('tbody tr').forEach(row => {
-      row.classList.toggle('hidden-row', q ? !row.textContent.toLowerCase().includes(q) : false);
+      row.style.display = q && !row.textContent.toLowerCase().includes(q) ? 'none' : '';
     });
   });
 
-  /* ── Table action buttons ── */
-  appTable?.addEventListener('click', (e) => {
-    const btn = e.target.closest('.tbl-btn');
-    if (!btn) return;
+  /* ================================================================
+     AUTO-DISMISS FLASH MESSAGES
+     ================================================================ */
+  setTimeout(() => {
+    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
+  }, 5000);
 
-    const action = btn.dataset.action;
-    const row    = btn.closest('tr');
-    const name   = row?.querySelector('.borrower-name')?.textContent?.trim() || 'this borrower';
-
-    if (action === 'approve') {
-      openModal(
-        'Approve Application',
-        `Are you sure you want to <strong>approve</strong> the loan application for <strong>${name}</strong>?`,
-        'Approve',
-        () => applyRowAction(row, 'approved')
-      );
-    } else if (action === 'reject') {
-      openModal(
-        'Reject Application',
-        `Are you sure you want to <strong>reject</strong> the loan application for <strong>${name}</strong>?`,
-        'Reject',
-        () => applyRowAction(row, 'rejected')
-      );
-    } else if (action === 'view') {
-      openModal(
-        'Application Details',
-        `Viewing loan application for <strong>${name}</strong>.<br><br>Full detail view coming soon.`,
-        null
-      );
-    }
-  });
-
-  function applyRowAction(row, newStatus) {
-    const badge   = row?.querySelector('.badge');
-    const actCell = row?.querySelector('td:last-child');
-
-    if (badge) {
-      badge.className   = `badge badge--${newStatus}`;
-      badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-    }
-    if (actCell) {
-      actCell.innerHTML = `<button class="tbl-btn tbl-btn--view" data-action="view">View</button>`;
-    }
-
-    const pending  = appTable?.querySelectorAll('.badge--pending, .badge--submitted').length || 0;
-    const appBadge = document.getElementById('appBadge');
-    if (appBadge) appBadge.textContent = pending;
-    if (pending === 0) document.getElementById('pendingAlert')?.classList.add('hidden');
-
-    addActivity(
-      newStatus === 'approved' ? 'green' : 'red',
-      `Application ${newStatus} for ${row?.querySelector('.borrower-name')?.textContent?.trim()}`
-    );
-  }
-
-  /* ── Activity feed ── */
-  function addActivity(color, message) {
+  /* ================================================================
+     ACTIVITY FEED HELPER (for dynamic additions)
+     ================================================================ */
+  window.addAdminActivity = function (color, message) {
     const list = document.getElementById('activityList');
     if (!list) return;
 
@@ -204,37 +196,6 @@
 
     const items = list.querySelectorAll('.activity-item');
     if (items.length > 8) items[items.length - 1].remove();
-  }
-
-  /* ── Modal ── */
-  const overlay     = document.getElementById('modalOverlay');
-  const modalTitle  = document.getElementById('modalTitle');
-  const modalBody   = document.getElementById('modalBody');
-  const modalClose  = document.getElementById('modalClose');
-  const modalCancel = document.getElementById('modalCancel');
-  const modalConfirm= document.getElementById('modalConfirm');
-  let onConfirm     = null;
-
-  function openModal(title, body, confirmLabel, cb) {
-    if (modalTitle) modalTitle.textContent = title;
-    if (modalBody)  modalBody.innerHTML    = body;
-    modalConfirm.style.display = confirmLabel ? '' : 'none';
-    if (confirmLabel) modalConfirm.textContent = confirmLabel;
-    onConfirm = cb || null;
-    overlay?.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeModal() {
-    overlay?.classList.remove('open');
-    document.body.style.overflow = '';
-    onConfirm = null;
-  }
-
-  modalClose?.addEventListener('click', closeModal);
-  modalCancel?.addEventListener('click', closeModal);
-  modalConfirm?.addEventListener('click', () => { onConfirm?.(); closeModal(); });
-  overlay?.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  };
 
 })();

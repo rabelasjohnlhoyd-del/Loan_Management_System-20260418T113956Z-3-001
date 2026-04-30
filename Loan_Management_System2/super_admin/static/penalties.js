@@ -1,6 +1,6 @@
 /* ================================================================
-   all_loans.js — Admin All Loans Page Scripts
-   Sidebar logic mirrors borrower my_loans.js exactly
+   penalties.js — Penalties & Overdue Page Scripts
+   Mirrors all_loans.js exactly
    ================================================================ */
 
 (function () {
@@ -31,7 +31,6 @@
     document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
   }
 
-  /* Restore desktop preference on page load */
   if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
     openSidebar();
   }
@@ -39,12 +38,10 @@
   burgerBtn?.addEventListener('click', toggleSidebar);
   sidebarOverlay?.addEventListener('click', closeSidebar);
 
-  /* Close on nav click (mobile) */
   sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
     link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
-  /* Re-evaluate on resize */
   window.addEventListener('resize', () => {
     if (!isMobile()) {
       sidebarOverlay.classList.remove('active');
@@ -79,7 +76,6 @@
   const NOTIF_ICONS = {
     loan_approved:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
     loan_rejected:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E\")",
-    loan_disbursed:   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l6.59-6.59L18 9l-9 9z'/%3E%3C/svg%3E\")",
     payment_due:      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E\")",
     payment_received: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
     general:          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E\")",
@@ -95,11 +91,8 @@
     fetch('/admin/api/notifications/count')
       .then(r => r.json())
       .then(data => {
-        if (data.count > 0) {
-          notifDot?.classList.remove('hidden');
-        } else {
-          notifDot?.classList.add('hidden');
-        }
+        if (data.count > 0) notifDot?.classList.remove('hidden');
+        else notifDot?.classList.add('hidden');
       }).catch(() => {});
   }
   fetchUnreadCount();
@@ -177,10 +170,8 @@
 
   notifMarkAll?.addEventListener('click', () => {
     fetch('/admin/api/notifications/read-all', { method: 'POST' })
-      .then(() => {
-        notifDot?.classList.add('hidden');
-        fetchNotifications();
-      }).catch(() => {});
+      .then(() => { notifDot?.classList.add('hidden'); fetchNotifications(); })
+      .catch(() => {});
   });
 
   function escHtml(str) {
@@ -188,6 +179,27 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+
+  /* ================================================================
+     FLASH MESSAGE — auto-dismiss after 5 seconds
+     ================================================================ */
+  function dismissFlash(btnOrEl) {
+    const msg = btnOrEl.closest ? btnOrEl.closest('.flash-msg') : btnOrEl;
+    if (!msg) return;
+    msg.style.opacity = '0';
+    msg.style.transform = 'translateY(-6px)';
+    setTimeout(() => {
+      msg.remove();
+      const stack = document.getElementById('flashStack');
+      if (stack && !stack.children.length) stack.remove();
+    }, 400);
+  }
+  window.dismissFlash = dismissFlash;
+
+  // Auto-dismiss all flash messages after 5 seconds
+  document.querySelectorAll('.flash-msg').forEach((msg, i) => {
+    setTimeout(() => dismissFlash(msg), 5000 + i * 300);
+  });
 
   /* ================================================================
      ACTIVE NAV HIGHLIGHT
@@ -204,7 +216,6 @@
      CLIENT-SIDE PAGINATION — 10 rows per page
      ================================================================ */
   const ROWS_PER_PAGE = 10;
-
   const tbody      = document.querySelector('.data-table tbody');
   const pgInfo     = document.getElementById('paginationInfo');
   const pgControls = document.getElementById('paginationControls');
@@ -219,16 +230,11 @@
       currentPage = Math.max(1, Math.min(page, totalPages()));
       const start = (currentPage - 1) * ROWS_PER_PAGE;
       const end   = start + ROWS_PER_PAGE;
-
       allRows.forEach((row, i) => {
         row.style.display = (i >= start && i < end) ? '' : 'none';
       });
-
-      // Info text
       const showing = Math.min(end, totalRows);
-      pgInfo.textContent = `Showing ${start + 1}–${showing} of ${totalRows} loan${totalRows !== 1 ? 's' : ''}`;
-
-      // Rebuild controls
+      pgInfo.textContent = `Showing ${start + 1}–${showing} of ${totalRows} record${totalRows !== 1 ? 's' : ''}`;
       renderControls();
     }
 
@@ -238,13 +244,9 @@
       if (tp <= 1) { pgControls.style.display = 'none'; return; }
       pgControls.style.display = '';
 
-      // Prev
-      const prev = makeBtn('‹', currentPage === 1, () => showPage(currentPage - 1), 'pg-btn--arrow', 'Previous page');
-      pgControls.appendChild(prev);
+      pgControls.appendChild(makeBtn('‹', currentPage === 1, () => showPage(currentPage - 1), 'pg-btn--arrow', 'Previous page'));
 
-      // Page numbers with ellipsis
-      const pages = getPageNumbers(currentPage, tp);
-      pages.forEach(p => {
+      getPageNumbers(currentPage, tp).forEach(p => {
         if (p === '…') {
           const el = document.createElement('span');
           el.textContent = '…';
@@ -257,9 +259,7 @@
         }
       });
 
-      // Next
-      const next = makeBtn('›', currentPage === tp, () => showPage(currentPage + 1), 'pg-btn--arrow', 'Next page');
-      pgControls.appendChild(next);
+      pgControls.appendChild(makeBtn('›', currentPage === tp, () => showPage(currentPage + 1), 'pg-btn--arrow', 'Next page'));
     }
 
     function makeBtn(label, disabled, onClick, extraClass, ariaLabel) {
@@ -290,7 +290,6 @@
       return pages;
     }
 
-    // Init
     showPage(1);
   }
 

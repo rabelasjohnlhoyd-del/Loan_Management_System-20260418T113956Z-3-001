@@ -281,18 +281,57 @@ button { font-family: inherit; }
   max-height: 320px;
 }
 
-.notif-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 16px;
+/* Group label divider */
+.notif-group-label {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px 4px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--text-muted);
+  background: var(--bg-base);
   border-bottom: 1px solid var(--gray-200);
-  cursor: pointer;
-  transition: background 0.15s;
+}
+.notif-group-label:not(:first-child) {
+  border-top: 1px solid var(--gray-200);
+}
+
+.notif-item {
+  border-bottom: 1px solid var(--gray-200);
   position: relative;
 }
 .notif-item:last-child { border-bottom: none; }
-.notif-item:hover { background: var(--bg-base); }
 .notif-item.unread { background: var(--primary-light); }
 .notif-item.unread:hover { background: #c8ebee; }
+.notif-item:not(.unread):hover { background: var(--bg-base); }
+
+/* The actual clickable link wraps everything inside the li */
+.notif-item-link {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 16px;
+  text-decoration: none; color: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+  width: 100%;
+}
+
+/* Empty state inside notif list */
+.notif-empty-item {
+  padding: 32px 16px; text-align: center;
+  color: var(--text-muted);
+}
+.notif-empty-icon-wrap {
+  width: 40px; height: 40px; margin: 0 auto 10px;
+}
+.notif-empty-icon-img {
+  display: block; width: 40px; height: 40px;
+  background: var(--text-muted); opacity: .3;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E");
+  mask-size: contain; mask-repeat: no-repeat;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat;
+}
+.notif-empty-item p { font-size: 13px; font-weight: 600; color: var(--gray-600); margin: 0 0 4px; }
+.notif-empty-item small { font-size: 12px; color: var(--text-muted); }
 
 .notif-item-icon {
   width: 34px; height: 34px; border-radius: 50%;
@@ -319,6 +358,16 @@ button { font-family: inherit; }
 .notif-icon--id span {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/%3E%3C/svg%3E");
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/%3E%3C/svg%3E");
+}
+/* Activity log icon colors */
+.notif-icon--green   { background: var(--success-bg); color: var(--success); }
+.notif-icon--red     { background: var(--danger-bg);  color: var(--danger); }
+.notif-icon--teal    { background: var(--primary-light); color: var(--primary-dark); }
+.notif-icon--activity { background: var(--gray-200); color: var(--gray-600); }
+.notif-icon--green span, .notif-icon--red span,
+.notif-icon--teal span, .notif-icon--activity span {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z'/%3E%3C/svg%3E");
 }
 
 .notif-item-body { flex: 1; min-width: 0; }

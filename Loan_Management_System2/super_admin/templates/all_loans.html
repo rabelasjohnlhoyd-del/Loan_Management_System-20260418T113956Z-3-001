@@ -51,7 +51,7 @@
             <div class="notif-loading">Loading...</div>
           </div>
           <div class="notif-footer">
-            <a href="#" class="notif-see-all">See all notifications →</a>
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">See all notifications →</a>
           </div>
         </div>
       </div>
@@ -154,8 +154,7 @@
 
         <!-- STATUS TABS -->
         <div class="status-tabs">
-          {% for s in [('all','All'), ('active','Active'), ('paid','Paid'),
-                       ('defaulted','Defaulted'), ('restructured','Restructured')] %}
+          {% for s in [('all','All'), ('active','Active'), ('paid','Paid')] %}
           <a href="{{ url_for('super_admin.all_loans', status=s[0], search=search, type=type_filter) }}"
              class="status-tab {{ 'active' if status_filter == s[0] }}">
             {{ s[1] }}
@@ -198,7 +197,6 @@
                   <th>Borrower</th>
                   <th>Type</th>
                   <th>Principal</th>
-                  <th>Rate</th>
                   <th>Balance</th>
                   <th>Next Due</th>
                   <th>Status</th>
@@ -220,7 +218,6 @@
                     <div class="td-sub">{{ loan.plan_name }}</div>
                   </td>
                   <td data-label="Principal">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</td>
-                  <td data-label="Rate">{{ loan.interest_rate }}%</td>
                   <td data-label="Balance">
                     <span class="td-balance {% if loan.outstanding_balance == 0 %}td-balance--paid{% endif %}">
                       &#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}
@@ -256,6 +253,14 @@
             {% endif %}
           </div>
         </div>
+
+        <!-- PAGINATION -->
+        {% if loans %}
+        <div class="pagination-wrap" id="paginationWrap">
+          <span class="pagination-info" id="paginationInfo"></span>
+          <div class="pagination-controls" id="paginationControls"></div>
+        </div>
+        {% endif %}
 
       </main>
     </div>

@@ -1,6 +1,6 @@
 /* ================================================================
-   all_loans.js — Admin All Loans Page Scripts
-   Sidebar logic mirrors borrower my_loans.js exactly
+   SA_application_detail.js — Admin Application Detail Page
+   Sidebar, user dropdown, and notification logic mirrors all_loans.js
    ================================================================ */
 
 (function () {
@@ -199,99 +199,5 @@
       el.classList.add('active');
     }
   });
-
-  /* ================================================================
-     CLIENT-SIDE PAGINATION — 10 rows per page
-     ================================================================ */
-  const ROWS_PER_PAGE = 10;
-
-  const tbody      = document.querySelector('.data-table tbody');
-  const pgInfo     = document.getElementById('paginationInfo');
-  const pgControls = document.getElementById('paginationControls');
-
-  if (tbody && pgInfo && pgControls) {
-    const allRows   = Array.from(tbody.querySelectorAll('tr'));
-    const totalRows = allRows.length;
-    let currentPage = 1;
-    const totalPages = () => Math.ceil(totalRows / ROWS_PER_PAGE);
-
-    function showPage(page) {
-      currentPage = Math.max(1, Math.min(page, totalPages()));
-      const start = (currentPage - 1) * ROWS_PER_PAGE;
-      const end   = start + ROWS_PER_PAGE;
-
-      allRows.forEach((row, i) => {
-        row.style.display = (i >= start && i < end) ? '' : 'none';
-      });
-
-      // Info text
-      const showing = Math.min(end, totalRows);
-      pgInfo.textContent = `Showing ${start + 1}–${showing} of ${totalRows} loan${totalRows !== 1 ? 's' : ''}`;
-
-      // Rebuild controls
-      renderControls();
-    }
-
-    function renderControls() {
-      pgControls.innerHTML = '';
-      const tp = totalPages();
-      if (tp <= 1) { pgControls.style.display = 'none'; return; }
-      pgControls.style.display = '';
-
-      // Prev
-      const prev = makeBtn('‹', currentPage === 1, () => showPage(currentPage - 1), 'pg-btn--arrow', 'Previous page');
-      pgControls.appendChild(prev);
-
-      // Page numbers with ellipsis
-      const pages = getPageNumbers(currentPage, tp);
-      pages.forEach(p => {
-        if (p === '…') {
-          const el = document.createElement('span');
-          el.textContent = '…';
-          el.style.cssText = 'padding:0 4px;color:var(--gray-400);font-size:13px;align-self:center;';
-          pgControls.appendChild(el);
-        } else {
-          const btn = makeBtn(p, false, () => showPage(p), '', `Page ${p}`);
-          if (p === currentPage) btn.classList.add('active');
-          pgControls.appendChild(btn);
-        }
-      });
-
-      // Next
-      const next = makeBtn('›', currentPage === tp, () => showPage(currentPage + 1), 'pg-btn--arrow', 'Next page');
-      pgControls.appendChild(next);
-    }
-
-    function makeBtn(label, disabled, onClick, extraClass, ariaLabel) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'pg-btn' + (extraClass ? ' ' + extraClass : '');
-      btn.textContent = label;
-      btn.disabled = disabled;
-      btn.setAttribute('aria-label', ariaLabel || label);
-      btn.addEventListener('click', onClick);
-      return btn;
-    }
-
-    function getPageNumbers(cur, total) {
-      if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-      const pages = [];
-      if (cur <= 4) {
-        for (let i = 1; i <= 5; i++) pages.push(i);
-        pages.push('…'); pages.push(total);
-      } else if (cur >= total - 3) {
-        pages.push(1); pages.push('…');
-        for (let i = total - 4; i <= total; i++) pages.push(i);
-      } else {
-        pages.push(1); pages.push('…');
-        pages.push(cur - 1); pages.push(cur); pages.push(cur + 1);
-        pages.push('…'); pages.push(total);
-      }
-      return pages;
-    }
-
-    // Init
-    showPage(1);
-  }
 
 })();

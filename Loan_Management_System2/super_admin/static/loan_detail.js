@@ -1,6 +1,6 @@
 /* ================================================================
-   admin_applications_ui.js — Sidebar, Notifications, Dropdown
-   Mirrors borrower page logic exactly
+   loan_detail.js — Sidebar, Notifications, Dropdown, Tabs, Pagination
+   Mirrors admin_applications_ui.js pattern exactly
    ================================================================ */
 
 (function () {
@@ -74,17 +74,6 @@
   });
 
   /* ================================================================
-     ACTIVE NAV HIGHLIGHT
-     ================================================================ */
-  const path = window.location.pathname;
-  document.querySelectorAll('.nav-item').forEach(function (el) {
-    const href = el.getAttribute('href');
-    if (href && href !== '#' && path.startsWith(href)) {
-      el.classList.add('active');
-    }
-  });
-
-  /* ================================================================
      NOTIFICATIONS
      ================================================================ */
   const notifBtn      = document.getElementById('notifBtn');
@@ -99,9 +88,7 @@
   notifBtn?.addEventListener('click', function (e) {
     e.stopPropagation();
     const isOpen = notifDropdown.classList.toggle('open');
-    if (isOpen && !notifLoaded) {
-      loadNotifications();
-    }
+    if (isOpen && !notifLoaded) loadNotifications();
   });
 
   document.addEventListener('click', (e) => {
@@ -113,7 +100,6 @@
   function loadNotifications() {
     notifLoaded = true;
     notifList.innerHTML = '<div class="notif-loading">Loading...</div>';
-
     fetch('/super_admin/api/notifications')
       .then(res => res.json())
       .then(data => renderNotifications(data))
@@ -124,20 +110,11 @@
 
   function renderNotifications(data) {
     const items = Array.isArray(data) ? data : (data.notifications || []);
-
     const unreadCount = items.filter(n => !n.is_read).length;
-    if (unreadCount > 0) {
-      notifDot.classList.remove('hidden');
-    } else {
-      notifDot.classList.add('hidden');
-    }
+    unreadCount > 0 ? notifDot.classList.remove('hidden') : notifDot.classList.add('hidden');
 
     if (items.length === 0) {
-      notifList.innerHTML = `
-        <div class="notif-empty">
-          <p>No notifications</p>
-          <small>You're all caught up!</small>
-        </div>`;
+      notifList.innerHTML = `<div class="notif-empty"><p>No notifications</p><small>You're all caught up!</small></div>`;
       return;
     }
 
@@ -146,12 +123,7 @@
     notifList.innerHTML = items.map(n => `
       <div class="notif-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}">
         <div class="notif-item-icon">
-          <span style="
-            -webkit-mask-image: url('${bellIcon}');
-            mask-image: url('${bellIcon}');
-            mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-            -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-          "></span>
+          <span style="-webkit-mask-image:url('${bellIcon}');mask-image:url('${bellIcon}');mask-size:contain;mask-repeat:no-repeat;mask-position:center;-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;"></span>
         </div>
         <div class="notif-item-body">
           <div class="notif-item-title">${escHtml(n.title || 'Notification')}</div>
@@ -194,100 +166,121 @@
   /* Check unread count on page load */
   fetch('/admin/api/notifications/count')
     .then(res => res.json())
-    .then(data => {
-      if ((data.count ?? 0) > 0) notifDot?.classList.remove('hidden');
-    })
+    .then(data => { if ((data.count ?? 0) > 0) notifDot?.classList.remove('hidden'); })
     .catch(() => {});
+
+  /* ================================================================
+     TAB SWITCHING
+     ================================================================ */
+  window.showTab = function (tabId, clickedEl) {
+    ['amort', 'payments', 'penalties', 'docs'].forEach(id => {
+      const el = document.getElementById('tab-' + id);
+      if (el) el.style.display = 'none';
+    });
+
+    const target = document.getElementById('tab-' + tabId);
+    if (target) target.style.display = '';
+
+    document.querySelectorAll('#detail-tabs .status-tab').forEach(tab => {
+      tab.classList.remove('active');
+    });
+    if (clickedEl) clickedEl.classList.add('active');
+
+    /* Re-render pagination for newly shown tab */
+    renderPage(tabId, 1);
+
+    return false;
+  };
 
   /* ================================================================
      CLIENT-SIDE PAGINATION (10 rows per page)
      ================================================================ */
   const ROWS_PER_PAGE = 10;
-  const tableBody     = document.getElementById('tableBody');
-  const paginationWrap = document.getElementById('paginationWrap');
-  const paginationInfo = document.getElementById('paginationInfo');
-  const paginationBtns = document.getElementById('paginationBtns');
-  const resultCount    = document.getElementById('resultCount');
+  const state = {};
 
-  if (tableBody) {
-    const allRows   = Array.from(tableBody.querySelectorAll('tr'));
-    const totalRows = allRows.length;
-    const totalPages = Math.ceil(totalRows / ROWS_PER_PAGE);
-    let currentPage = 1;
+  function initPagination(key) {
+    const tbody = document.getElementById('tbody-' + key);
+    if (!tbody) return;
 
-    if (resultCount) resultCount.textContent = totalRows + ' result(s)';
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length === 0) return;
 
-    function showPage(page) {
-      currentPage = page;
-      const start = (page - 1) * ROWS_PER_PAGE;
-      const end   = start + ROWS_PER_PAGE;
+    state[key] = { rows, current: 1 };
+    renderPage(key, 1);
+  }
 
-      allRows.forEach((row, i) => {
-        row.style.display = (i >= start && i < end) ? '' : 'none';
-      });
+  function renderPage(key, page) {
+    if (!state[key]) return;
 
-      // Info text
-      const from = totalRows === 0 ? 0 : start + 1;
-      const to   = Math.min(end, totalRows);
-      paginationInfo.textContent = totalRows === 0
-        ? 'No results'
-        : 'Showing ' + from + '–' + to + ' of ' + totalRows + ' results';
+    const { rows } = state[key];
+    state[key].current = page;
 
-      // Buttons
-      paginationBtns.innerHTML = '';
+    const total      = rows.length;
+    const totalPages = Math.ceil(total / ROWS_PER_PAGE);
+    const start      = (page - 1) * ROWS_PER_PAGE;
+    const end        = start + ROWS_PER_PAGE;
 
-      if (totalPages <= 1) {
-        paginationWrap.style.display = totalRows === 0 ? 'none' : 'flex';
-        return;
+    rows.forEach((row, i) => {
+      row.style.display = (i >= start && i < end) ? '' : 'none';
+    });
+
+    const wrapEl = document.getElementById('pag-wrap-' + key);
+    const infoEl = document.getElementById('pag-info-' + key);
+    const btnsEl = document.getElementById('pag-btns-' + key);
+    if (!wrapEl || !infoEl || !btnsEl) return;
+
+    /* Show/hide wrap */
+    wrapEl.style.display = total > ROWS_PER_PAGE ? 'flex' : 'none';
+    if (total <= ROWS_PER_PAGE) return;
+
+    const from = total === 0 ? 0 : start + 1;
+    const to   = Math.min(end, total);
+    infoEl.textContent = 'Showing ' + from + '–' + to + ' of ' + total + ' results';
+
+    btnsEl.innerHTML = '';
+
+    /* Prev */
+    const prev = makeBtn('‹', page === 1, false, () => renderPage(key, page - 1));
+    prev.classList.add('page-btn--wide');
+    prev.title = 'Previous';
+    btnsEl.appendChild(prev);
+
+    /* Page numbers */
+    const delta = 2;
+    let pages = [];
+    for (let p = 1; p <= totalPages; p++) {
+      if (p === 1 || p === totalPages || (p >= page - delta && p <= page + delta)) {
+        pages.push(p);
       }
-
-      // Prev
-      const prev = makeBtn('‹', page === 1, false, () => showPage(page - 1));
-      prev.classList.add('page-btn--wide');
-      prev.title = 'Previous';
-      paginationBtns.appendChild(prev);
-
-      // Page numbers — show max 5 around current
-      const delta = 2;
-      let pages = [];
-      for (let p = 1; p <= totalPages; p++) {
-        if (p === 1 || p === totalPages || (p >= page - delta && p <= page + delta)) {
-          pages.push(p);
-        }
-      }
-
-      let last = 0;
-      pages.forEach(p => {
-        if (last && p - last > 1) {
-          // Ellipsis
-          const dots = document.createElement('button');
-          dots.className = 'page-btn';
-          dots.textContent = '…';
-          dots.disabled = true;
-          paginationBtns.appendChild(dots);
-        }
-        const btn = makeBtn(p, false, p === page, () => showPage(p));
-        paginationBtns.appendChild(btn);
-        last = p;
-      });
-
-      // Next
-      const next = makeBtn('›', page === totalPages, false, () => showPage(page + 1));
-      next.classList.add('page-btn--wide');
-      next.title = 'Next';
-      paginationBtns.appendChild(next);
     }
 
-    function makeBtn(label, disabled, active, onClick) {
-      const btn = document.createElement('button');
-      btn.className = 'page-btn' + (active ? ' active' : '');
-      btn.textContent = label;
-      btn.disabled    = disabled;
-      btn.addEventListener('click', onClick);
-      return btn;
-    }
+    let last = 0;
+    pages.forEach(p => {
+      if (last && p - last > 1) {
+        const dots = document.createElement('button');
+        dots.className = 'page-btn';
+        dots.textContent = '…';
+        dots.disabled = true;
+        btnsEl.appendChild(dots);
+      }
+      btnsEl.appendChild(makeBtn(p, false, p === page, () => renderPage(key, p)));
+      last = p;
+    });
 
-    showPage(1);
+    /* Next */
+    const next = makeBtn('›', page === totalPages, false, () => renderPage(key, page + 1));
+    next.classList.add('page-btn--wide');
+    next.title = 'Next';
+    btnsEl.appendChild(next);
+  }
+
+  function makeBtn(label, disabled, active, onClick) {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (active ? ' active' : '');
+    btn.textContent = label;
+    btn.disabled    = disabled;
+    btn.addEventListener('click', onClick);
+    return btn;
   }
 
   /* ================================================================
@@ -295,10 +288,8 @@
      ================================================================ */
   function escHtml(str) {
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function formatTime(ts) {
@@ -312,5 +303,12 @@
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
   }
+
+  /* ================================================================
+     INIT
+     ================================================================ */
+  initPagination('amort');
+  initPagination('payments');
+  initPagination('penalties');
 
 })();

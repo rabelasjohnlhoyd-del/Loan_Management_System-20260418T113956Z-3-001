@@ -17,16 +17,14 @@
 <div class="app-wrap">
 
   <!-- ═══════════════════════════════════════════════
-       TOPBAR — full width, sits above everything
+       TOPBAR
   ════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
 
-    <!-- Left: burger + brand -->
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
         <span></span><span></span><span></span>
       </button>
-
       <div class="topbar-brand">
         <div class="topbar-logo">$</div>
         <div class="topbar-brand-text">
@@ -36,69 +34,105 @@
       </div>
     </div>
 
-    <!-- Center: page title + subtitle -->
     <div class="topbar-center">
       <h1 class="topbar-title">Dashboard</h1>
       <p class="topbar-sub">Welcome back, {{ session.user_name if session.user_name else 'Administrator' }}</p>
     </div>
 
-    <!-- Right: notif bell + avatar -->
     <div class="topbar-right">
+
+      <!-- NOTIFICATION BELL -->
       <div class="notif-wrap" id="notifWrap">
         <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
           <span class="topbar-icon topbar-icon--notif"></span>
           <span class="notif-dot hidden" id="notifDot"></span>
         </button>
 
-        <!-- Notification Dropdown -->
         <div class="notif-dropdown" id="notifDropdown">
           <div class="notif-header">
             <span class="notif-header-title">Notifications</span>
             <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
           </div>
+
           <ul class="notif-list" id="notifList">
-            {% if stats is defined and stats.get('pending_applications', 0) > 0 %}
-            <li class="notif-item unread">
-              <div class="notif-item-icon notif-icon--warning">
-                <span></span>
-              </div>
-              <div class="notif-item-body">
-                <div class="notif-item-title">Pending Applications</div>
-                <div class="notif-item-msg">{{ stats.pending_applications }} application(s) pending review.</div>
-              </div>
-              <span class="notif-unread-dot"></span>
-            </li>
+
+            {# ══ Pending Applications ══ #}
+            {% set has_apps = pending_applications_notif or (stats is defined and stats.get('pending_applications', 0) > 0) %}
+            {% if has_apps %}
+              <li class="notif-group-label"><span>Pending Applications</span></li>
             {% endif %}
-            {% if stats is defined and stats.get('pending_payments', 0) > 0 %}
-            <li class="notif-item unread">
-              <div class="notif-item-icon notif-icon--payment">
-                <span></span>
-              </div>
-              <div class="notif-item-body">
-                <div class="notif-item-title">Pending Payments</div>
-                <div class="notif-item-msg">{{ stats.pending_payments }} payment(s) awaiting verification.</div>
-              </div>
-              <span class="notif-unread-dot"></span>
-            </li>
+
+            {% if pending_applications_notif %}
+              {% for app in pending_applications_notif %}
+              <li class="notif-item unread">
+                <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">New Application — {{ app.reference_no }}</div>
+                    <div class="notif-item-msg">{{ app.borrower_name }} · {{ app.type_name }} · ₱{{ "{:,.0f}".format(app.amount_requested) }}</div>
+                    <div class="notif-item-time">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '' }}</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+              {% endfor %}
+            {% elif stats is defined and stats.get('pending_applications', 0) > 0 %}
+              <li class="notif-item unread">
+                <a href="{{ url_for('super_admin.admin_applications') }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">Pending Applications</div>
+                    <div class="notif-item-msg">{{ stats.pending_applications }} application(s) awaiting your review.</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
             {% endif %}
-            {% if stats is defined and stats.get('pending_verifications', 0) > 0 %}
-            <li class="notif-item unread">
-              <div class="notif-item-icon notif-icon--id">
-                <span></span>
-              </div>
-              <div class="notif-item-body">
-                <div class="notif-item-title">ID Verifications</div>
-                <div class="notif-item-msg">{{ stats.pending_verifications }} ID verification(s) pending.</div>
-              </div>
-              <span class="notif-unread-dot"></span>
-            </li>
+
+            {# ══ Recent Activity ══ #}
+            {% if activity_logs %}
+              <li class="notif-group-label"><span>Recent Activity</span></li>
+              {% for log in activity_logs[:5] %}
+              <li class="notif-item">
+                <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-item-link">
+                  <div class="notif-item-icon
+                    {% if 'approved' in log.action or 'verified' in log.action or 'paid' in log.action %}notif-icon--green
+                    {% elif 'rejected' in log.action or 'overdue' in log.action %}notif-icon--red
+                    {% elif 'disbursed' in log.action %}notif-icon--teal
+                    {% else %}notif-icon--activity{% endif %}">
+                    <span></span>
+                  </div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">{{ log.action | replace('_',' ') | title }}</div>
+                    <div class="notif-item-msg">
+                      {% if log.details %}{{ log.details }}{% endif %}
+                      {% if log.actor_name %} · by {{ log.actor_name }}{% endif %}
+                    </div>
+                    <div class="notif-item-time">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '' }}</div>
+                  </div>
+                </a>
+              </li>
+              {% endfor %}
             {% endif %}
+
+            {# ══ Empty state ══ #}
+            {% if not has_apps and not activity_logs %}
+              <li class="notif-empty-item">
+                <span class="notif-empty-icon-img"></span>
+                <p>You're all caught up!</p>
+                <small>No new notifications</small>
+              </li>
+            {% endif %}
+
           </ul>
+
           <div class="notif-footer">
-            <a href="#" class="notif-see-all">See all notifications →</a>
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
           </div>
         </div>
-      </div>
+      </div><!-- /.notif-wrap -->
 
       <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Admin' }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
@@ -106,15 +140,12 @@
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════════
-       BODY ROW — sidebar + main side by side
-  ════════════════════════════════════════════════ -->
+  <!-- BODY ROW -->
   <div class="body-row">
 
-    <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+    <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
 
-      <!-- User block -->
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
         <div class="s-user-info">
@@ -124,7 +155,6 @@
         <span class="s-chevron"></span>
       </div>
 
-      <!-- User Dropdown -->
       <div class="user-dropdown" id="userDropdown">
         <a href="{{ url_for('super_admin.SA_profile') }}">
           <span class="dd-icon dd-icon--profile"></span>My Profile
@@ -142,7 +172,6 @@
         </a>
       </div>
 
-      <!-- Main Nav -->
       <nav class="sidebar-nav">
         <a href="{{ url_for('auth.dashboard') }}" class="nav-item active">
           <span class="nav-icon nav-icon--dashboard"></span>
@@ -178,7 +207,6 @@
         </form>
       </div>
     </aside>
-    <!-- /SIDEBAR -->
 
     <!-- MAIN CONTENT -->
     <div class="main-content" id="mainContent">
@@ -246,7 +274,7 @@
 
         <div class="dash-grid">
 
-          <!-- RECENT APPLICATIONS CARD -->
+          <!-- RECENT APPLICATIONS -->
           <div class="card card--wide">
             <div class="card-header">
               <div>
@@ -286,9 +314,7 @@
                   </tr>
                   {% else %}
                   <tr>
-                    <td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">
-                      No recent applications.
-                    </td>
+                    <td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">No recent applications.</td>
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -309,32 +335,20 @@
               <div class="card-body">
                 <div class="quick-actions">
                   <a href="{{ url_for('loans.loan_types') }}" class="quick-btn">
-                    <div class="qb-icon qb-icon--blue">
-                      <span class="qb-icon-img qb-icon--apply"></span>
-                    </div>
-                    <div class="qb-text">
-                      <h4>Loan Types</h4>
-                      <p>Add a loan type or plan</p>
-                    </div>
+                    <div class="qb-icon qb-icon--blue"><span class="qb-icon-img qb-icon--apply"></span></div>
+                    <div class="qb-text"><h4>Loan Types</h4><p>Add a loan type or plan</p></div>
                   </a>
                   <a href="{{ url_for('super_admin.reports_page') }}" class="quick-btn">
-                    <div class="qb-icon qb-icon--yellow">
-                      <span class="qb-icon-img qb-icon--statement"></span>
-                    </div>
-                    <div class="qb-text">
-                      <h4>Reports</h4>
-                      <p>Generate loan reports</p>
-                    </div>
+                    <div class="qb-icon qb-icon--yellow"><span class="qb-icon-img qb-icon--statement"></span></div>
+                    <div class="qb-text"><h4>Reports</h4><p>Generate loan reports</p></div>
                   </a>
                   <a href="{{ url_for('super_admin.borrowers') }}" class="quick-btn">
-                    <div class="qb-icon qb-icon--purple">
-                      <span class="qb-icon-img qb-icon--borrowers"></span>
-                    </div>
+                    <div class="qb-icon qb-icon--purple"><span class="qb-icon-img qb-icon--borrowers"></span></div>
                     <div class="qb-text">
                       <h4>Borrowers</h4>
                       <p>Pending ID verifications
                         {% if stats and stats.get('pending_verifications', 0) > 0 %}
-                        <span style="color:var(--warning); font-weight:600;">({{ stats.pending_verifications }})</span>
+                        <span style="color:var(--warning);font-weight:600;">({{ stats.pending_verifications }})</span>
                         {% endif %}
                       </p>
                     </div>
@@ -359,14 +373,12 @@
                     <span class="activity-dot activity-dot--blue"></span>
                     <div class="activity-content">
                       <p>{{ log.action | replace('_',' ') | title }}
-                        {% if log.actor_name %}<span style="color:var(--text-muted); font-size:11px;">by {{ log.actor_name }}</span>{% endif %}
+                        {% if log.actor_name %}<span style="color:var(--text-muted);font-size:11px;"> by {{ log.actor_name }}</span>{% endif %}
                       </p>
                       {% if log.details %}
-                      <p style="font-size:11px; color:var(--text-muted);">{{ log.details }}</p>
+                      <p style="font-size:11px;color:var(--text-muted);">{{ log.details }}</p>
                       {% endif %}
-                      <span class="activity-time">
-                        {{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '—' }}
-                      </span>
+                      <span class="activity-time">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '—' }}</span>
                     </div>
                   </div>
                   {% else %}
@@ -383,10 +395,10 @@
         </div>
 
       </main>
-    </div><!-- /.main-content -->
+    </div>
 
-  </div><!-- /.body-row -->
-</div><!-- /.app-wrap -->
+  </div>
+</div>
 
 <script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
 </body>

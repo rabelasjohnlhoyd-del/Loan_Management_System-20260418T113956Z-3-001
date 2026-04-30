@@ -7,255 +7,294 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="{{ url_for('loans.static', filename='application_detail.css') }}"/>
-  <style>
-    /* ── Shared dropdown styles ── */
-    .sidebar-user { cursor: pointer; user-select: none; transition: background .15s; }
-    .sidebar-user:hover { background: rgba(255,255,255,0.12); }
-    .sidebar-user.open { background: rgba(255,255,255,0.12); border-radius: 10px 10px 0 0; }
-    .s-chevron {
-      margin-left: auto; width: 14px; height: 14px; flex-shrink: 0;
-      background: rgba(255,255,255,0.55);
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-      transition: transform 0.2s ease;
-    }
-    .sidebar-user.open .s-chevron { transform: rotate(180deg); background: rgba(255,255,255,0.9); }
-    .user-dropdown {
-      display: none; flex-direction: column; background: rgba(0,0,0,0.20);
-      margin: 0 10px; border-radius: 0 0 10px 10px; overflow: hidden;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .user-dropdown.open { display: flex; }
-    .user-dropdown a {
-      display: flex; align-items: center; gap: 10px; padding: 9px 14px;
-      font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.80);
-      text-decoration: none; transition: background .15s, color .15s;
-    }
-    .user-dropdown a:hover { background: rgba(255,255,255,0.10); color: #fff; }
-    .dd-icon {
-      width: 15px; height: 15px; flex-shrink: 0; background: currentColor;
-      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-      opacity: 0.75;
-    }
-    /* Admin dropdown icons */
-    .dd-icon--admin-profile { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'/%3E%3C/svg%3E"); }
-    .dd-icon--manage-users { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E"); }
-    .dd-icon--reports { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E"); }
-    .dd-icon--activity { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E"); }
-    .nav-icon--warning { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'/%3E%3C/svg%3E"); }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='SA_application_detail.css') }}"/>
 </head>
 <body>
+
+<!-- OVERLAY (mobile sidebar backdrop) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <aside class="sidebar" id="sidebar">
+  <!-- ═══════════════════════════════════════════════
+       TOPBAR
+  ════════════════════════════════════════════════ -->
+  <header class="topbar" id="topbar">
 
-    <!-- BRAND -->
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Management System</span></div>
+    <!-- Left: burger + brand -->
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
     </div>
 
-    <!-- ADMIN USER BOX + DROPDOWN -->
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
-      </div>
-      <span class="s-chevron"></span>
-    </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('borrower.profile') }}"><span class="dd-icon dd-icon--admin-profile"></span>My Profile</a>
-      {% if session.role == 'super_admin' %}
-      <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
-      {% endif %}
-      <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
-      <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item active"><span class="nav-icon nav-icon--clock"></span>Applications</a>
-      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>All Loans</a>
-      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item"><span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue</a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
+    <!-- Right: notif + avatar -->
+    <div class="topbar-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
         </button>
-      </form>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-loading">Loading...</div>
+          </div>
+          <div class="notif-footer">
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">See all notifications →</a>
+          </div>
+        </div>
+      </div>
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+        {{ session.user_name[0]|upper if session.user_name else 'A' }}
+      </a>
     </div>
 
-  </aside>
+  </header>
 
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <h1>{{ app.reference_no }}</h1>
-        <p>{{ app.type_name }} &middot; {{ app.plan_name }}</p>
+  <!-- ═══════════════════════════════════════════════
+       BODY ROW — sidebar + main
+  ════════════════════════════════════════════════ -->
+  <div class="body-row">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
+        </div>
+        <span class="s-chevron"></span>
       </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('super_admin.admin_applications') }}" class="btn btn-ghost btn-sm">&#8592; Back</a>
-        <span class="app-status {{ app.status }}" style="margin-right:8px;">
-          {{ app.status | replace('_',' ') | title }}
-        </span>
-        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('super_admin.SA_profile') }}">
+          <span class="dd-icon dd-icon--admin-profile"></span>My Profile
+        </a>
+        {% if session.role == 'super_admin' %}
+        <a href="{{ url_for('super_admin.manage_users') }}">
+          <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+        </a>
+        {% endif %}
+        <a href="{{ url_for('super_admin.reports_page') }}">
+          <span class="dd-icon dd-icon--reports"></span>Reports
+        </a>
+        <a href="{{ url_for('super_admin.activity_logs') }}">
+          <span class="dd-icon dd-icon--activity"></span>Activity Logs
         </a>
       </div>
-    </header>
 
-    <main class="page-body">
-      <div style="display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start;">
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--clock"></span>
+          <span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span>
+          <span class="nav-label">All Loans</span>
+        </a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span>
+          <span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+          <span class="nav-icon nav-icon--warning"></span>
+          <span class="nav-label">Penalties &amp; Overdue</span>
+        </a>
+      </nav>
 
-        <!-- LEFT COLUMN -->
-        <div>
-          <!-- Application Details Card -->
-          <div class="card" style="margin-bottom:18px;">
-            <div class="card-header"><h3>Application Details</h3></div>
-            <div class="card-body">
-              <div class="loan-summary-grid">
-                <div class="loan-summary-item">
-                  <div class="lsi-label">Amount Requested</div>
-                  <div class="lsi-value primary">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</div>
-                </div>
-                <div class="loan-summary-item">
-                  <div class="lsi-label">Term</div>
-                  <div class="lsi-value">{{ app.term_months }} months</div>
-                </div>
-                <div class="loan-summary-item">
-                  <div class="lsi-label">Interest Rate</div>
-                  <div class="lsi-value">{{ app.interest_rate }}% p.a.</div>
-                </div>
-                <div class="loan-summary-item">
-                  <div class="lsi-label">Processing Fee</div>
-                  <div class="lsi-value">{{ app.processing_fee }}%</div>
-                </div>
-                <div class="loan-summary-item">
-                  <div class="lsi-label">Collateral</div>
-                  <div class="lsi-value">{{ 'Required' if app.collateral_required else 'Not Required' }}</div>
-                </div>
-                <div class="loan-summary-item">
-                  <div class="lsi-label">Submitted</div>
-                  <div class="lsi-value" style="font-size:14px;">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '—' }}</div>
-                </div>
-              </div>
-
-              {% if app.purpose %}
-              <div style="margin-top:16px;">
-                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Purpose</div>
-                <p style="font-size:14px; color:var(--text-body);">{{ app.purpose }}</p>
-              </div>
-              {% endif %}
-
-              {% if app.rejection_reason %}
-              <div style="margin-top:16px; background:#fee2e2; border-radius:var(--radius-md); padding:12px 14px; font-size:13px; color:#dc2626;">
-                <strong>Rejection Reason:</strong> {{ app.rejection_reason }}
-              </div>
-              {% endif %}
-            </div>
-          </div>
-
-          <!-- Uploaded Documents Card -->
-          {% if docs %}
-          <div class="card">
-            <div class="card-header"><h3>Uploaded Documents</h3></div>
-            <div class="card-body">
-              <div style="display:flex; flex-wrap:wrap; gap:10px;">
-                {% for doc in docs %}
-                <div style="background:var(--bg-base); border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 14px; font-size:13px; display:flex; align-items:center; gap:8px;">
-                  <span class="doc-file-icon"></span>{{ doc.file_path }}
-                </div>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-          {% endif %}
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div style="display:flex; flex-direction:column; gap:16px;">
-
-          <!-- Payment Preview -->
-          <div class="loan-calculator">
-            <h3>&#128202; Payment Preview</h3>
-            <div class="calc-row cr-highlight">
-              <span class="cr-label">Monthly Payment</span>
-              <span class="cr-value">&#8369;{{ "{:,.2f}".format(monthly_payment) }}</span>
-            </div>
-            <div class="calc-row"><span class="cr-label">Principal</span><span class="cr-value">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</span></div>
-            <div class="calc-row"><span class="cr-label">Rate</span><span class="cr-value">{{ app.interest_rate }}% p.a.</span></div>
-            <div class="calc-row"><span class="cr-label">Term</span><span class="cr-value">{{ app.term_months }} months</span></div>
-            <div class="calc-row"><span class="cr-label">Total Payment</span><span class="cr-value">&#8369;{{ "{:,.2f}".format(monthly_payment * app.term_months) }}</span></div>
-          </div>
-
-          <!-- Borrower Info Card -->
-          <div class="card">
-            <div class="card-header"><h3>Borrower</h3></div>
-            <div class="card-body">
-              <div class="td-name">{{ app.borrower_name }}</div>
-              <div class="td-sub">{{ app.borrower_email }}</div>
-              <a href="{{ url_for('super_admin.borrower_detail', borrower_id=app.borrower_id) }}"
-                 class="btn btn-outline btn-sm" style="margin-top:12px;">View Profile</a>
-            </div>
-          </div>
-
-          <!-- Review Card (only when actionable) -->
-          {% if app.status in ['submitted', 'under_review'] %}
-          <div class="card">
-            <div class="card-header"><h3>Review</h3></div>
-            <div class="card-body">
-              <form method="POST" action="{{ url_for('super_admin.review_application', app_id=app.id) }}">
-                <div class="form-group">
-                  <label>Rejection Reason (if rejecting)</label>
-                  <textarea class="form-control" name="rejection_reason" rows="3"
-                            placeholder="Required if rejecting..."></textarea>
-                </div>
-                <div style="display:flex; gap:8px; margin-top:12px;">
-                  <button type="submit" name="action" value="approve"
-                          class="btn btn-primary btn-sm" style="flex:1;">Approve</button>
-                  <button type="submit" name="action" value="reject"
-                          class="btn btn-sm" style="flex:1; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5;">Reject</button>
-                </div>
-              </form>
-            </div>
-          </div>
-          {% endif %}
-
-        </div>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
       </div>
-    </main>
+
+    </aside>
+    <!-- /SIDEBAR -->
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <a href="{{ url_for('super_admin.admin_applications') }}" class="btn-back">
+            <span class="btn-back-icon"></span>
+            Applications
+          </a>
+          <div>
+            <h2 class="page-title">{{ app.reference_no }}</h2>
+            <p class="page-sub">{{ app.type_name }} &middot; {{ app.plan_name }}</p>
+          </div>
+          <span class="app-status {{ app.status }}">
+            {{ app.status | replace('_',' ') | title }}
+          </span>
+        </div>
+
+        <!-- TWO-COLUMN GRID -->
+        <div class="detail-grid">
+
+          <!-- LEFT COLUMN -->
+          <div class="detail-col-left">
+
+            <!-- Application Details Card -->
+            <div class="card">
+              <div class="card-header"><h3>Application Details</h3></div>
+              <div class="card-body">
+                <div class="loan-summary-grid">
+                  <div class="loan-summary-item">
+                    <div class="lsi-label">Amount Requested</div>
+                    <div class="lsi-value primary">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</div>
+                  </div>
+                  <div class="loan-summary-item">
+                    <div class="lsi-label">Term</div>
+                    <div class="lsi-value">{{ app.term_months }} months</div>
+                  </div>
+                  <div class="loan-summary-item">
+                    <div class="lsi-label">Interest Rate</div>
+                    <div class="lsi-value">{{ app.interest_rate }}% p.a.</div>
+                  </div>
+                  <div class="loan-summary-item">
+                    <div class="lsi-label">Processing Fee</div>
+                    <div class="lsi-value">{{ app.processing_fee }}%</div>
+                  </div>
+                  <div class="loan-summary-item">
+                    <div class="lsi-label">Collateral</div>
+                    <div class="lsi-value">{{ 'Required' if app.collateral_required else 'Not Required' }}</div>
+                  </div>
+                  <div class="loan-summary-item">
+                    <div class="lsi-label">Submitted</div>
+                    <div class="lsi-value">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '—' }}</div>
+                  </div>
+                </div>
+
+                {% if app.purpose %}
+                <div class="purpose-block">
+                  <div class="purpose-label">Purpose</div>
+                  <p>{{ app.purpose }}</p>
+                </div>
+                {% endif %}
+
+                {% if app.rejection_reason %}
+                <div class="rejection-block">
+                  <strong>Rejection Reason:</strong> {{ app.rejection_reason }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Uploaded Documents Card -->
+            {% if docs %}
+            <div class="card">
+              <div class="card-header"><h3>Uploaded Documents</h3></div>
+              <div class="card-body">
+                <div class="doc-chips">
+                  {% for doc in docs %}
+                  <div class="doc-chip">
+                    <span class="doc-file-icon"></span>{{ doc.file_path }}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+          <!-- /LEFT COLUMN -->
+
+          <!-- RIGHT COLUMN -->
+          <div class="detail-col-right">
+
+            <!-- Payment Preview -->
+            <div class="loan-calculator">
+              <h3>Payment Preview</h3>
+              <div class="calc-row cr-highlight">
+                <span class="cr-label">Monthly Payment</span>
+                <span class="cr-value">&#8369;{{ "{:,.2f}".format(monthly_payment) }}</span>
+              </div>
+              <div class="calc-row">
+                <span class="cr-label">Principal</span>
+                <span class="cr-value">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</span>
+              </div>
+              <div class="calc-row">
+                <span class="cr-label">Rate</span>
+                <span class="cr-value">{{ app.interest_rate }}% p.a.</span>
+              </div>
+              <div class="calc-row">
+                <span class="cr-label">Term</span>
+                <span class="cr-value">{{ app.term_months }} months</span>
+              </div>
+              <div class="calc-row">
+                <span class="cr-label">Total Payment</span>
+                <span class="cr-value">&#8369;{{ "{:,.2f}".format(monthly_payment * app.term_months) }}</span>
+              </div>
+            </div>
+
+            <!-- Borrower Info Card -->
+            <div class="card">
+              <div class="card-header"><h3>Borrower</h3></div>
+              <div class="card-body">
+                <div class="td-name">{{ app.borrower_name }}</div>
+                <div class="td-sub">{{ app.borrower_email }}</div>
+                <a href="{{ url_for('super_admin.borrower_detail', borrower_id=app.borrower_id) }}"
+                   class="btn btn-outline btn-sm" style="margin-top:12px;">View Profile</a>
+              </div>
+            </div>
+
+            <!-- Review Card (only when actionable) -->
+            {% if app.status in ['submitted', 'under_review'] %}
+            <div class="card">
+              <div class="card-header"><h3>Review</h3></div>
+              <div class="card-body">
+                <form method="POST" action="{{ url_for('super_admin.review_application', app_id=app.id) }}">
+                  <div class="form-group">
+                    <label>Rejection Reason (if rejecting)</label>
+                    <textarea class="form-control" name="rejection_reason" rows="3"
+                              placeholder="Required if rejecting..."></textarea>
+                  </div>
+                  <div class="review-actions">
+                    <button type="submit" name="action" value="approve"
+                            class="btn btn-primary btn-sm">Approve</button>
+                    <button type="submit" name="action" value="reject"
+                            class="btn btn-danger btn-sm">Reject</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+          <!-- /RIGHT COLUMN -->
+
+        </div>
+        <!-- /DETAIL GRID -->
+
+      </main>
+    </div>
+    <!-- /MAIN CONTENT -->
+
   </div>
 </div>
 
-<script src="{{ url_for('loans.static', filename='application_detail.js') }}"></script>
-<script>
-  (function () {
-    var toggle   = document.getElementById('userDropdownToggle');
-    var dropdown = document.getElementById('userDropdown');
-    if (!toggle || !dropdown) return;
-    toggle.addEventListener('click', function (e) {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-      toggle.classList.toggle('open');
-    });
-    document.addEventListener('click', function (e) {
-      if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.classList.remove('open');
-        toggle.classList.remove('open');
-      }
-    });
-  })();
-</script>
+<script src="{{ url_for('super_admin.static', filename='SA_application_detail.js') }}"></script>
 </body>
 </html>

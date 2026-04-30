@@ -46,7 +46,7 @@
             <div class="notif-loading">Loading...</div>
           </div>
           <div class="notif-footer">
-            <a href="#" class="notif-see-all">
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
               See all notifications →
             </a>
           </div>
@@ -161,8 +161,8 @@
 
         <!-- STATUS TABS -->
         <div class="status-tabs">
-          {% for s in [('all','All'), ('submitted','Submitted'), ('under_review','Under Review'),
-                       ('approved','Approved'), ('rejected','Rejected'), ('cancelled','Cancelled')] %}
+          {% for s in [('all','All'), ('submitted','Submitted'),
+                       ('approved','Approved'), ('rejected','Rejected')] %}
           <a href="{{ url_for('super_admin.admin_applications', status=s[0], search=search) }}"
              class="status-tab {{ 'active' if status_filter == s[0] }}">
             {{ s[1] }}
@@ -197,15 +197,19 @@
 
         <!-- APPLICATIONS TABLE CARD -->
         <div class="card">
-          <div class="card-header">
-            <h3>Applications</h3>
-            <span class="result-count">{{ applications|length }} result(s)</span>
-          </div>
           <div class="card-body">
             {% if applications %}
-            <table class="data-table">
+            <table class="data-table" id="applicationsTable">
               <thead>
                 <tr>
+                  <th colspan="8">
+                    <div class="thead-title-row">
+                      <span class="thead-title-text">Applications</span>
+                      <span class="result-count" id="resultCount">{{ applications|length }} result(s)</span>
+                    </div>
+                  </th>
+                </tr>
+                <tr class="thead-cols">
                   <th>Reference</th>
                   <th>Borrower</th>
                   <th>Loan Type</th>
@@ -216,7 +220,7 @@
                   <th>Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="tableBody">
                 {% for app in applications %}
                 <tr>
                   <td data-label="Reference"><span class="td-ref">{{ app.reference_no }}</span></td>
@@ -269,6 +273,11 @@
                 {% endfor %}
               </tbody>
             </table>
+            <!-- PAGINATION -->
+            <div class="pagination-wrap" id="paginationWrap">
+              <div class="pagination-info" id="paginationInfo"></div>
+              <div class="pagination-btns" id="paginationBtns"></div>
+            </div>
             {% else %}
             <div class="table-empty">
               <span class="empty-icon"></span>
@@ -347,5 +356,6 @@
 </div>
 
 <script src="{{ url_for('super_admin.static', filename='admin_applications.js') }}"></script>
+<script src="{{ url_for('super_admin.static', filename='admin_applications_ui.js') }}"></script>
 </body>
 </html>

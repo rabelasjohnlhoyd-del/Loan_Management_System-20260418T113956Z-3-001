@@ -8,384 +8,398 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='loan_detail.css') }}"/>
-  <style>
-    .sidebar-user {
-      cursor: pointer;
-      user-select: none;
-      transition: background .15s;
-    }
-    .sidebar-user:hover { background: rgba(255,255,255,0.12); }
-    .sidebar-user.open {
-      background: rgba(255,255,255,0.12);
-      border-radius: var(--r-md) var(--r-md) 0 0;
-    }
-    .s-chevron {
-      margin-left: auto;
-      width: 14px; height: 14px; flex-shrink: 0;
-      background: rgba(255,255,255,0.50);
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-      transition: transform 0.2s ease;
-    }
-    .sidebar-user.open .s-chevron { transform: rotate(180deg); background: rgba(255,255,255,0.9); }
-    .user-dropdown {
-      display: none; flex-direction: column;
-      background: rgba(0,0,0,0.20); margin: 0 10px;
-      border-radius: 0 0 var(--r-md) var(--r-md);
-      overflow: hidden; border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .user-dropdown.open { display: flex; }
-    .user-dropdown a {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 14px; font-size: 13px; font-weight: 500;
-      color: rgba(255,255,255,0.78); text-decoration: none;
-      transition: background .15s, color .15s;
-    }
-    .user-dropdown a:hover { background: rgba(255,255,255,0.10); color: #fff; }
-    .dd-icon {
-      width: 15px; height: 15px; flex-shrink: 0; background: currentColor;
-      mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-      -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-      opacity: 0.75;
-    }
-    .dd-icon--profile {
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E");
-    }
-    .dd-icon--manage-users {
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/%3E%3C/svg%3E");
-    }
-    .dd-icon--reports {
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
-    }
-    .dd-icon--activity {
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E");
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E");
-    }
-    .nav-icon--warning {
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'/%3E%3C/svg%3E");
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'/%3E%3C/svg%3E");
-    }
-  </style>
 </head>
 <body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
-  <aside class="sidebar" id="sidebar">
-
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
+  <!-- ═══════════════════ TOPBAR ═══════════════════ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
     </div>
 
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
-      </div>
-      <span class="s-chevron"></span>
-    </div>
-
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('super_admin.SA_profile') }}">
-        <span class="dd-icon dd-icon--profile"></span>My Profile
-      </a>
-      {% if session.role == 'super_admin' %}
-      <a href="{{ url_for('super_admin.manage_users') }}">
-        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
-      </a>
-      {% endif %}
-      <a href="{{ url_for('super_admin.reports_page') }}">
-        <span class="dd-icon dd-icon--reports"></span>Reports
-      </a>
-      <a href="{{ url_for('super_admin.activity_logs') }}">
-        <span class="dd-icon dd-icon--activity"></span>Activity Logs
-      </a>
-    </div>
-
-<nav class="sidebar-nav">
-
-  <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-    <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-  </a>
-
-  <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-    <span class="nav-icon nav-icon--clock"></span>Applications
-    {% if stats and stats.get('pending_applications', 0) > 0 %}
-    <span class="nav-badge">{{ stats.pending_applications }}</span>
-    {% endif %}
-  </a>
-
-  <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item active">
-    <span class="nav-icon nav-icon--applications"></span>All Loans
-  </a>
-
-  <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
-    <span class="nav-icon nav-icon--borrowers"></span>Borrowers
-  </a>
-
-  <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
-    <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
-  </a>
-
-</nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
+    <div class="topbar-right">
+      <!-- Notification bell -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
         </button>
-      </form>
-    </div>
-
-  </aside>
-
-  <div class="main-content" id="mainContent">
-    <header class="topbar">
-      <div class="topbar-left">
-        <button class="menu-btn" id="menuBtn">&#9776;</button>
-        <div>
-          <div class="topbar-heading">{{ loan.loan_no }}</div>
-          <div class="topbar-sub">{{ loan.type_name }} · {{ loan.plan_name }}</div>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('super_admin.all_loans') }}" class="btn btn-ghost btn-sm">← Back to Loans</a>
-        <span class="loan-status {{ loan.status }}" style="margin-right:8px;">{{ loan.status | title }}</span>
-        <a href="{{ url_for('super_admin.report_amortization', loan_id=loan.id) }}"
-           class="btn btn-outline btn-sm">Amortization Report</a>
-        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'U' }}
-        </a>
-      </div>
-    </header>
-
-    <main class="page-body">
-
-      <div class="loan-summary-grid">
-        <div class="loan-summary-item"><div class="lsi-label">Principal Amount</div><div class="lsi-value primary">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</div></div>
-        <div class="loan-summary-item"><div class="lsi-label">Outstanding Balance</div><div class="lsi-value {{ 'success' if loan.outstanding_balance == 0 else 'danger' }}">&#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}</div></div>
-        <div class="loan-summary-item"><div class="lsi-label">Monthly Payment</div><div class="lsi-value">&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</div></div>
-        <div class="loan-summary-item"><div class="lsi-label">Interest Rate</div><div class="lsi-value">{{ loan.interest_rate }}% <small style="font-size:12px; font-weight:400;">({{ loan.interest_type }})</small></div></div>
-        <div class="loan-summary-item"><div class="lsi-label">Term</div><div class="lsi-value">{{ loan.term_months }} months</div></div>
-        <div class="loan-summary-item"><div class="lsi-label">Next Due Date</div><div class="lsi-value">{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else '—' }}</div></div>
-      </div>
-
-      {% if loan.principal_amount > 0 %}
-      {% set pct = [(1 - loan.outstanding_balance / loan.principal_amount) * 100, 0]|max|round|int %}
-      <div class="card" style="margin-bottom:18px;">
-        <div class="card-body">
-          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-            <span style="font-size:13px; font-weight:600; color:var(--text-heading);">Repayment Progress</span>
-            <span style="font-size:13px; color:var(--text-muted);">{{ pct }}% paid</span>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
           </div>
-          <div class="repayment-bar-track" style="height:12px;">
-            <div class="repayment-bar-fill" style="width:{{ pct }}%;"></div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-loading">Loading...</div>
           </div>
-          <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:var(--text-muted);">
-            <span>Disbursed: {{ loan.disbursed_at.strftime('%b %d, %Y') if loan.disbursed_at else '—' }}</span>
-            <span>Maturity: {{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date else '—' }}</span>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px;">
-        <div class="card">
-          <div class="card-header"><h3>Borrower Information</h3></div>
-          <div class="card-body">
-            <div class="borrower-header" style="margin-bottom:0; padding-bottom:0; border:none;">
-              <div class="borrower-avatar-lg">{{ loan.borrower_name[0]|upper }}</div>
-              <div class="borrower-meta">
-                <h2>{{ loan.borrower_name }}</h2>
-                <p>{{ loan.borrower_email }}</p>
-                <p>{{ loan.borrower_contact }}</p>
-              </div>
-            </div>
-            <a href="{{ url_for('super_admin.borrower_detail', borrower_id=loan.borrower_id) }}"
-               class="btn btn-ghost btn-sm" style="margin-top:12px; width:100%; text-align:center;">
-              View Borrower Profile
+          <div class="notif-footer">
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
+              See all notifications →
             </a>
           </div>
         </div>
+      </div>
+      <!-- Avatar -->
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+        {{ session.user_name[0]|upper if session.user_name else 'A' }}
+      </a>
+    </div>
+  </header>
+
+  <div class="body-row">
+
+    <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+    <aside class="sidebar" id="sidebar">
+
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('super_admin.SA_profile') }}">
+          <span class="dd-icon dd-icon--profile"></span>My Profile
+        </a>
+        {% if session.role == 'super_admin' %}
+        <a href="{{ url_for('super_admin.manage_users') }}">
+          <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+        </a>
+        {% endif %}
+        <a href="{{ url_for('super_admin.reports_page') }}">
+          <span class="dd-icon dd-icon--reports"></span>Reports
+        </a>
+        <a href="{{ url_for('super_admin.activity_logs') }}">
+          <span class="dd-icon dd-icon--activity"></span>Activity Logs
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--clock"></span>
+          <span class="nav-label">Applications</span>
+          {% if stats and stats.get('pending_applications', 0) > 0 %}
+          <span class="nav-badge">{{ stats.pending_applications }}</span>
+          {% endif %}
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--applications"></span>
+          <span class="nav-label">All Loans</span>
+        </a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span>
+          <span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+          <span class="nav-icon nav-icon--warning"></span>
+          <span class="nav-label">Penalties &amp; Overdue</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+
+    </aside>
+    <!-- /SIDEBAR -->
+
+    <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <a href="{{ url_for('super_admin.all_loans') }}" class="btn-back">
+              <span class="btn-back-icon"></span>
+              All Loans
+            </a>
+            <div>
+              <div class="page-title-row">
+                <h2 class="page-title">{{ loan.loan_no }}</h2>
+                <span class="loan-status {{ loan.status }}">{{ loan.status | title }}</span>
+              </div>
+              <p class="page-sub">{{ loan.type_name }} · {{ loan.plan_name }}</p>
+            </div>
+          </div>
+          <div class="page-header-right">
+            <a href="{{ url_for('super_admin.report_amortization', loan_id=loan.id) }}"
+               class="btn btn-outline btn-sm">Amortization Report</a>
+          </div>
+        </div>
+
+        <!-- SUMMARY STRIP -->
+        <div class="loan-summary-grid">
+          <div class="loan-summary-item">
+            <div class="lsi-label">Principal Amount</div>
+            <div class="lsi-value primary">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</div>
+          </div>
+          <div class="loan-summary-item">
+            <div class="lsi-label">Outstanding Balance</div>
+            <div class="lsi-value {{ 'success' if loan.outstanding_balance == 0 else 'danger' }}">
+              &#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}
+            </div>
+          </div>
+          <div class="loan-summary-item">
+            <div class="lsi-label">Monthly Payment</div>
+            <div class="lsi-value">&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</div>
+          </div>
+          <div class="loan-summary-item">
+            <div class="lsi-label">Interest Rate</div>
+            <div class="lsi-value">{{ loan.interest_rate }}% <small>({{ loan.interest_type }})</small></div>
+          </div>
+          <div class="loan-summary-item">
+            <div class="lsi-label">Term</div>
+            <div class="lsi-value">{{ loan.term_months }} months</div>
+          </div>
+          <div class="loan-summary-item">
+            <div class="lsi-label">Next Due Date</div>
+            <div class="lsi-value">{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else '—' }}</div>
+          </div>
+        </div>
+
+        <!-- REPAYMENT PROGRESS -->
+        {% if loan.principal_amount > 0 %}
+        {% set pct = [(1 - loan.outstanding_balance / loan.principal_amount) * 100, 0]|max|round|int %}
         <div class="card">
-          <div class="card-header"><h3>Loan Details</h3></div>
           <div class="card-body">
-            <div class="portfolio-list">
-              <div class="portfolio-row"><span class="portfolio-label">Loan Number</span><span style="font-weight:600;">{{ loan.loan_no }}</span></div>
-              <div class="portfolio-row"><span class="portfolio-label">Processing Fee</span><span>&#8369;{{ "{:,.2f}".format(loan.processing_fee) }}</span></div>
-              <div class="portfolio-row"><span class="portfolio-label">Disbursed Amount</span><span style="font-weight:600; color:var(--success);">&#8369;{{ "{:,.2f}".format(loan.disbursed_amount) }}</span></div>
+            <div class="progress-header">
+              <span class="progress-label">Repayment Progress</span>
+              <span class="progress-pct">{{ pct }}% paid</span>
+            </div>
+            <div class="repayment-bar-track">
+              <div class="repayment-bar-fill" style="width:{{ pct }}%;"></div>
+            </div>
+            <div class="progress-footer">
+              <span>Disbursed: {{ loan.disbursed_at.strftime('%b %d, %Y') if loan.disbursed_at else '—' }}</span>
+              <span>Maturity: {{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date else '—' }}</span>
             </div>
           </div>
         </div>
-      </div>
+        {% endif %}
 
-      <div class="status-tabs" id="detail-tabs">
-        <a href="#" class="status-tab active" onclick="showTab('amort', this)">Amortization Schedule</a>
-        <a href="#" class="status-tab" onclick="showTab('payments', this)">Payment History</a>
-        {% if penalties %}<a href="#" class="status-tab" onclick="showTab('penalties', this)">Penalties <span class="tab-count">{{ penalties|length }}</span></a>{% endif %}
-        {% if documents %}<a href="#" class="status-tab" onclick="showTab('docs', this)">Documents</a>{% endif %}
-      </div>
-
-      <!-- Amortization tab -->
-      <div class="card" id="tab-amort">
-        <div class="card-header">
-          <h3>Amortization Schedule</h3>
-          <span style="font-size:12px; color:var(--text-muted);">{{ schedule|length }} periods</span>
-        </div>
-        <div class="card-body" style="padding:0; overflow-x:auto;">
-          {% if schedule %}
-          <table class="amort-table">
-            <thead>
-              <tr>
-                <th>#</th><th>Due Date</th><th>Principal</th><th>Interest</th>
-                <th>Total Due</th><th>Balance After</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in schedule %}
-              <tr class="{{ 'is-paid' if row.status == 'paid' else '' }}">
-                <td>{{ row.period_no }}</td>
-                <td>{{ row.due_date.strftime('%b %d, %Y') if row.due_date else '—' }}</td>
-                <td>&#8369;{{ "{:,.2f}".format(row.principal_due) }}</td>
-                <td>&#8369;{{ "{:,.2f}".format(row.interest_due) }}</td>
-                <td>&#8369;{{ "{:,.2f}".format(row.total_due) }}</td>
-                <td>&#8369;{{ "{:,.2f}".format(row.balance_after) }}</td>
-                <td>
-                  {% if row.status == 'paid' %}
-                  <span class="badge badge-success">Paid</span>
-                  {% else %}
-                  <span class="badge badge-warning">Pending</span>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty"><p>No schedule generated.</p></div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Payments tab -->
-      <div class="card" id="tab-payments" style="display:none;">
-        <div class="card-header">
-          <h3>Payment History</h3>
-          <span style="font-size:12px; color:var(--text-muted);">{{ payment_history|length }} payment(s)</span>
-        </div>
-        <div class="card-body" style="padding:0;">
-          {% if payment_history %}
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Date</th><th>Amount</th><th>Reference No.</th>
-                <th>Method</th><th>Verified By</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for p in payment_history %}
-              <tr>
-                <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
-                {# FIX: Correct field name is amount_paid, not amount #}
-                <td><strong>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</strong></td>
-                <td style="font-size:12px;">{{ p.reference_number or '—' }}</td>
-                <td>{{ p.payment_method | replace('_',' ') | title if p.payment_method else '—' }}</td>
-                <td style="font-size:12px;">{{ p.verified_by_name or '—' }}</td>
-                <td>
-                  <span class="badge {% if p.status == 'approved' %}badge-success{% elif p.status == 'rejected' %}badge-danger{% else %}badge-warning{% endif %}">
-                    {{ p.status | title }}
-                  </span>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty"><p>No payments recorded yet.</p></div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Penalties tab -->
-      {% if penalties %}
-      <div class="card" id="tab-penalties" style="display:none;">
-        <div class="card-header"><h3>Late Payment Penalties</h3></div>
-        <div class="card-body" style="padding:0;">
-          <table class="data-table">
-            <thead><tr><th>Due Date</th><th>Days Overdue</th><th>Penalty Amount</th><th>Computed At</th></tr></thead>
-            <tbody>
-              {% for pen in penalties %}
-              <tr>
-                <td>{{ pen.due_date.strftime('%b %d, %Y') if pen.due_date else '—' }}</td>
-                <td>{{ pen.days_overdue }} days</td>
-                {# FIX: pen.amount is now sanitized to float in Python #}
-                <td style="color:var(--danger); font-weight:600;">&#8369;{{ "{:,.2f}".format(pen.amount) }}</td>
-                <td style="font-size:12px;">{{ pen.created_at.strftime('%b %d, %Y') if pen.created_at else '—' }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Documents tab -->
-      {% if documents %}
-      <div class="card" id="tab-docs" style="display:none;">
-        <div class="card-header"><h3>Loan Documents</h3></div>
-        <div class="card-body">
-          <div style="display:flex; flex-wrap:wrap; gap:12px;">
-            {% for doc in documents %}
-            <div style="background:var(--bg-base); border:1px solid var(--border);
-                        border-radius:var(--radius-md); padding:12px 16px;
-                        display:flex; align-items:center; gap:10px; font-size:13px;">
-              <span>📄</span>
-              <div>
-                <div style="color:var(--text-heading); font-weight:500;">{{ doc.document_type | replace('_',' ') | title }}</div>
-                <a href="{{ url_for('auth.static', filename='uploads/documents/' ~ doc.file_path) }}"
-                   target="_blank" style="font-size:11px; color:var(--primary);">View / Download ↗</a>
+        <!-- BORROWER + LOAN DETAILS -->
+        <div class="two-col-grid">
+          <div class="card">
+            <div class="card-header"><h3>Borrower Information</h3></div>
+            <div class="card-body">
+              <div class="borrower-header">
+                <div class="borrower-avatar-lg">{{ loan.borrower_name[0]|upper }}</div>
+                <div class="borrower-meta">
+                  <h2>{{ loan.borrower_name }}</h2>
+                  <p>{{ loan.borrower_email }}</p>
+                  <p>{{ loan.borrower_contact }}</p>
+                </div>
+              </div>
+              <a href="{{ url_for('super_admin.borrower_detail', borrower_id=loan.borrower_id) }}"
+                 class="btn btn-ghost btn-sm btn-full">View Borrower Profile</a>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Loan Details</h3></div>
+            <div class="card-body">
+              <div class="portfolio-list">
+                <div class="portfolio-row">
+                  <span class="portfolio-label">Loan Number</span>
+                  <span style="font-weight:600;">{{ loan.loan_no }}</span>
+                </div>
+                <div class="portfolio-row">
+                  <span class="portfolio-label">Processing Fee</span>
+                  <span>&#8369;{{ "{:,.2f}".format(loan.processing_fee) }}</span>
+                </div>
+                <div class="portfolio-row">
+                  <span class="portfolio-label">Disbursed Amount</span>
+                  <span class="val-success">&#8369;{{ "{:,.2f}".format(loan.disbursed_amount) }}</span>
+                </div>
               </div>
             </div>
-            {% endfor %}
           </div>
         </div>
-      </div>
-      {% endif %}
 
-    </main>
+        <!-- TABS -->
+        <div class="status-tabs" id="detail-tabs">
+          <a href="#" class="status-tab active" onclick="return showTab('amort', this)">Amortization Schedule</a>
+          <a href="#" class="status-tab" onclick="return showTab('payments', this)">Payment History</a>
+          {% if penalties %}
+          <a href="#" class="status-tab" onclick="return showTab('penalties', this)">
+            Penalties <span class="tab-count">{{ penalties|length }}</span>
+          </a>
+          {% endif %}
+          {% if documents %}
+          <a href="#" class="status-tab" onclick="return showTab('docs', this)">Documents</a>
+          {% endif %}
+        </div>
+
+        <!-- TAB: Amortization Schedule -->
+        <div class="card" id="tab-amort">
+          <div class="card-header">
+            <h3>Amortization Schedule</h3>
+            <span class="card-count">{{ schedule|length }} periods</span>
+          </div>
+          <div class="card-body p0 overflow-x">
+            {% if schedule %}
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Due Date</th><th>Principal</th><th>Interest</th>
+                  <th>Total Due</th><th>Balance After</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-amort">
+                {% for row in schedule %}
+                <tr class="{{ 'is-paid' if row.status == 'paid' else '' }}">
+                  <td data-label="#">{{ row.period_no }}</td>
+                  <td data-label="Due Date">{{ row.due_date.strftime('%b %d, %Y') if row.due_date else '—' }}</td>
+                  <td data-label="Principal">&#8369;{{ "{:,.2f}".format(row.principal_due) }}</td>
+                  <td data-label="Interest">&#8369;{{ "{:,.2f}".format(row.interest_due) }}</td>
+                  <td data-label="Total Due">&#8369;{{ "{:,.2f}".format(row.total_due) }}</td>
+                  <td data-label="Balance After">&#8369;{{ "{:,.2f}".format(row.balance_after) }}</td>
+                  <td data-label="Status">
+                    {% if row.status == 'paid' %}
+                    <span class="badge badge-success">Paid</span>
+                    {% else %}
+                    <span class="badge badge-warning">Pending</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="table-empty"><p>No schedule generated.</p></div>
+            {% endif %}
+          </div>
+          <div class="pagination-wrap" id="pag-wrap-amort" style="display:none;">
+            <div class="pagination-info" id="pag-info-amort"></div>
+            <div class="pagination-btns" id="pag-btns-amort"></div>
+          </div>
+        </div>
+
+        <!-- TAB: Payment History -->
+        <div class="card" id="tab-payments" style="display:none;">
+          <div class="card-header">
+            <h3>Payment History</h3>
+            <span class="card-count">{{ payment_history|length }} payment(s)</span>
+          </div>
+          <div class="card-body p0">
+            {% if payment_history %}
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th><th>Amount</th><th>Reference No.</th>
+                  <th>Method</th><th>Verified By</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-payments">
+                {% for p in payment_history %}
+                <tr>
+                  <td data-label="Date">{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
+                  <td data-label="Amount"><strong>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</strong></td>
+                  <td data-label="Reference" class="td-sm">{{ p.reference_number or '—' }}</td>
+                  <td data-label="Method">{{ p.payment_method | replace('_',' ') | title if p.payment_method else '—' }}</td>
+                  <td data-label="Verified By" class="td-sm">{{ p.verified_by_name or '—' }}</td>
+                  <td data-label="Status">
+                    <span class="badge {% if p.status == 'approved' %}badge-success{% elif p.status == 'rejected' %}badge-danger{% else %}badge-warning{% endif %}">
+                      {{ p.status | title }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="table-empty"><p>No payments recorded yet.</p></div>
+            {% endif %}
+          </div>
+          <div class="pagination-wrap" id="pag-wrap-payments" style="display:none;">
+            <div class="pagination-info" id="pag-info-payments"></div>
+            <div class="pagination-btns" id="pag-btns-payments"></div>
+          </div>
+        </div>
+
+        <!-- TAB: Penalties -->
+        {% if penalties %}
+        <div class="card" id="tab-penalties" style="display:none;">
+          <div class="card-header"><h3>Late Payment Penalties</h3></div>
+          <div class="card-body p0">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Due Date</th><th>Days Overdue</th><th>Penalty Amount</th><th>Computed At</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-penalties">
+                {% for pen in penalties %}
+                <tr>
+                  <td data-label="Due Date">{{ pen.due_date.strftime('%b %d, %Y') if pen.due_date else '—' }}</td>
+                  <td data-label="Days Overdue">{{ pen.days_overdue }} days</td>
+                  <td data-label="Penalty Amount" class="val-danger">&#8369;{{ "{:,.2f}".format(pen.amount) }}</td>
+                  <td data-label="Computed At" class="td-sm">{{ pen.created_at.strftime('%b %d, %Y') if pen.created_at else '—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination-wrap" id="pag-wrap-penalties" style="display:none;">
+            <div class="pagination-info" id="pag-info-penalties"></div>
+            <div class="pagination-btns" id="pag-btns-penalties"></div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- TAB: Documents -->
+        {% if documents %}
+        <div class="card" id="tab-docs" style="display:none;">
+          <div class="card-header"><h3>Loan Documents</h3></div>
+          <div class="card-body">
+            <div class="docs-grid">
+              {% for doc in documents %}
+              <div class="doc-item">
+                <span class="doc-icon">📄</span>
+                <div>
+                  <div class="doc-type">{{ doc.document_type | replace('_',' ') | title }}</div>
+                  <a href="{{ url_for('auth.static', filename='uploads/documents/' ~ doc.file_path) }}"
+                     target="_blank" class="doc-link">View / Download ↗</a>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </main>
+    </div>
+    <!-- /MAIN CONTENT -->
+
   </div>
 </div>
 
 <script src="{{ url_for('super_admin.static', filename='loan_detail.js') }}"></script>
-<script>
-  (function () {
-    var toggle   = document.getElementById('userDropdownToggle');
-    var dropdown = document.getElementById('userDropdown');
-    if (!toggle || !dropdown) return;
-    toggle.addEventListener('click', function (e) {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-      toggle.classList.toggle('open');
-    });
-    document.addEventListener('click', function (e) {
-      if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.classList.remove('open');
-        toggle.classList.remove('open');
-      }
-    });
-  })();
-</script>
 </body>
 </html>
