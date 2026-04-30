@@ -252,7 +252,29 @@
                       ₱{{ '{:,.2f}'.format(p.amount_paid) }}
                       <span class="td-amount-info">ℹ</span>
                     </td>
-                    <td class="td-capitalize">{{ p.payment_method or '---' }}</td>
+                    <td class="td-method">
+  {% if p.payment_method %}
+    <div class="method-pill method--{{ p.payment_method|lower }}">
+      {% if p.payment_method|lower == 'gcash' %}
+        <span class="m-icon">💙</span> GCash
+      {% elif p.payment_method|lower == 'maya' %}
+        <span class="m-icon">💚</span> Maya
+      {% elif p.payment_method|lower == 'bdo' %}
+        <span class="m-icon">🏦</span> BDO Bank
+      {% elif p.payment_method|lower == 'bpi' %}
+        <span class="m-icon">🏛️</span> BPI
+      {% elif p.payment_method|lower == 'landbank' %}
+        <span class="m-icon">🌾</span> Landbank
+      {% elif p.payment_method|lower == 'visa' %}
+        <span class="m-icon">💳</span> Visa/Card
+      {% else %}
+        {{ p.payment_method | capitalize }}
+      {% endif %}
+    </div>
+  {% else %}
+    <span class="text-muted">---</span>
+  {% endif %}
+</td>
                     <td data-raw-date="{{ p.payment_date.strftime('%Y-%m-%d') if p.payment_date else '' }}">
                       {{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '---' }}
                     </td>

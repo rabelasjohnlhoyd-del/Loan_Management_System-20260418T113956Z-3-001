@@ -470,9 +470,19 @@ def make_payment(loan_id):
             """, (session['user_id'], payment_method))
             wallet = cursor.fetchone()
 
+            
+            
             if not wallet:
-                flash(f'No dummy account found for {payment_method.upper()}. Please set it up in the database.', 'danger')
-                return redirect(url_for('borrower.select_loan_to_pay'))
+              
+                dummy_val = "SIMULATED-ACC" 
+                
+                cursor.execute("""
+                    INSERT INTO dummy_wallets (user_id, method, account_number, balance)
+                    VALUES (%s, %s, %s, 100000.00)
+                """, (session['user_id'], payment_method, dummy_val))
+                conn.commit() 
+                
+                wallet = {'balance': 100000.00}
 
             if float(wallet['balance']) < float(amount_paid):
                 flash(f'Insufficient {payment_method.upper()} balance! (Current: ₱{float(wallet["balance"]):,.2f})', 'danger')

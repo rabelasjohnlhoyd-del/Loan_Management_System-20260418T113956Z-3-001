@@ -720,3 +720,26 @@ body:not(.sidebar-open) .sidebar { transform: translateX(calc(-1 * var(--sidebar
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M6 4h12v16H6V4zm2-2v20h8V2H8zm2 4h4v2h-4V6zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z'/%3E%3C/svg%3E");
   background: var(--mint-dark);
 }
+
+
+.method-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.m-icon {
+    font-size: 14px;
+}
+
+/* Optional: Colors per method */
+.method--gcash { border-color: #0070e0; color: #0070e0; background: #f0f7ff; }
+.method--maya { border-color: #00b140; color: #00b140; background: #f0fff4; }
+.method--bdo { border-color: #003087; color: #003087; background: #f0f3ff; }

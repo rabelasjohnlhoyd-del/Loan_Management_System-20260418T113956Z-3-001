@@ -235,20 +235,25 @@
   };
 
   function buildQRScreen() {
-    const d = methodDetails[selectedMethod];
+    const d = methodDetails[selectedMethod]; 
+    
     setText('sumLoanRef', selectedLoanData.ref);
     setText('sumMethod',  d.icon + ' ' + d.name);
     setText('sumAmount',  '₱' + parseFloat(selectedLoanData.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 }));
 
     const form = document.getElementById('paymentForm');
     if (form) form.action = '/borrower/payments/make/' + selectedLoanData.id;
+
     setHidden('hiddenLoanId', selectedLoanData.id);
-    setHidden('hiddenMethod', selectedMethod);
+    
+    
+    setHidden('hiddenMethod', selectedMethod); 
+    
     setHidden('hiddenRef', 'TXN-' + Math.random().toString(36).toUpperCase().slice(-8));
     setHidden('hiddenAmount', selectedLoanData.amount);
     setHidden('hiddenDate', new Date().toISOString().split('T')[0]);
     resetScanner();
-  }
+}
 
   window.submitPayment = function () {
     btnConfirm.disabled = true;
