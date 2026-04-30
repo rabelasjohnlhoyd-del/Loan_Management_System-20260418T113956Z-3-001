@@ -375,7 +375,7 @@ def profile():
             'active_loans': active_loans
         }
 
-        # Score computation (range: 300–850)
+    
         score = 500
         score += min(on_time * 10, 200)   # max +200
         score += paid_loans * 50           # +50 per paid loan
@@ -404,7 +404,7 @@ def select_loan_to_pay():
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # 1. Kunin ang listahan ng active loans (Inayos ang query para sa loan_no)
+        
         cursor.execute("""
             SELECT l.*, lt.name AS type_name,
                    (SELECT MIN(a.due_date) FROM amortization_schedule a WHERE a.loan_id = l.id AND a.is_paid = 0) AS next_due,
@@ -418,7 +418,7 @@ def select_loan_to_pay():
         """, (session['user_id'],))
         active_loans = cursor.fetchall()
 
-        # 2. Kunin ang Dummy Wallet balances para ipakita sa UI (Gcash, Maya, etc.)
+       
         cursor.execute("SELECT method, balance FROM dummy_wallets WHERE user_id = %s", (session['user_id'],))
         wallets = {w['method']: float(w['balance']) for w in cursor.fetchall()}
 
@@ -431,13 +431,10 @@ def select_loan_to_pay():
 
     return render_template('make_payment.html',
                            active_loans=active_loans,
-                           wallets=wallets, # Ipapasa ito sa HTML para makita ang balance
+                           wallets=wallets, 
                            today=datetime.date.today())
 
-# 5.2 MAKE PAYMENT
-# ================================================================
-# SECTION 5.2: MAKE PAYMENT (REKTA + DUMMY WALLET LOGIC)
-# ================================================================
+
 @borrower_bp.route('/payments/make/<int:loan_id>', methods=['GET', 'POST'])
 @login_required
 @role_required('borrower')
@@ -445,7 +442,6 @@ def make_payment(loan_id):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
 
-    # 1. Kunin muna ang Loan Details (Kailangan ito sa GET at POST)
     cursor.execute("""
         SELECT l.*, lt.name AS type_name, lp.plan_name, lp.interest_rate
         FROM loans l
@@ -459,15 +455,15 @@ def make_payment(loan_id):
         flash('Loan not found.', 'danger')
         return redirect(url_for('borrower.borrower_dashboard'))
 
-    # 2. Kapag pinindot ang "Confirm Direct Payment" (POST)
+   
     if request.method == 'POST':
         amount_paid      = request.form.get('amount_paid')
-        payment_method   = request.form.get('payment_method') # gcash, maya, bdo, etc.
+        payment_method   = request.form.get('payment_method') 
         reference_number = request.form.get('reference_number')
         payment_date     = request.form.get('payment_date')
         
         try:
-            # A. VALIDATION: Check kung may sapat na pera sa Dummy Wallet
+            
             cursor.execute("""
                 SELECT balance FROM dummy_wallets 
                 WHERE user_id = %s AND method = %s
@@ -482,7 +478,7 @@ def make_payment(loan_id):
                 flash(f'Insufficient {payment_method.upper()} balance! (Current: ₱{float(wallet["balance"]):,.2f})', 'danger')
                 return redirect(url_for('borrower.select_loan_to_pay'))
 
-            # B. BAWASAN ANG DUMMY WALLET (Simulation ng Real-time payment)
+           
             new_wallet_balance = float(wallet['balance']) - float(amount_paid)
             cursor.execute("""
                 UPDATE dummy_wallets SET balance = %s 
@@ -495,8 +491,7 @@ def make_payment(loan_id):
             count_row = cursor.fetchone()
             pay_no = f"PAY-{year}-{str(count_row['total'] + 1).zfill(6)}"
 
-            # D. INSERT PAYMENT AS 'verified' AGAD (Rekta Flow)
-            # Tinanggal na natin ang screenshot requirement dahil "Rekta" na
+            
             cursor.execute("""
                 INSERT INTO payments 
                 (payment_no, loan_id, borrower_id, amount_paid, payment_method, 
@@ -505,7 +500,7 @@ def make_payment(loan_id):
             """, (pay_no, loan_id, session['user_id'], amount_paid, payment_method, 
                   reference_number, payment_date))
 
-            # E. AUTO-CREDIT: Bawasan ang balance ng Loan
+            
             current_loan_balance = float(loan['outstanding_balance'])
             new_loan_balance = max(0, current_loan_balance - float(amount_paid))
             
@@ -516,7 +511,7 @@ def make_payment(loan_id):
                 WHERE id = %s
             """, (new_loan_balance, new_loan_balance, loan_id))
 
-            # F. UPDATE AMORTIZATION: Markahan ang next unpaid installment as paid
+            
             cursor.execute("""
                 UPDATE amortization_schedule 
                 SET is_paid = 1, paid_at = NOW() 
@@ -526,7 +521,7 @@ def make_payment(loan_id):
 
             conn.commit()
 
-            # G. SUCCESS REDIRECT (Bitbit lahat ng info para sa Step 5 Receipt)
+           
             return redirect(url_for('borrower.select_loan_to_pay') + 
                             f'?success=1&ref={pay_no}&amount={amount_paid}&method={payment_method}&loan_ref={loan["loan_no"]}')
 
@@ -534,7 +529,6 @@ def make_payment(loan_id):
             conn.rollback()
             flash(f'Payment System Error: {str(e)}', 'danger')
 
-    # 3. Kapag nilo-load pa lang ang page (GET Request)
     cursor.execute("SELECT * FROM amortization_schedule WHERE loan_id = %s AND is_paid = 0 ORDER BY due_date ASC", (loan_id,))
     schedules = cursor.fetchall()
 

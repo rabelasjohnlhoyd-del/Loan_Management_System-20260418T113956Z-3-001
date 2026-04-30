@@ -7,568 +7,189 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <link rel="stylesheet" href="{{ url_for('borrower.static', filename='make_payment.css') }}" />
 </head>
 <body>
 
-<!-- OVERLAY (mobile sidebar backdrop) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
-
-  <!-- ═══════════════════════════════════════════
-       TOPBAR
-  ════════════════════════════════════════════ -->
+  <!-- TOPBAR -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
-      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
-        <span></span><span></span><span></span>
-      </button>
+      <button class="burger-btn" id="burgerBtn" type="button"><span></span><span></span><span></span></button>
       <div class="topbar-brand">
         <div class="topbar-logo">$</div>
-        <div class="topbar-brand-text">
-          <span class="topbar-brand-name">Hiraya</span>
-          <span class="topbar-brand-sub">Management System</span>
-        </div>
+        <div class="topbar-brand-text"><span class="topbar-brand-name">Hiraya</span></div>
       </div>
     </div>
     <div class="topbar-right">
       <div class="notif-wrap" id="notifWrap">
-        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+        <button class="topbar-icon-btn" id="notifBtn" type="button">
           <span class="topbar-icon topbar-icon--notif"></span>
           <span class="notif-dot hidden" id="notifDot"></span>
         </button>
         <div class="notif-dropdown" id="notifDropdown">
-          <div class="notif-header">
-            <span class="notif-header-title">Notifications</span>
-            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
-          </div>
-          <div class="notif-list" id="notifList">
-            <div class="notif-loading">Loading...</div>
-          </div>
-          <div class="notif-footer">
-            <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
-              See all notifications →
-            </a>
-          </div>
+          <div class="notif-header">Notifications <button id="notifMarkAll">Mark all</button></div>
+          <div id="notifList"></div>
         </div>
       </div>
-      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
-        {{ session.user_name[0]|upper if session.user_name else 'U' }}
-      </a>
+      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar">{{ session.user_name[0]|upper }}</a>
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════
-       BODY ROW — sidebar + main
-  ════════════════════════════════════════════ -->
   <div class="body-row">
-
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
-        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
-        <div class="s-user-info">
-          <h4>{{ session.user_name }}</h4>
-          <div class="s-role-badge">Borrower</div>
-        </div>
-        <span class="s-chevron"></span>
+        <div class="s-avatar">{{ session.user_name[0]|upper }}</div>
+        <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">Borrower</div></div>
       </div>
-
-      <div class="user-dropdown" id="userDropdown">
-        <a href="{{ url_for('borrower.profile') }}">
-          <span class="dd-icon dd-icon--profile"></span>My Profile
-        </a>
-        <a href="{{ url_for('loans.my_loans') }}">
-          <span class="dd-icon dd-icon--loans"></span>My Loans
-        </a>
-        <a href="{{ url_for('loans.my_applications') }}">
-          <span class="dd-icon dd-icon--applications"></span>My Applications
-        </a>
-        <a href="{{ url_for('loans.loan_types') }}">
-          <span class="dd-icon dd-icon--loan-types"></span>Loan Types &amp; Plans
-        </a>
-      </div>
-
       <nav class="sidebar-nav">
-        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">
-          <span class="nav-icon nav-icon--dashboard"></span>
-          <span class="nav-label">Dashboard</span>
-        </a>
-        <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item active">
-          <span class="nav-icon nav-icon--payment"></span>
-          <span class="nav-label">Make a Payment</span>
-        </a>
-        <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">
-          <span class="nav-icon nav-icon--history"></span>
-          <span class="nav-label">Payment History</span>
-        </a>
-        <a href="{{ url_for('borrower.my_documents') }}" class="nav-item">
-          <span class="nav-icon nav-icon--docs"></span>
-          <span class="nav-label">Documents</span>
-        </a>
+        <a href="{{ url_for('borrower.borrower_dashboard') }}" class="nav-item">Dashboard</a>
+        <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="nav-item active">Make a Payment</a>
+        <a href="{{ url_for('borrower.payment_history') }}" class="nav-item">History</a>
       </nav>
-
-      <div class="sidebar-footer">
-        <form method="POST" action="{{ url_for('auth.logout') }}">
-          <button type="submit" class="nav-item sidebar-logout-btn">
-            <span class="nav-icon nav-icon--logout"></span>
-            <span class="nav-label">Sign Out</span>
-          </button>
-        </form>
-      </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
     <div class="main-content" id="mainContent">
       <main class="page-body">
-
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% for category, message in messages %}
             <div class="flash-msg {{ category }}">{{ message }}</div>
           {% endfor %}
         {% endwith %}
 
-        <!-- PAGE HEADER -->
         <div class="page-header">
           <div class="page-header-left">
-            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
-              <span class="btn-back-icon"></span>
-              Dashboard
-            </a>
-            <div>
-              <h2 class="page-title">Make a Payment</h2>
-              <p class="page-sub">Complete your payment in a few steps</p>
-            </div>
+            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">Dashboard</a>
+            <div><h2 class="page-title">Make a Payment</h2><p class="page-sub">Complete your payment in a few steps</p></div>
           </div>
         </div>
 
         <!-- STEP INDICATOR -->
         <div class="steps">
           <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Select Loan</div></div>
-          <div class="step-line" id="line1"></div>
+          <div class="step-line"></div>
           <div class="step todo" id="step2"><div class="step-num">2</div><div class="step-label">Method</div></div>
-          <div class="step-line" id="line2"></div>
-          <div class="step todo" id="step3"><div class="step-num">3</div><div class="step-label">Pay via QR</div></div>
-          <div class="step-line" id="line3"></div>
-          <div class="step todo" id="step4"><div class="step-num">4</div><div class="step-label">Processing</div></div>
-          <div class="step-line" id="line4"></div>
-          <div class="step todo" id="step5"><div class="step-num">5</div><div class="step-label">Success Receipt</div></div>
+          <div class="step-line"></div>
+          <div class="step todo" id="step3"><div class="step-num">3</div><div class="step-label">Authorize</div></div>
+          <div class="step-line"></div>
+          <div class="step todo" id="step4"><div class="step-num">4</div><div class="step-label">Success</div></div>
         </div>
 
-        <!-- ══ STEP 1: SELECT LOAN ══ -->
+        <!-- STEP 1: SELECT LOAN -->
         <div id="sectionSelectLoan" class="page-section">
-          <div class="section-header">
-            <h2 class="section-heading">Choose a Loan to Pay</h2>
-            <p class="section-sub">Select which loan you'd like to make a payment for</p>
-          </div>
+          <div class="section-header"><h2 class="section-heading">Choose a Loan to Pay</h2></div>
           <div class="loan-select-grid">
-            {% for loan in active_loans %}
-            <div class="loan-select-card"
-     onclick="selectLoan(this, {{ loan.id }}, '{{ loan.loan_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}', '{{ loan.next_due.strftime('%b %d, %Y') if loan.next_due else 'N/A' }}')"
-     data-id="{{ loan.id }}">
-              <div class="loan-card-top">
-                <div>
-                  <div class="loan-card-ref">{{ loan.reference_no }}</div>
-                  <div class="loan-card-type">{{ loan.type_name }}</div>
+            {% if active_loans %}
+              {% for loan in active_loans %}
+              <div class="loan-select-card" onclick="selectLoan(this, {{ loan.id }}, '{{ loan.reference_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}')">
+                <div class="loan-card-top">
+                  <div><div class="loan-card-ref">{{ loan.reference_no }}</div><div class="loan-card-type">{{ loan.type_name }}</div></div>
+                  <button type="button" class="btn-download-qr" onclick="downloadOfficialQR('{{ loan.reference_no }}', event); event.stopPropagation();">📥 QR Token</button>
+                  <div class="loan-card-check">✓</div>
                 </div>
-                <div class="loan-card-check">✓</div>
-              </div>
-              <div class="loan-card-row">
-                <div class="loan-card-stat">
-                  <div class="loan-card-stat-val">₱{{ "{:,.0f}".format(loan.outstanding_balance) }}</div>
-                  <div class="loan-card-stat-lbl">Balance</div>
-                </div>
-                <div class="loan-card-divider"></div>
-                <div class="loan-card-stat">
-                  <div class="loan-card-stat-val highlight">₱{{ "{:,.0f}".format(loan.next_amount or 0) }}</div>
-                  <div class="loan-card-stat-lbl">Due Amount</div>
-                </div>
-                <div class="loan-card-divider"></div>
-                <div class="loan-card-stat">
-                  <div class="loan-card-stat-val">{{ loan.next_due.strftime('%b %d') if loan.next_due else '—' }}</div>
-                  <div class="loan-card-stat-lbl">Due Date</div>
+                <div class="loan-card-row">
+                  <div class="loan-card-stat"><div class="loan-card-stat-val">₱{{ "{:,.0f}".format(loan.outstanding_balance) }}</div><div class="loan-card-stat-lbl">Balance</div></div>
+                  <div class="loan-card-divider"></div>
+                  <div class="loan-card-stat"><div class="loan-card-stat-val highlight">₱{{ "{:,.0f}".format(loan.next_amount or 0) }}</div><div class="loan-card-stat-lbl">Due</div></div>
                 </div>
               </div>
-              {% if loan.next_due %}
-                {% set days_left = (loan.next_due - today).days %}
-                {% if days_left < 0 %}
-                  <div class="due-badge overdue">⚠ {{ days_left|abs }} days overdue</div>
-                {% elif days_left <= 3 %}
-                  <div class="due-badge upcoming">⏰ Due in {{ days_left }} days</div>
-                {% else %}
-                  <div class="due-badge ok">✓ On track</div>
-                {% endif %}
-              {% endif %}
-            </div>
-            {% else %}
-            <div class="no-loans">
-              <div class="no-loans-icon">💳</div>
-              <h3>No Active Loans</h3>
-              <p>You don't have any active loans requiring payment.</p>
-            </div>
-            {% endfor %}
+              {% endfor %}
+            {% endif %}
           </div>
         </div>
 
-        <!-- ══ STEP 2: SELECT PAYMENT METHOD ══ -->
+        <!-- STEP 2: METHOD -->
         <div id="sectionStep2" class="page-section hidden">
-          <div class="section-header">
-            <div>
-              <h2 class="section-heading">Choose Payment Method</h2>
-              <p class="section-sub">How would you like to pay?</p>
-            </div>
-            <button class="btn-back1" onclick="backToStep1()">← Change Loan</button>
-          </div>
+          <div class="section-header"><h2 class="section-heading">Choose Payment Method</h2><button class="btn-back1" onclick="backToStep1()">← Change Loan</button></div>
           <div class="method-grid">
-  <!-- GCash -->
-  <div class="method-card" onclick="selectMethod('gcash', this)" data-method="gcash">
-    <div class="method-card-icon" style="background:#e8f4ff; color:#0070e0">💙</div>
-    <div class="method-card-info">
-      <div class="method-card-name">GCash</div>
-      <div class="method-card-desc">Instant auto-credit via GCash</div>
+            <div class="method-card" onclick="selectMethod('gcash', this)"><div class="method-card-icon" style="background:#e8f4ff; color:#0070e0">💙</div><div class="method-card-name">GCash</div></div>
+            <div class="method-card" onclick="selectMethod('maya', this)"><div class="method-card-icon" style="background:#e8f9ee; color:#00b140">💚</div><div class="method-card-name">Maya</div></div>
+            <div class="method-card" onclick="selectMethod('bdo', this)"><div class="method-card-icon" style="background:#e8eeff; color:#003087">🏦</div><div class="method-card-name">BDO Bank</div></div>
+            <div class="method-card" onclick="selectMethod('bpi', this)"><div class="method-card-icon" style="background:#fff0f0; color:#b31f24">🏛️</div><div class="method-card-name">BPI</div></div>
+            <div class="method-card" onclick="selectMethod('landbank', this)"><div class="method-card-icon" style="background:#eaf8f0; color:#008000">🌾</div><div class="method-card-name">Landbank</div></div>
+            <div class="method-card" onclick="selectMethod('visa', this)"><div class="method-card-icon" style="background:#f7f7f7; color:#1a1f71">💳</div><div class="method-card-name">Visa/Card</div></div>
+          </div>
+          <button class="btn-continue" id="btnContinueToQR" disabled onclick="proceedToStep3()">Continue to Authorization</button>
+        </div>
+
+        <!-- STEP 3: SCANNER -->
+        <div id="sectionStep3" class="page-section hidden">
+          <div class="section-header"><h2 class="section-heading">Authorize Payment</h2><button class="btn-back1" onclick="backToStep2()">← Change Method</button></div>
+          <div class="qr-payment-container">
+            <div class="qr-scanner-box" id="qrDropZone">
+              <input type="file" id="qrFileInput" accept="image/*" style="display:none">
+              <div class="scanner-content" id="scannerContent">
+                <div class="scanner-icon">📸</div>
+                <p><strong>Drag & Drop QR Token</strong></p>
+                <p>or click to upload image</p>
+              </div>
+              <div id="qrPreviewContainer" class="hidden">
+                <img id="qrPreviewImg" src="">
+                <div class="scan-success-overlay"><div class="success-check">✓</div>QR Verified!</div>
+              </div>
+            </div>
+            <div class="payment-summary-card">
+              <h3 class="summary-title">Payment Summary</h3>
+              <div class="summary-details">
+                <div class="s-row"><span>📄 Loan Ref:</span> <strong id="sumLoanRef">—</strong></div>
+                <div class="s-row"><span>💳 Method:</span> <strong id="sumMethod">—</strong></div>
+                <div class="s-row highlight"><span>💰 Amount:</span> <strong id="sumAmount">₱0.00</strong></div>
+              </div>
+              <div id="qrValidationMsg" class="validation-msg">Waiting for QR verification...</div>
+              <button class="btn-paid" id="btnConfirmPayment" disabled onclick="submitPayment()">Confirm & Pay Now</button>
+              <button class="btn-reset-qr hidden" id="btnResetQR" onclick="resetScanner()">Try Another QR</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 5: SUCCESS RECEIPT -->
+        <div id="sectionStep5" class="page-section hidden">
+          <div id="receiptLoading" class="er-loading"><div class="er-loading-spinner"></div><p>Generating Receipt...</p></div>
+          <div id="erCard" class="er-wrap" style="display:none">
+            <div class="er-top-actions"><button type="button" class="er-btn-print" onclick="printReceipt()">Print / Save PDF</button></div>
+            <div class="er-card">
+              <div class="er-header">
+                <div class="er-ref-tag" id="erPayNo">PAY-000000</div>
+                <div class="er-amount-box"><span class="er-label-sm">AMOUNT PAID</span><h1 class="er-amount-val" id="erAmountVal">₱0.00</h1></div>
+              </div>
+              <div class="er-body">
+                <div class="er-group">
+                  <h3 class="er-group-title">PAYMENT INFORMATION</h3>
+                  <div class="er-row"><span>Status</span><span class="status-ok">✓ Auto-Credited</span></div>
+                  <div class="er-row"><span>Method</span><span id="erMethodBadge">—</span></div>
+                  <div class="er-row"><span>Transaction Ref</span><span id="erTxnRef" class="er-mono">—</span></div>
+                  <div class="er-row"><span>Date Verified</span><span id="erDateVerified">—</span></div>
+                </div>
+                <div class="er-group">
+                  <h3 class="er-group-title">LOAN INFORMATION</h3>
+                  <div class="er-row"><span>Loan Reference</span><span id="erLoanRef">—</span></div>
+                  <div class="er-row"><span>Loan Type</span><span id="erLoanType">—</span></div>
+                </div>
+                <div class="er-group">
+                  <h3 class="er-group-title">BORROWER</h3>
+                  <div class="er-row"><span>Name</span><span id="erBorrowerName">—</span></div>
+                </div>
+                <div class="er-footer"><p>This is an official electronic receipt issued by <strong>Hiraya Lending System</strong>.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form method="POST" action="#" id="paymentForm" style="display:none">
+          <input type="hidden" name="loan_id" id="hiddenLoanId" /><input type="hidden" name="payment_method" id="hiddenMethod" />
+          <input type="hidden" name="reference_number" id="hiddenRef" /><input type="hidden" name="amount_paid" id="hiddenAmount" />
+          <input type="hidden" name="payment_date" id="hiddenDate" />
+        </form>
+      </main>
     </div>
-    <div class="method-card-check">✓</div>
-  </div>
-  <!-- Maya -->
-  <div class="method-card" onclick="selectMethod('maya', this)" data-method="maya">
-    <div class="method-card-icon" style="background:#e8f9ee; color:#00b140">💚</div>
-    <div class="method-card-info">
-      <div class="method-card-name">Maya</div>
-      <div class="method-card-desc">Instant auto-credit via Maya</div>
-    </div>
-    <div class="method-card-check">✓</div>
-  </div>
-  <!-- BDO -->
-  <div class="method-card" onclick="selectMethod('bdo', this)" data-method="bdo">
-    <div class="method-card-icon" style="background:#e8eeff; color:#003087">🏦</div>
-    <div class="method-card-info">
-      <div class="method-card-name">BDO Unibank</div>
-      <div class="method-card-desc">Direct bank transfer</div>
-    </div>
-    <div class="method-card-check">✓</div>
-  </div>
-  <!-- BPI -->
-  <div class="method-card" onclick="selectMethod('bpi', this)" data-method="bpi">
-    <div class="method-card-icon" style="background:#fff0f0; color:#b31f24">🏛️</div>
-    <div class="method-card-info">
-      <div class="method-card-name">BPI</div>
-      <div class="method-card-desc">Bank of the Philippine Islands</div>
-    </div>
-    <div class="method-card-check">✓</div>
-  </div>
-  <!-- Landbank -->
-  <div class="method-card" onclick="selectMethod('landbank', this)" data-method="landbank">
-    <div class="method-card-icon" style="background:#eaf8f0; color:#008000">🌾</div>
-    <div class="method-card-info">
-      <div class="method-card-name">Landbank</div>
-      <div class="method-card-desc">Government bank transfer</div>
-    </div>
-    <div class="method-card-check">✓</div>
-  </div>
-  <!-- Visa/Mastercard -->
-  <div class="method-card" onclick="selectMethod('visa', this)" data-method="visa">
-    <div class="method-card-icon" style="background:#f7f7f7; color:#1a1f71">💳</div>
-    <div class="method-card-info">
-      <div class="method-card-name">Visa / Mastercard</div>
-      <div class="method-card-desc">Debit or Credit Card</div>
-    </div>
-    <div class="method-card-check">✓</div>
   </div>
 </div>
-          <button class="btn-continue" id="btnContinueToQR" disabled onclick="proceedToStep3()">
-            Continue
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </button>
-        </div>
 
-        <!-- ══ STEP 3: QR CODE + PAY ══ -->
-        <div id="sectionStep3" class="page-section hidden">
-          <div class="section-header">
-            <div>
-              <h2 class="section-heading">Scan &amp; Pay</h2>
-              <p class="section-sub">Scan the QR code using your app, then tap "I've Paid"</p>
-            </div>
-            <button class="btn-back" onclick="backToStep2()">← Change Method</button>
-          </div>
-
-          <form method="POST" action="#" id="paymentForm" style="display:none">
-            <input type="hidden" name="loan_id"          id="hiddenLoanId" />
-            <input type="hidden" name="payment_method"   id="hiddenMethod" />
-            <input type="hidden" name="reference_number" id="hiddenRef" />
-            <input type="hidden" name="amount_paid"      id="hiddenAmount" />
-            <input type="hidden" name="payment_date"     id="hiddenDate" />
-            <input type="hidden" name="notes"            value="" />
-          </form>
-
-          <div class="qr-layout">
-            <div class="qr-card">
-              <div class="qr-card-header">
-                <span class="qr-method-badge" id="qrMethodBadge">💙 GCash</span>
-                <span class="qr-label">Payment QR Code</span>
-              </div>
-              <div id="qrCodeWrap" class="qr-code-wrap">
-                <canvas id="qrCanvas"></canvas>
-                <div class="qr-scan-hint" id="qrScanHint">
-                  <span>📱</span> Open your app and scan
-                </div>
-              </div>
-              <div id="cashInstructions" class="cash-instructions" style="display:none">
-                <div class="cash-icon">🏢</div>
-                <p class="cash-title">Walk-in Payment</p>
-                <p class="cash-body">Visit our office and present your reference number to the cashier.</p>
-              </div>
-              <div class="qr-account-info">
-                <div class="qr-account-name" id="qrAccountName">Hiraya Lending</div>
-                <div class="qr-account-num"  id="qrAccountNum">+63 917 000 1234</div>
-              </div>
-            </div>
-
-            <div class="qr-details">
-              <div class="qr-detail-card">
-                <h3 class="qr-detail-title">Payment Details</h3>
-                <div class="qr-detail-row">
-                  <span class="qr-detail-label">Loan Reference</span>
-                  <span class="qr-detail-val" id="qrLoanRef">—</span>
-                </div>
-                <div class="qr-detail-row">
-                  <span class="qr-detail-label">Loan Type</span>
-                  <span class="qr-detail-val" id="qrLoanType">—</span>
-                </div>
-                <div class="qr-detail-row">
-                  <span class="qr-detail-label">Due Date</span>
-                  <span class="qr-detail-val" id="qrDueDate">—</span>
-                </div>
-                <div class="qr-detail-row highlight-row">
-                  <span class="qr-detail-label">Amount to Pay</span>
-                  <span class="qr-detail-val amount" id="qrAmount">₱0.00</span>
-                </div>
-                <div class="qr-detail-row">
-                  <span class="qr-detail-label">Reference No.</span>
-                  <span class="qr-detail-val mono" id="qrRefNum">—</span>
-                </div>
-              </div>
-              <div class="qr-instructions">
-                <p class="qr-step"><span class="qr-step-num">1</span> Open your payment app</p>
-                <p class="qr-step"><span class="qr-step-num">2</span> Scan the QR code</p>
-                <p class="qr-step"><span class="qr-step-num">3</span> Confirm the amount shown</p>
-                <p class="qr-step"><span class="qr-step-num">4</span> Complete payment in your app</p>
-                <p class="qr-step"><span class="qr-step-num">5</span> Tap "I've Paid" below</p>
-              </div>
-              <button class="btn-paid" id="btnIvePaid" onclick="submitPayment()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Confirm Direct Payment
-              </button>
-              <p class="paid-disclaimer">Your payment will be auto-credited to your balance instantly.</p>
-              </button>
-              <p class="paid-disclaimer">Only tap this after completing payment in your app.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- ══ STEP 4: PENDING CONFIRMATION ══ -->
-        <div id="sectionStep4" class="page-section hidden">
-          <div class="pending-screen">
-            <div class="receipt-header">
-              <div class="receipt-check-icon" style="background: #2a9080;">✓</div>
-              <h2 class="pending-title">Payment Successful!</h2>
-              <p class="pending-desc">Your payment has been auto-credited to your account instantly.</p>
-            </div>
-            <div class="receipt-body">
-              <div class="pending-ref-box">
-                <span class="pending-ref-label">Payment Reference</span>
-                <span class="pending-ref-val" id="pendingRef">—</span>
-              </div>
-              <div class="receipt-table">
-                <div class="receipt-row">
-                  <span class="receipt-label">Loan Reference</span>
-                  <span class="receipt-val" id="receiptLoanRef">—</span>
-                </div>
-                <div class="receipt-row">
-                  <span class="receipt-label">Payment Method</span>
-                  <span class="receipt-val" id="receiptMethod">—</span>
-                </div>
-                <div class="receipt-row">
-                  <span class="receipt-label">Date Submitted</span>
-                  <span class="receipt-val" id="receiptDate">—</span>
-                </div>
-                <div class="receipt-row">
-                  <span class="receipt-label">Transaction Ref</span>
-                  <span class="receipt-val mono" id="receiptTxnRef">—</span>
-                </div>
-                <div class="receipt-row highlight-row">
-                  <span class="receipt-label">Amount Paid</span>
-                  <span class="receipt-val amount" id="receiptAmount">₱0.00</span>
-                </div>
-              </div>
-              <div class="pending-timeline" id="liveTimeline">
-                <div class="timeline-item done" id="tl-submitted">
-                  <div class="tl-dot"></div>
-                  <div class="tl-content">
-                    <div class="tl-title">Payment Submitted</div>
-                    <div class="tl-sub">Just now</div>
-                  </div>
-                </div>
-                <div class="timeline-item pending" id="tl-verification">
-                  <div class="tl-dot"></div>
-                  <div class="tl-content">
-                    <div class="tl-title">Admin Verification</div>
-                    <div class="tl-sub" id="tl-verification-sub">Usually within 1–2 business hours</div>
-                  </div>
-                </div>
-                <div class="timeline-item todo" id="tl-receipt">
-                  <div class="tl-dot"></div>
-                  <div class="tl-content">
-                    <div class="tl-title">Official E-Receipt Issued</div>
-                    <div class="tl-sub" id="tl-receipt-sub">After admin confirmation</div>
-                  </div>
-                </div>
-              </div>
-              <div id="receiptIssuedBanner" class="status-banner success-banner" style="display:none">
-                <div class="banner-icon">✅</div>
-                <div class="banner-text">
-                  <div class="banner-title">Payment Confirmed!</div>
-                  <div class="banner-sub">Your official e-receipt is ready.</div>
-                </div>
-                <button type="button" class="banner-btn" id="btnViewEReceipt" onclick="loadAndShowReceipt()">
-                  View E-Receipt →
-                </button>
-              </div>
-              <div id="receiptRejectedBanner" class="status-banner danger-banner" style="display:none">
-                <div class="banner-icon">❌</div>
-                <div class="banner-text">
-                  <div class="banner-title">Payment Rejected</div>
-                  <div class="banner-sub">Please contact our office or resubmit your payment.</div>
-                </div>
-              </div>
-              <div class="pending-actions" id="pendingActions">
-                <a href="{{ url_for('borrower.payment_history') }}" class="btn-secondary">View Payment History</a>
-                <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-primary-outline">Go to Dashboard</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ══ STEP 5: INLINE E-RECEIPT ══ -->
-        <!-- ══ STEP 5: SUCCESS RECEIPT ══ -->
-        <div id="sectionStep5" class="page-section hidden">
-          <!-- Loading State -->
-          <div id="receiptLoading" class="er-loading">
-            <div class="er-loading-spinner"></div>
-            <p>Generating your official e-receipt...</p>
-          </div>
-
-          <!-- Error State -->
-          <div id="receiptError" class="er-error" style="display:none">
-            <div class="er-error-icon">⚠️</div>
-            <p id="receiptErrorMsg">Could not load receipt. Please try again.</p>
-            <button class="btn-back" style="margin-top:12px" onclick="location.reload()">Retry</button>
-          </div>
-
-          <!-- Mismong Receipt Card -->
-          <div id="erCard" class="er-wrap" style="display:none">
-            <div class="er-top-actions" style="justify-content: flex-end;">
-              <!-- Tinanggal ang Back button dito para rekta Success na -->
-              <button type="button" class="er-btn-print" onclick="printReceipt()">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
-                </svg>
-                Print / Save PDF
-              </button>
-            </div>
-
-            <div class="er-card" id="erPrintArea">
-              <div class="er-header">
-                <div class="er-logo">
-                  <div class="er-logo-icon">$</div>
-                  <div class="er-logo-name">Hiraya Lending</div>
-                </div>
-                <div class="er-check-circle" style="background: #2a9080;">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                <h2 class="er-title">Official E-Receipt</h2>
-                <p class="er-subtitle">Payment successfully auto-credited via Hiraya Direct Pay</p>
-                
-                <div class="er-pay-no-banner">
-                  <div class="er-pay-no-label">Payment Reference</div>
-                  <div class="er-pay-no-val" id="erPayNo">—</div>
-                </div>
-              </div>
-
-              <div class="er-amount-section">
-                <div class="er-amount-label">Amount Paid</div>
-                <div class="er-amount-val" id="erAmountVal">₱0.00</div>
-              </div>
-
-              <div class="er-divider"><div class="er-divider-line"></div></div>
-
-              <div class="er-details">
-                <!-- Payment Information -->
-                <div class="er-detail-group">
-                  <div class="er-detail-group-title">Payment Information</div>
-                  <div class="er-detail-row">
-                    <span class="er-detail-label">Status</span>
-                    <span class="er-detail-val er-status-approved" style="color: #2a9080; font-weight: 700;">✓ Auto-Credited</span>
-                  </div>
-                  <div class="er-detail-row">
-                    <span class="er-detail-label">Method</span>
-                    <span class="er-detail-val" id="erMethodBadge">—</span>
-                  </div>
-                  <div class="er-detail-row">
-                    <span class="er-detail-label">Transaction Ref</span>
-                    <span class="er-detail-val er-mono" id="erTxnRef">—</span>
-                  </div>
-                  <div class="er-detail-row">
-                    <span class="er-detail-label">Date Verified</span>
-                    <span class="er-detail-val" id="erDateVerified">—</span>
-                  </div>
-                </div>
-
-                <!-- Loan Information -->
-                <div class="er-detail-group">
-                  <div class="er-detail-group-title">Loan Information</div>
-                  <div class="er-detail-row">
-                    <span class="er-detail-label">Loan Reference</span>
-                    <span class="er-detail-val" id="erLoanRef">—</span>
-                  </div>
-                  <div class="er-detail-row">
-                    <span class="er-detail-label">Loan Type</span>
-                    <span class="er-detail-val" id="erLoanType">—</span>
-                  </div>
-                </div>
-
-                <!-- Borrower Info -->
-                <div class="er-detail-group">
-                  <div class="er-detail-group-title">Borrower</div>
-                  <div class="er-detail-row">
-                    <span class="er-detail-label">Name</span>
-                    <span class="er-detail-val" id="erBorrowerName">—</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="er-divider"><div class="er-divider-line"></div></div>
-
-              <div class="er-footer">
-                <p>This is an official electronic receipt issued by <strong>Hiraya Lending Management System</strong>.<br>
-                Your account balance has been updated. Please keep this for your records.</p>
-              </div>
-            </div> <!-- End er-card -->
-          </div> <!-- End er-wrap -->
-        </div>
-
-      </main>
-    </div><!-- /.main-content -->
-  </div><!-- /.body-row -->
-</div><!-- /.app-wrap -->
-
-<script src="{{ url_for('borrower.static', filename='make_payment.js') }}?v={{ range(10000,99999)|random }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="{{ url_for('borrower.static', filename='make_payment.js') }}"></script>
 </body>
 </html>
