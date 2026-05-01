@@ -1,9 +1,65 @@
-/* activity_logs.css */
-@import url('dashboard_admin.css');
+/* activity_logs.css — Specific styles for logs only */
 
-/* ================================================================
-   SIDEBAR DROPDOWN (Matches Dashboard Reference)
-   ================================================================ */
+.filter-bar {
+  display: flex; 
+  flex-wrap: wrap;
+  gap: 10px; 
+  margin-bottom: 20px; 
+  align-items: center;
+  background: var(--white); 
+  padding: 14px 18px; 
+  border-radius: var(--r-md); 
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+}
+
+.search-input-alt {
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  width: 240px;
+  outline: none;
+}
+
+.search-input-alt:focus {
+  border-color: var(--primary);
+}
+
+.form-input-sm {
+  padding: 7px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  color: var(--text-body);
+}
+
+/* Action Tag Colors */
+.action-tag {
+  display: inline-block;
+  padding: 3px 10px; 
+  border-radius: 6px; 
+  font-size: 11px; 
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.action-tag--login, .action-tag--view { background: #e0f2fe; color: #0369a1; }
+.action-tag--create, .action-tag--approve, .action-tag--verified { background: #dcfce7; color: #15803d; }
+.action-tag--logout, .action-tag--update, .action-tag--edit { background: #fef3c7; color: #a16207; }
+.action-tag--delete, .action-tag--reject, .action-tag--overdue { background: #fee2e2; color: #b91c1c; }
+.action-tag--default { background: var(--gray-100); color: var(--gray-600); }
+
+/* Table Overrides for Logs */
+.data-table td {
+  padding: 14px 16px;
+}
+
+@media (max-width: 768px) {
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .search-input-alt { width: 100%; }
+}
 .sidebar-user {
   cursor: pointer;
   user-select: none;

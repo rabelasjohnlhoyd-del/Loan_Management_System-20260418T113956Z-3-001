@@ -3,179 +3,165 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Activity Logs — Loan Management System</title>
+  <title>Activity Logs — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <!-- Link both CSS files -->
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='activity_logs.css') }}"/>
 </head>
 <body>
+
+<!-- OVERLAY (kailangan para sa mobile sidebar) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
+  <!-- TOPBAR: Parehas na parehas sa Dashboard para hindi "nasira" ang tingin -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
     </div>
 
-    <!-- USER BOX — dropdown trigger -->
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
-      </div>
-      <span class="s-chevron"></span>
+    <div class="topbar-center">
+      <h1 class="topbar-title">Activity Logs</h1>
+      <p class="topbar-sub">System audit trail — showing last 500 records</p>
     </div>
 
-    <!-- USER DROPDOWN -->
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('super_admin.SA_profile') }}">
-        <span class="dd-icon dd-icon--profile"></span>My Profile
-      </a>
-      {% if session.role == 'super_admin' %}
-      <a href="{{ url_for('super_admin.manage_users') }}">
-        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
-      </a>
-      {% endif %}
-      <a href="{{ url_for('super_admin.reports_page') }}">
-        <span class="dd-icon dd-icon--reports"></span>Reports
-      </a>
-      <a href="{{ url_for('super_admin.activity_logs') }}">
-        <span class="dd-icon dd-icon--activity"></span>Activity Logs
+    <div class="topbar-right">
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Admin' }}">
+        {{ session.user_name[0]|upper if session.user_name else 'A' }}
       </a>
     </div>
+  </header>
 
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-        <span class="nav-icon nav-icon--clock"></span>Applications
-      </a>
-      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
-        <span class="nav-icon nav-icon--applications"></span>All Loans
-      </a>
-      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
-      </a>
-      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
-        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
-      </a>
-      <a href="{{ url_for('super_admin.activity_logs') }}" class="nav-item active">
-        <span class="nav-icon nav-icon--clock"></span>Activity Logs
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
-        </button>
-      </form>
-    </div>
-  </aside>
-
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <h1>Activity Logs</h1>
-        <p>System audit trail — showing last 500 records</p>
-      </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'A' }}
-        </a>
-      </div>
-    </header>
-
-    <main class="page-body">
-      <!-- Filter bar -->
-      <form method="GET" action="{{ url_for('super_admin.activity_logs') }}" class="filter-bar">
-        <div class="search-wrap">
-          <span class="search-icon"></span>
-          <input type="text" class="search-input" name="search"
-                 placeholder="Search action, details, or user..."
-                 value="{{ search }}"/>
+  <div class="body-row">
+    <!-- SIDEBAR: Copy-paste mula sa Dashboard layout -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
         </div>
-        <input type="date" class="form-input-sm" name="date_from"
-               value="{{ date_from }}" title="From date"/>
-        <input type="date" class="form-input-sm" name="date_to"
-               value="{{ date_to }}" title="To date"/>
-        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-        {% if search or date_from or date_to %}
-        <a href="{{ url_for('super_admin.activity_logs') }}" class="btn btn-ghost btn-sm">Clear</a>
+        <span class="s-chevron"></span>
+      </div>
+
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        {% if session.role == 'super_admin' %}
+        <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
         {% endif %}
-      </form>
-
-      <div class="card">
-        <div class="card-header">
-          <h3>Audit Trail</h3>
-          <span style="font-size:12px; color:var(--gray-400);">{{ logs|length }} record(s)</span>
-        </div>
-        <div class="card-body" style="padding:0;">
-          {% if logs %}
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>User</th>
-                <th>Role</th>
-                <th>Action</th>
-                <th>Details</th>
-                <th>IP Address</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for log in logs %}
-              <tr>
-                <td style="white-space:nowrap; font-size:12px;">
-                  {{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '—' }}
-                </td>
-                <td>
-                  <div class="td-name">{{ log.actor_name or 'System' }}</div>
-                </td>
-                <td>
-                  {% if log.actor_role %}
-                  <span class="role-badge role-badge--{{ log.actor_role }}">
-                    {{ log.actor_role | replace('_',' ') | title }}
-                  </span>
-                  {% else %}—{% endif %}
-                </td>
-                <td>
-                  <span class="action-tag action-tag--{{ log.action.split('_')[0] if log.action else 'default' }}">
-                    {{ log.action | replace('_',' ') | title if log.action else '—' }}
-                  </span>
-                </td>
-                <td style="font-size:12px; color:var(--text-muted); max-width:280px;">
-                  {{ log.details or '—' }}
-                </td>
-                <td style="font-size:12px; font-family:monospace;">
-                  {{ log.ip_address or '—' }}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty">
-            <p>No activity logs found</p>
-            <p class="empty-sub">Try adjusting your search or date range.</p>
-          </div>
-          {% endif %}
-        </div>
+        <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
+        <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
       </div>
-    </main>
+
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--clock"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">All Loans</span>
+        </a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('super_admin.activity_logs') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--clock"></span><span class="nav-label">Activity Logs</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
+        
+        <!-- Filter Bar inside Page Body -->
+        <form method="GET" action="{{ url_for('super_admin.activity_logs') }}" class="filter-bar">
+          <div class="search-wrap">
+            <input type="text" class="search-input-alt" name="search" placeholder="Search action or user..." value="{{ search if search else '' }}"/>
+          </div>
+          <input type="date" class="form-input-sm" name="date_from" value="{{ date_from if date_from else '' }}"/>
+          <input type="date" class="form-input-sm" name="date_to" value="{{ date_to if date_to else '' }}"/>
+          <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+          {% if search or date_from or date_to %}
+          <a href="{{ url_for('super_admin.activity_logs') }}" class="btn btn-ghost btn-sm" style="color: var(--primary-dark); border-color: var(--primary-mid);">Clear</a>
+          {% endif %}
+        </form>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Audit Trail</h3>
+            </div>
+            <span style="font-size:12px; color:rgba(255,255,255,0.8);">{{ logs|length }} record(s)</span>
+          </div>
+          <div class="table-wrap">
+            {% if logs %}
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                  <th>IP Address</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in logs %}
+                <tr>
+                  <td style="white-space:nowrap; font-size:12px;">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                  <td class="borrower-name">{{ log.actor_name or 'System' }}</td>
+                  <td>
+                    {% if log.actor_role %}
+                    <span class="badge badge--pending" style="font-size:10px;">{{ log.actor_role | replace('_',' ') | title }}</span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td>
+                    <span class="action-tag action-tag--{{ log.action.split('_')[0].lower() if log.action else 'default' }}">
+                      {{ log.action | replace('_',' ') | title }}
+                    </span>
+                  </td>
+                  <td style="font-size:12px; color:var(--text-body); max-width:250px;">{{ log.details or '—' }}</td>
+                  <td style="font-size:11px; font-family:monospace; color:var(--text-muted);">{{ log.ip_address or '127.0.0.1' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">No activity logs found.</div>
+            {% endif %}
+          </div>
+        </div>
+      </main>
+    </div>
   </div>
 </div>
 
-<!-- Shared Script for Sidebar Interactivity -->
-<script src="{{ url_for('super_admin.static', filename='admin_common.js') }}"></script>
+<!-- Gamitin ang dashboard_admin.js para sa toggle functionality -->
+<script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
 </body>
 </html>

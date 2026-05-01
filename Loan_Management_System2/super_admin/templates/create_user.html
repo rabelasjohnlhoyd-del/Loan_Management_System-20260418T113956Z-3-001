@@ -3,205 +3,225 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Create Staff User — Loan Management System</title>
+  <title>Create Staff Account — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <!-- Link both CSS files -->
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='create_user.css') }}"/>
 </head>
 <body>
+
+<!-- OVERLAY for mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
+  <!-- TOPBAR: Consistent with Dashboard -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
     </div>
 
-    <!-- USER BOX — dropdown trigger -->
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
-      </div>
-      <span class="s-chevron"></span>
+    <div class="topbar-center">
+      <h1 class="topbar-title">Staff Management</h1>
+      <p class="topbar-sub">Add new authorized personnel to the system</p>
     </div>
 
-    <!-- USER DROPDOWN -->
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('super_admin.SA_profile') }}">
-        <span class="dd-icon dd-icon--profile"></span>My Profile
-      </a>
-      {% if session.role == 'super_admin' %}
-      <a href="{{ url_for('super_admin.manage_users') }}">
-        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
-      </a>
-      {% endif %}
-      <a href="{{ url_for('super_admin.reports_page') }}">
-        <span class="dd-icon dd-icon--reports"></span>Reports
-      </a>
-      <a href="{{ url_for('super_admin.activity_logs') }}">
-        <span class="dd-icon dd-icon--activity"></span>Activity Logs
+    <div class="topbar-right">
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
+        {{ session.user_name[0]|upper if session.user_name else 'A' }}
       </a>
     </div>
+  </header>
 
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <a href="{{ url_for('loans.loan_types') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loan-types"></span>Loan Types &amp; Plans
-      </a>
-      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-        <span class="nav-icon nav-icon--clock"></span>Applications
-      </a>
-      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
-        <span class="nav-icon nav-icon--applications"></span>All Loans
-      </a>
-      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
-      </a>
-      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item">
-        <span class="nav-icon nav-icon--reports"></span>Reports
-      </a>
-      <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item active">
-        <span class="nav-icon nav-icon--borrowers"></span>Manage Users
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
-        </button>
-      </form>
-    </div>
-  </aside>
-
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <a href="{{ url_for('super_admin.manage_users') }}" class="back-link">← Back to Manage Users</a>
-        <div style="margin-top: 5px;">
-          <h1 class="topbar-heading">Create Staff Account</h1>
-          <p class="topbar-sub">Add a new admin, loan officer, or auditor</p>
+  <div class="body-row">
+    <!-- SIDEBAR: Same as Dashboard -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
         </div>
+        <span class="s-chevron"></span>
       </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'A' }}
-        </a>
-      </div>
-    </header>
 
-    <main class="page-body">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="flash-stack">
-            {% for category, message in messages %}
-              <div class="flash-msg {{ category }}">
-                <span>{{ message }}</span>
-                <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
-              </div>
-            {% endfor %}
-          </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        {% if session.role == 'super_admin' %}
+        <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
         {% endif %}
-      {% endwith %}
-
-      <div class="form-wrap">
-        <div class="card">
-          <div class="card-header"><h3>Account Information</h3></div>
-          <div class="card-body">
-            <form method="POST" action="{{ url_for('super_admin.create_user') }}" class="create-form">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label class="form-label">Full Name <span class="req">*</span></label>
-                  <input type="text" name="full_name" class="form-input" placeholder="e.g. Juan dela Cruz" required/>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Email Address <span class="req">*</span></label>
-                  <input type="email" name="email" class="form-input" placeholder="e.g. juan@example.com" required/>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Contact Number</label>
-                  <input type="text" name="contact_number" class="form-input" placeholder="e.g. 09XX-XXX-XXXX"/>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Role <span class="req">*</span></label>
-                  <select name="role" class="form-input" required>
-                    <option value="">-- Select Role --</option>
-                    <option value="admin">Admin</option>
-                    <option value="loan_officer">Loan Officer</option>
-                    <option value="auditor">Auditor</option>
-                    <option value="super_admin">Super Admin</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Password <span class="req">*</span></label>
-                  <div class="pw-wrap">
-                    <input type="password" name="password" id="pw" class="form-input" placeholder="Minimum 8 characters" required minlength="8"/>
-                    <button type="button" class="pw-toggle" onclick="togglePw('pw', this)">Show</button>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Confirm Password <span class="req">*</span></label>
-                  <div class="pw-wrap">
-                    <input type="password" id="pw2" class="form-input" placeholder="Re-enter password" required/>
-                    <button type="button" class="pw-toggle" onclick="togglePw('pw2', this)">Show</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="role-info-box" id="roleInfo" style="display:none;">
-                <div class="role-info-text" id="roleInfoText"></div>
-              </div>
-
-              <div class="form-actions">
-                <a href="{{ url_for('super_admin.manage_users') }}" class="btn btn-ghost">Cancel</a>
-                <button type="submit" class="btn btn-primary" id="submitBtn">Create Account</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
+        <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
       </div>
-    </main>
+
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--clock"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">All Loans</span>
+        </a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Manage Users</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content" id="mainContent">
+  <main class="page-body">
+    
+    <!-- Updated Header Layout to match Manage Users -->
+    <div class="page-header-actions">
+  <div class="header-left-side">
+    <!-- Eto yung Back Button na Dashboard ang text -->
+    <a href="{{ url_for('auth.dashboard') }}" class="back-btn">
+      <span class="back-icon"></span>
+      Dashboard
+    </a>
+    <div class="title-wrap">
+      <h2 class="page-title-main">Create Staff Account</h2>
+      <p class="page-sub">Add a new admin, loan officer, or auditor</p>
+    </div>
   </div>
 </div>
 
-<script src="{{ url_for('super_admin.static', filename='admin_common.js') }}"></script>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+            <div class="flash-msg {{ category }}">
+              <span>{{ message }}</span>
+              <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-container-centered">
+      <div class="card card--form">
+        <div class="card-header-styled">
+          <h3>Account Information</h3>
+          <p>Fields marked with * are required</p>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('super_admin.create_user') }}" class="staff-create-form">
+            <div class="form-grid">
+              <!-- Full Name -->
+              <div class="form-group">
+                <label class="form-label">Full Name <span class="req">*</span></label>
+                <input type="text" name="full_name" class="form-input" placeholder="e.g. Juan dela Cruz" required/>
+              </div>
+              <!-- Email -->
+              <div class="form-group">
+                <label class="form-label">Email Address <span class="req">*</span></label>
+                <input type="email" name="email" class="form-input" placeholder="e.g. juan@example.com" required/>
+              </div>
+              <!-- Contact -->
+              <div class="form-group">
+                <label class="form-label">Contact Number</label>
+                <input type="text" name="contact_number" class="form-input" placeholder="e.g. 09XX-XXX-XXXX"/>
+              </div>
+              <!-- Role -->
+              <div class="form-group">
+                <label class="form-label">Role <span class="req">*</span></label>
+                <select name="role" class="form-input" required>
+                  <option value="">-- Select Role --</option>
+                  <option value="admin">Admin</option>
+                  <option value="loan_officer">Loan Officer</option>
+                  <option value="auditor">Auditor</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </div>
+              <!-- Pw -->
+              <div class="form-group">
+                <label class="form-label">Password <span class="req">*</span></label>
+                <div class="pw-field-wrap">
+                  <input type="password" name="password" id="pw" class="form-input" placeholder="Min. 8 characters" required minlength="8"/>
+                  <button type="button" class="pw-show-toggle" onclick="togglePw('pw', this)">Show</button>
+                </div>
+              </div>
+              <!-- Confirm Pw -->
+              <div class="form-group">
+                <label class="form-label">Confirm Password <span class="req">*</span></label>
+                <div class="pw-field-wrap">
+                  <input type="password" id="pw2" class="form-input" placeholder="Re-enter password" required/>
+                  <button type="button" class="pw-show-toggle" onclick="togglePw('pw2', this)">Show</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="role-helper-box" id="roleInfo" style="display:none;">
+              <span class="info-icon">ℹ</span>
+              <div id="roleInfoText" style="font-size: 13px;"></div>
+            </div>
+
+            <div class="form-footer">
+              <a href="{{ url_for('super_admin.manage_users') }}" class="btn-cancel">Cancel</a>
+              <button type="submit" class="btn-primary-action">Create Account</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<!-- Scripts -->
+<script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
 <script>
-  // Page specific role info logic
-  const roleDescriptions = {
-    admin:        'Can approve loans, verify payments, and manage borrowers.',
-    loan_officer: 'Can process applications and communicate with borrowers.',
-    auditor:      'View-only access to reports and activity logs.',
-    super_admin:  'Full system access including user management.'
+  function togglePw(id, btn) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = 'Hide';
+    } else {
+      input.type = 'password';
+      btn.textContent = 'Show';
+    }
+  }
+
+  const roleDesc = {
+    admin: 'Full administrative access: manage loans, payments, and borrowers.',
+    loan_officer: 'Operations access: process applications and communicate with borrowers.',
+    auditor: 'Read-only access: view reports, loans, and activity logs only.',
+    super_admin: 'Owner access: all features plus system settings and user management.'
   };
 
   document.querySelector('select[name="role"]').addEventListener('change', function() {
-    const box  = document.getElementById('roleInfo');
+    const box = document.getElementById('roleInfo');
     const text = document.getElementById('roleInfoText');
-    if (this.value && roleDescriptions[this.value]) {
-      text.textContent = roleDescriptions[this.value];
+    if (this.value && roleDesc[this.value]) {
+      text.textContent = roleDesc[this.value];
       box.style.display = 'flex';
     } else {
       box.style.display = 'none';
-    }
-  });
-
-  document.querySelector('.create-form').addEventListener('submit', function(e) {
-    const pw  = document.getElementById('pw').value;
-    const pw2 = document.getElementById('pw2').value;
-    if (pw !== pw2) {
-      e.preventDefault();
-      alert('Passwords do not match.');
     }
   });
 </script>
