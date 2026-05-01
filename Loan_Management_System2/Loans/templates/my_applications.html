@@ -119,6 +119,23 @@
     <div class="main-content">
       <main class="page-body">
 
+        {# ── FLASH MESSAGE BLOCK (IMPLEMENTED) ── #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack" style="margin-bottom: 20px;">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}" style="padding: 12px; border-radius: 8px; margin-bottom: 10px; 
+                     background: {% if category=='danger' %}#fee2e2{% elif category=='warning' %}#fef3c7{% else %}#dcfce7{% endif %};
+                     color: {% if category=='danger' %}#b91c1c{% elif category=='warning' %}#92400e{% else %}#15803d{% endif %};
+                     border: 1px solid currentColor; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                  <span>{{ '🛑' if category=='danger' else '⚠️' if category=='warning' else '✅' }}</span>
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
         <!-- PAGE HEADER — same layout as my_loans -->
         <div class="page-header">
           <div class="page-header-left">

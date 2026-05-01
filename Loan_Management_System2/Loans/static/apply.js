@@ -80,7 +80,7 @@
   const NOTIF_ICONS = {
     loan_approved:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
     loan_rejected:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E\")",
-    loan_disbursed:   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l6.59-6.59L18 9l-9 9z'/%3E%3C/svg%3E\")",
+    loan_disbursed:   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E\")",
     payment_due:      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E\")",
     payment_received: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
     id_verified:      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/%3E%3C/svg%3E\")",
@@ -675,41 +675,60 @@
       });
     }
 
-    function populatePlans(typeId, preselectPlanId) {
-      const filtered = (typeof _PLANS_DATA !== 'undefined' ? _PLANS_DATA : [])
-        .filter(p => String(p.loan_type_id) === String(typeId));
-
-      planSelect.innerHTML = '<option value="">— Select Plan —</option>';
-      planHint.textContent = '';
-      amountGroup.style.display = 'none';
-      termGroup.style.display   = 'none';
-      amountInput.value         = '';
-      termSelect.innerHTML      = '<option value="">— Select Term —</option>';
-      selectedPlan              = null;
-      resetCalculator();
-      document.getElementById('amt-slider-wrap')?.remove();
-
-      if (!filtered.length) { planGroup.style.display = 'none'; return; }
-
-      filtered.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value       = p.id;
-        opt.textContent = `${p.plan_name} — ${p.interest_rate}% p.a. (₱${Number(p.min_amount).toLocaleString()} – ₱${Number(p.max_amount).toLocaleString()})`;
-        planSelect.appendChild(opt);
-      });
-      planGroup.style.display = '';
-
-      if (preselectPlanId) {
-        planSelect.value = preselectPlanId;
-        onPlanChange();
-      } else if (filtered.length === 1) {
-        planSelect.value = filtered[0].id;
-        onPlanChange();
-        window.showToast('info', 'Plan Auto-Selected', filtered[0].plan_name + ' is the only available plan.', 3500);
-      }
-
-      window._updateSteps?.(2);
+    // 🛑 DAGDAG: Restriction Check para sa Loan Types
+    function initLoanTypeRestrictions() {
+        if (!loanTypeSelect) return;
+        loanTypeSelect.querySelectorAll('option').forEach(opt => {
+            if (!opt.value) return; 
+            const plansForThisType = _PLANS_DATA.filter(p => String(p.loan_type_id) === String(opt.value));
+            const hasAffordablePlan = plansForThisType.some(p => parseFloat(p.min_amount) <= _USER_LIMIT);
+            if (!hasAffordablePlan) {
+                opt.disabled = true;
+                opt.textContent += " (Limit insufficient)";
+            }
+        });
     }
+
+function populatePlans(typeId, preselectPlanId) {
+    // 1. I-filter ang mga plans na tugma sa Loan Type
+    const filtered = _PLANS_DATA.filter(p => String(p.loan_type_id) === String(typeId));
+
+    // 2. I-reset at ipakita ang Plan Group
+    planSelect.innerHTML = '<option value="">— Select Plan —</option>';
+    planHint.textContent = '';
+    
+    // Itago muna ang mga susunod na steps hangga't walang planong pinipili
+    amountGroup.style.display = 'none';
+    termGroup.style.display   = 'none';
+    amountInput.value         = '';
+    selectedPlan              = null;
+    document.getElementById('amt-slider-wrap')?.remove();
+
+    if (!filtered.length) {
+      planGroup.style.display = 'none';
+      return;
+    }
+
+    // 3. I-loop ang mga plans at i-check ang limit
+    filtered.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      
+      const isDisabled = parseFloat(p.min_amount) > _USER_LIMIT;
+      
+      if (isDisabled) {
+        opt.disabled = true;
+        opt.textContent = `${p.plan_name} (Limit too low: Min ₱${Number(p.min_amount).toLocaleString()})`;
+      } else {
+        opt.textContent = `${p.plan_name} — ${p.interest_rate}% p.a.`;
+      }
+      planSelect.appendChild(opt);
+    });
+
+    // 4. Ipakita ang dropdown
+    planGroup.style.display = 'block'; 
+    window._updateSteps?.(2); // Gawing "Active" ang Step 2 sa UI
+  }
 
     function onPlanChange() {
       const planId = planSelect.value;
@@ -722,16 +741,18 @@
         return;
       }
 
-      selectedPlan = (typeof _PLANS_DATA !== 'undefined' ? _PLANS_DATA : [])
-        .find(p => String(p.id) === String(planId));
+      selectedPlan = _PLANS_DATA.find(p => String(p.id) === String(planId));
       if (!selectedPlan) return;
 
+      // 🛑 DAGDAG: I-set ang Max based sa user limit vs plan max
+      const maxPossible = Math.min(parseFloat(selectedPlan.max_amount), _USER_LIMIT);
+
       amountInput.min         = selectedPlan.min_amount;
-      amountInput.max         = selectedPlan.max_amount;
-      amountInput.placeholder = `₱${Number(selectedPlan.min_amount).toLocaleString()} – ₱${Number(selectedPlan.max_amount).toLocaleString()}`;
-      amountHint.textContent  = `Min: ₱${Number(selectedPlan.min_amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}  |  Max: ₱${Number(selectedPlan.max_amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+      amountInput.max         = maxPossible;
+      amountInput.placeholder = `₱${Number(selectedPlan.min_amount).toLocaleString()} – ₱${Number(maxPossible).toLocaleString()}`;
+      amountHint.innerHTML    = `Min: ₱${Number(selectedPlan.min_amount).toLocaleString()} | <strong style="color:var(--primary-dark)">Current Limit: ₱${Number(maxPossible).toLocaleString()}</strong>`;
       amountGroup.style.display = '';
-      buildAmountSlider(selectedPlan.min_amount, selectedPlan.max_amount);
+      buildAmountSlider(selectedPlan.min_amount, maxPossible);
 
       termSelect.innerHTML = '<option value="">— Select Term —</option>';
       const minT = parseInt(selectedPlan.term_months_min);
@@ -790,14 +811,25 @@
       });
     }
 
-    /* Amount blur validation */
+    /* Amount input validation */
+    amountInput?.addEventListener('input', function () {
+      const v = parseFloat(this.value);
+      if (v > _USER_LIMIT) {
+          this.style.borderColor = 'var(--danger)';
+          window.showToast('danger', 'Limit Exceeded', `Based on your Credit Score, you can only borrow up to ₱${_USER_LIMIT.toLocaleString()}`);
+      } else {
+          this.style.borderColor = '';
+      }
+      updateCalculator();
+    });
+
     amountInput?.addEventListener('blur', function () {
       if (!selectedPlan || !amountInput.value) return;
       const v   = parseFloat(amountInput.value);
       const min = parseFloat(selectedPlan.min_amount);
-      const max = parseFloat(selectedPlan.max_amount);
+      const max = Math.min(parseFloat(selectedPlan.max_amount), _USER_LIMIT);
       if (v < min)      window.showToast('warning', 'Amount Too Low',  'Minimum is ' + peso(min), 4000);
-      else if (v > max) window.showToast('warning', 'Amount Too High', 'Maximum is ' + peso(max), 4000);
+      else if (v > max) window.showToast('warning', 'Limit Reached', 'Your limit is ' + peso(max), 4000);
       else window._updateSteps?.(4);
     });
 
@@ -818,6 +850,12 @@
       if (!planId) errors.push('Please select a loan plan.');
       if (!amount || isNaN(amount) || amount <= 0) errors.push('Please enter a valid loan amount.');
       if (!term)   errors.push('Please select a loan term.');
+      
+      // 🛑 DAGDAG: Final Submit Guard
+      if (amount > _USER_LIMIT) {
+          errors.push(`Amount exceeds your Trust Limit of ₱${_USER_LIMIT.toLocaleString()}.`);
+      }
+
       if (selectedPlan) {
         if (amount < selectedPlan.min_amount || amount > selectedPlan.max_amount) {
           errors.push(`Amount must be between ${peso(selectedPlan.min_amount)} and ${peso(selectedPlan.max_amount)}.`);
@@ -827,7 +865,7 @@
       if (errors.length) {
         e.preventDefault();
         errors.forEach((msg, i) => {
-          setTimeout(() => window.showToast('danger', 'Required Field', msg, 5000), i * 200);
+          setTimeout(() => window.showToast('danger', 'Check Details', msg, 5000), i * 200);
         });
         return;
       }
@@ -841,12 +879,21 @@
     loanTypeSelect.addEventListener('change', function () { populatePlans(this.value); });
     planSelect?.addEventListener('change', onPlanChange);
 
+    /* Initialize restrictions on load */
+    initLoanTypeRestrictions();
+
     /* Auto-select from ?plan= query param */
     (function () {
       if (typeof _SELECTED_PLAN_ID === 'undefined' || !_SELECTED_PLAN_ID) return;
-      const targetPlan = (typeof _PLANS_DATA !== 'undefined' ? _PLANS_DATA : [])
-        .find(p => String(p.id) === String(_SELECTED_PLAN_ID));
+      const targetPlan = _PLANS_DATA.find(p => String(p.id) === String(_SELECTED_PLAN_ID));
       if (!targetPlan) return;
+      
+      // Check if plan is affordable before pre-selecting
+      if (parseFloat(targetPlan.min_amount) > _USER_LIMIT) {
+          window.showToast('warning', 'Plan Restricted', 'The pre-selected plan requires a higher Credit Score.', 5000);
+          return;
+      }
+      
       loanTypeSelect.value = targetPlan.loan_type_id;
       populatePlans(targetPlan.loan_type_id, _SELECTED_PLAN_ID);
       window.showToast('success', 'Plan Pre-Selected', targetPlan.plan_name + ' has been selected for you.', 4000);

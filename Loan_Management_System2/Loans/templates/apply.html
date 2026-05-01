@@ -123,6 +123,16 @@
           </a>
         </div>
 
+        <div class="limit-banner" style="background: var(--primary-light); border: 1.5px solid var(--primary-mid); padding: 15px;
+        border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 24px;">🛡️</span>
+          <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--primary-dark); text-transform: uppercase;">Your Current
+                Trust Limit</div>
+              <div style="font-size: 18px; font-weight: 800; color: var(--primary-darker);">₱{{ "{:,.2f}".format(user_limit) }}</div>
+          </div>
+        </div>
+
         <!-- FORM + CALCULATOR -->
         <div class="apply-grid">
           <div class="card">
@@ -211,11 +221,16 @@
 </div>
 
 <!-- Flask data for JS -->
+
+<!-- 1. I-set muna ang variables mula sa Python -->
 <script>
-  const _PLANS_DATA        = {{ plans | tojson }};
-  const _SELECTED_PLAN_ID  = {{ selected_plan_id | tojson if selected_plan_id else 'null' }};
-  const _NOTIFICATIONS     = {{ notifications | tojson if notifications is defined else '[]' }};
+  const _PLANS_DATA = {{ plans | tojson }};
+  const _USER_LIMIT = {{ user_limit | tojson if user_limit is defined else 5000 }};
+  const _SELECTED_PLAN_ID = {{ selected_plan_id | tojson if selected_plan_id else 'null' }};
+  const _NOTIFICATIONS = []; // Fallback
 </script>
+
+<!-- 2. Saka mo i-load ang external JS file -->
 <script src="{{ url_for('loans.static', filename='apply.js') }}"></script>
 </body>
 </html>

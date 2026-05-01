@@ -92,56 +92,32 @@ def unlock_user(user_id):
 def admin_dashboard():
     stats = {
         'total_loans': 0, 'active_loans': 0, 'total_borrowers': 0,
-        'total_interest': 0, 'default_rate': 3.4, 'avg_loan_size': 0,
-        'pending_verifications': 0, 'pending_payments': 0,
         'total_disbursed': 0, 'pending_applications': 0,
+        'total_interest_earned': 0.00  # <--- Siguraduhing may default value ito
     }
     recent_applications = []
-    activity_logs       = []
+    activity_logs = []
 
     try:
-        conn   = get_db()
+        conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT COUNT(*) AS cnt FROM users WHERE role='borrower'")
-        stats['total_borrowers'] = cursor.fetchone()['cnt']
+        # ... (yung mga existing queries mo andito) ...
+        
+        # ✅ DAGDAG: Kunin ang kinita ng system mula sa system_funds table
+        cursor.execute("SELECT total_interest_earned FROM system_funds WHERE id = 1")
+        fund_row = cursor.fetchone()
+        if fund_row:
+            stats['total_interest_earned'] = float(fund_row['total_interest_earned'])
+        else:
+            stats['total_interest_earned'] = 0.00
 
-        cursor.execute("SELECT COUNT(*) AS cnt FROM users WHERE id_verification_status='pending'")
-        stats['pending_verifications'] = cursor.fetchone()['cnt']
-
-        cursor.execute("SELECT COUNT(*) AS cnt FROM loan_applications WHERE status IN ('submitted','under_review')")
-        stats['pending_applications'] = cursor.fetchone()['cnt']
-
-        cursor.execute("SELECT COUNT(*) AS cnt FROM loans WHERE status='active'")
-        stats['active_loans'] = cursor.fetchone()['cnt']
-
-        cursor.execute("SELECT COALESCE(SUM(disbursed_amount),0) AS total FROM loans")
-        stats['total_disbursed'] = cursor.fetchone()['total'] or 0
-
-        cursor.execute("SELECT COUNT(*) AS cnt FROM payments WHERE status='pending'")
-        stats['pending_payments'] = cursor.fetchone()['cnt']
-
-        cursor.execute("""
-            SELECT la.id, la.reference_no, la.amount_requested, la.status, la.submitted_at,
-                   u.full_name AS borrower_name, lt.name AS type_name
-            FROM loan_applications la
-            JOIN users u ON u.id = la.borrower_id
-            JOIN loan_types lt ON lt.id = la.loan_type_id
-            ORDER BY la.submitted_at DESC LIMIT 5
-        """)
-        recent_applications = cursor.fetchall()
-
-        cursor.execute("""
-            SELECT al.*, u.full_name AS actor_name
-            FROM audit_logs al
-            LEFT JOIN users u ON u.id = al.user_id
-            ORDER BY al.created_at DESC LIMIT 10
-        """)
-        activity_logs = cursor.fetchall()
+        # ... (itutuloy ang rest ng function mo) ...
 
         cursor.close()
         conn.close()
     except Exception as e:
+        print(f"Dashboard Data Error: {e}")
         flash(f'Dashboard data error: {str(e)}', 'warning')
 
     return render_template('dashboard_admin.html',

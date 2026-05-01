@@ -224,17 +224,20 @@ def register():
 
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
+        conn = None
+        cursor = None
         try:
-            conn = get_db(); cursor = conn.cursor()
+            conn = get_db()
+            cursor = conn.cursor()
             
-            # --- 4. THE GIANT INSERT QUERY (Anti-NULL Version) ---
+            # --- 4. THE INSERT QUERY ---
             query = """
                 INSERT INTO users 
                 (full_name, first_name, middle_name, last_name, email, password, 
- contact_number, date_of_birth, age, 
- gender, nationality, civil_status,
- birth_country, birth_province, birth_city,
- province, city, barangay, zip_code, house_street,
+                 contact_number, date_of_birth, age, 
+                 gender, nationality, civil_status,
+                 birth_country, birth_province, birth_city,
+                 province, city, barangay, zip_code, house_street,
                  employment_type, job_role, employer_business, nature_of_work, 
                  source_of_funds, monthly_transactions,
                  role, id_verification_status, is_active, created_at)
@@ -242,20 +245,35 @@ def register():
             """
             
             cursor.execute(query, (
-    full_name, fn, mn, ln, email, hashed_pw, 
-    contact, dob, age, 
-    request.form.get('gender', ''), 
-    request.form.get('nationality', ''), 
-    request.form.get('civil_status', ''),
-    birth_country, birth_province, birth_city,
-    province, city, barangay, zip_code, house_street,
+                full_name, fn, mn, ln, email, hashed_pw, 
+                contact, dob, age, 
+                request.form.get('gender', ''), 
+                request.form.get('nationality', ''), 
+                request.form.get('civil_status', ''),
+                birth_country, birth_province, birth_city,
+                province, city, barangay, zip_code, house_street,
                 emp_type, job_role, employer, nature_work, 
                 funds, transactions,
                 datetime.datetime.now()
             ))
-            conn.commit(); cursor.close(); conn.close()
             
-            # --- 5. OTP SENDING ---
+            # Kunin ang bagong gawang user_id
+            new_user_id = cursor.lastrowid
+            
+            # --- 5. INITIAL STABILITY SYNC (Ang dinagdag natin) ---
+            # Gawan agad ng entry sa borrower_profiles para hindi mag-error si Admin
+            cursor.execute("INSERT INTO borrower_profiles (user_id) VALUES (%s)", (new_user_id,))
+            conn.commit() # I-save muna si User at Profile
+            
+            # Tawagin ang function para i-compute ang starting score base sa work info
+            # In-import natin ito sa loob para iwas circular import error
+            try:
+                from Loan_Management_System2.Borrower.borrower import recalculate_borrower_metrics
+                recalculate_borrower_metrics(new_user_id)
+            except Exception as e:
+                print(f"Metrics Sync Error during Registration: {e}")
+            
+            # --- 6. OTP SENDING ---
             otp = str(random.randint(100000, 999999))
             expiry_time = datetime.datetime.now() + datetime.timedelta(minutes=5)
             session.update({
@@ -263,22 +281,27 @@ def register():
                 'otp_email': email,
                 'otp_expiry': expiry_time.timestamp()
             })
+            
             try:
                 msg = Message('Verification Code', recipients=[email])
                 msg.body = f"Your OTP is: {otp}"
                 mail.send(msg)
-                flash('OTP sent to your email.', 'success')
+                flash('Account created! Please verify your email.', 'success')
             except:
-                flash("OTP failed to send, but account created.", "warning")
+                flash("Account created, but OTP failed to send. Please try logging in to resend.", "warning")
 
             return redirect(url_for('auth.verify_otp'))
 
         except Exception as e:
-            print(f"ERROR: {str(e)}")
-            flash(f"Database Error: {str(e)}", "danger")
+            if conn: conn.rollback()
+            print(f"REGISTRATION ERROR: {str(e)}")
+            flash(f"Registration failed: {str(e)}", "danger")
             return render_template('register.html', form_data=request.form, active_step=3)
+        finally:
+            if cursor: cursor.close()
+            if conn: conn.close()
 
-   
+    # Reset session for fresh registration
     session.pop('otp', None)
     session.pop('otp_email', None)
     session.pop('otp_verified', None)
@@ -360,7 +383,7 @@ def validate_id_api():
     if 'reg_data' not in session or not session.get('otp_verified'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    gemini_key = 'AIzaSyBAL665tU2XxTIkwmFPO7zcMJAQnlwYfQ4'
+    gemini_key = 'AIzaSyBcMLHTgJFEpFYej4CGk1jutzOFp5FX5Jo'
     data = request.json or {}
     id_b64 = data.get('id_image')
     selfie_b64 = data.get('selfie_image')

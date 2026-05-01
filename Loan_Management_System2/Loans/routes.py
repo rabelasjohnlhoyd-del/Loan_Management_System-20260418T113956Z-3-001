@@ -211,12 +211,49 @@ def api_calculate():
 @login_required
 @role_required('borrower')
 def apply():
+    conn = None
+    cursor = None
     try:
-        conn   = get_db()
+        conn = get_db()
         cursor = conn.cursor(dictionary=True)
+        
+        # 1. KUNIN ANG MGA SECURITY METRICS NG USER (Para sa Proactive Blocking)
+        cursor.execute("""
+            SELECT 
+                u.id_verification_status,
+                COALESCE(bp.max_loan_limit, 5000.00) as user_limit,
+                (SELECT COUNT(*) FROM loans WHERE borrower_id = u.id AND status IN ('active', 'disbursed', 'overdue')) as active_count,
+                (SELECT COUNT(*) FROM loan_applications WHERE borrower_id = u.id AND status IN ('submitted', 'under_review')) as pending_count
+            FROM users u
+            LEFT JOIN borrower_profiles bp ON u.id = bp.user_id
+            WHERE u.id = %s
+        """, (session['user_id'],))
+        user_metrics = cursor.fetchone()
+
+        # Fallback security check kung biglang nawala ang metrics
+        if not user_metrics:
+            flash("Profile record not found. Please contact support.", "danger")
+            return redirect(url_for('borrower.borrower_dashboard'))
+
+        # 🛑 SECURITY GUARD 1: ID VERIFICATION CHECK
+        if user_metrics['id_verification_status'] != 'verified':
+            flash('Security Policy: Your identity must be verified before applying for a loan.', 'warning')
+            return redirect(url_for('borrower.borrower_dashboard'))
+
+        # 🛑 SECURITY GUARD 2: ACTIVE LOAN CHECK (Blocking GET and POST)
+        if user_metrics['active_count'] >= 1:
+            flash('Security Alert: You still have an existing active loan. Please settle it first to apply for a new one.', 'danger')
+            return redirect(url_for('loans.my_loans'))
+
+        # 🛑 SECURITY GUARD 3: PENDING APPLICATION CHECK (Blocking GET and POST)
+        if user_metrics['pending_count'] >= 1:
+            flash('Multiple Submission Blocked: You already have a pending application being processed.', 'warning')
+            return redirect(url_for('loans.my_applications'))
+
+        # Data for the form
+        user_limit = float(user_metrics['user_limit'])
         cursor.execute("SELECT * FROM loan_types WHERE is_active = 1")
         types = cursor.fetchall()
-
         cursor.execute("""
             SELECT lp.*, lt.name AS type_name
             FROM loan_plans lp
@@ -225,116 +262,77 @@ def apply():
         """)
         plans = cursor.fetchall()
 
-        cursor.execute(
-            "SELECT id_verification_status FROM users WHERE id = %s",
-            (session['user_id'],)
-        )
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-        return redirect(url_for('borrower.borrower_dashboard'))
+        # 2. HANDLE POST REQUEST (SUBMISSION)
+        if request.method == 'POST':
+            loan_type_id = request.form.get('loan_type_id')
+            loan_plan_id = request.form.get('loan_plan_id')
+            amount       = request.form.get('amount', '').strip()
+            term_months  = request.form.get('term_months', '').strip()
+            purpose      = request.form.get('purpose', '').strip()
 
-    if user['id_verification_status'] != 'verified':
-        flash('Your ID must be verified before applying for a loan.', 'warning')
-        return redirect(url_for('borrower.borrower_dashboard'))
+            # Submission Validation
+            if not all([loan_type_id, loan_plan_id, amount, term_months]):
+                flash('All fields are required.', 'danger')
+                return render_template('apply.html', types=types, plans=plans, user_limit=user_limit, selected_plan_id=request.form.get('loan_plan_id', type=int))
 
-    if request.method == 'POST':
-        loan_type_id = request.form.get('loan_type_id')
-        loan_plan_id = request.form.get('loan_plan_id')
-        amount       = request.form.get('amount', '').strip()
-        term_months  = request.form.get('term_months', '').strip()
-        purpose      = request.form.get('purpose', '').strip()
+            try:
+                amount      = float(amount)
+                term_months = int(term_months)
+            except ValueError:
+                flash('Invalid amount or term format.', 'danger')
+                return render_template('apply.html', types=types, plans=plans, user_limit=user_limit, selected_plan_id=request.form.get('loan_plan_id', type=int))
 
-        errors = []
-        if not all([loan_type_id, loan_plan_id, amount, term_months]):
-            errors.append('All fields are required.')
+            # 🛑 FINAL SUBMISSION GUARD: Trust Limit Enforcement
+            if amount > user_limit:
+                flash(f'Unauthorized Amount: Based on your current Credit Score, you can only borrow up to ₱{user_limit:,.2f}.', 'danger')
+                return render_template('apply.html', types=types, plans=plans, user_limit=user_limit, selected_plan_id=int(loan_plan_id))
 
-        try:
-            amount      = float(amount)
-            term_months = int(term_months)
-        except ValueError:
-            errors.append('Invalid amount or term.')
-
-        if errors:
-            for e in errors:
-                flash(e, 'danger')
-            selected_plan_id = request.form.get('loan_plan_id', type=int)
-            return render_template('apply.html', types=types, plans=plans,
-                                   selected_plan_id=selected_plan_id)
-
-        try:
-            conn   = get_db()
-            cursor = conn.cursor(dictionary=True)
+            # Check specific plan constraints
             cursor.execute("SELECT * FROM loan_plans WHERE id = %s", (loan_plan_id,))
             plan = cursor.fetchone()
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            flash(f'Error: {str(e)}', 'danger')
-            return render_template('apply.html', types=types, plans=plans,
-                                   selected_plan_id=None)
+            if plan:
+                if not (float(plan['min_amount']) <= amount <= float(plan['max_amount'])):
+                    flash(f'Plan Restriction: Amount must be between ₱{float(plan["min_amount"]):,.2f} and ₱{float(plan["max_amount"]):,.2f}.', 'danger')
+                    return render_template('apply.html', types=types, plans=plans, user_limit=user_limit, selected_plan_id=int(loan_plan_id))
 
-        if plan:
-            if not (plan['min_amount'] <= amount <= plan['max_amount']):
-                flash(
-                    f'Amount must be between ₱{plan["min_amount"]:,.2f} '
-                    f'and ₱{plan["max_amount"]:,.2f}.',
-                    'danger'
-                )
-                return render_template('apply.html', types=types, plans=plans,
-                                       selected_plan_id=int(loan_plan_id))
-
-            if not (plan['term_months_min'] <= term_months <= plan['term_months_max']):
-                flash(
-                    f'Term must be between {plan["term_months_min"]} '
-                    f'and {plan["term_months_max"]} months.',
-                    'danger'
-                )
-                return render_template('apply.html', types=types, plans=plans,
-                                       selected_plan_id=int(loan_plan_id))
-
-        try:
+            # ── EXECUTION: SAVE TO DATABASE ──
             ref_no = generate_reference('LA', 'loan_applications', 'id')
-            conn   = get_db()
-            cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO loan_applications
                   (reference_no, borrower_id, loan_type_id, loan_plan_id,
                    amount_requested, term_months, purpose, status, submitted_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, 'submitted', NOW())
-            """, (ref_no, session['user_id'], loan_type_id, loan_plan_id,
-                  amount, term_months, purpose))
+            """, (ref_no, session['user_id'], loan_type_id, loan_plan_id, amount, term_months, purpose))
 
             app_id = cursor.lastrowid
 
+            # Handle File Uploads
             docs = request.files.getlist('documents')
             os.makedirs(UPLOAD_DOCS, exist_ok=True)
             for doc in docs:
                 if doc and allowed_file(doc.filename):
-                    fname = secure_filename(
-                        f"doc_{app_id}_{datetime.datetime.now().timestamp()}_{doc.filename}"
-                    )
+                    fname = secure_filename(f"doc_{app_id}_{datetime.datetime.now().timestamp()}_{doc.filename}")
                     doc.save(os.path.join(UPLOAD_DOCS, fname))
-                    cursor.execute("""
-                        INSERT INTO application_documents
-                          (application_id, document_type, file_path)
-                        VALUES (%s, 'requirement', %s)
-                    """, (app_id, fname))
+                    cursor.execute("INSERT INTO application_documents (application_id, document_type, file_path) VALUES (%s, 'requirement', %s)", (app_id, fname))
 
             conn.commit()
-            cursor.close()
-            conn.close()
-
-            flash(f'Application submitted! Reference: {ref_no}', 'success')
+            flash(f'Application {ref_no} submitted successfully!', 'success')
             return redirect(url_for('loans.my_applications'))
 
-        except Exception as e:
-            flash(f'Error submitting application: {str(e)}', 'danger')
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f'Application Error: {str(e)}', 'danger')
+        return redirect(url_for('borrower.borrower_dashboard'))
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
+    # 3. HANDLE GET REQUEST (RENDER FORM)
     selected_plan_id = request.args.get('plan', type=int)
-    return render_template('apply.html', types=types, plans=plans,
+    return render_template('apply.html', 
+                           types=types, 
+                           plans=plans, 
+                           user_limit=user_limit, 
                            selected_plan_id=selected_plan_id)
 
 

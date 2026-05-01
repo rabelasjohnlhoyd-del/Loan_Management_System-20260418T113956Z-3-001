@@ -317,73 +317,43 @@ def borrower_dashboard():
 @login_required
 def profile():
     user = {}
-    credit_score = 0
-    credit_factors = {
-        'on_time_payments': 0,
-        'paid_loans': 0,
-        'overdue_count': 0,
-        'active_loans': 0
-    }
-
     try:
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # User info
+        # 1. Kunin ang basic info ni User
         cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
         user = cursor.fetchone() or {}
 
-        # 1. On-time payments
+        # 2. Kunin ang PINAKABAGONG metrics sa borrower_profiles table (Ito ang sync sa Admin)
         cursor.execute("""
-            SELECT COUNT(*) AS cnt FROM payments
-            WHERE borrower_id = %s AND status IN ('approved', 'verified')
+            SELECT credit_score, risk_level, on_time_payments, paid_loans, overdue_count, active_loans
+            FROM borrower_profiles 
+            WHERE user_id = %s
         """, (session['user_id'],))
-        on_time = (cursor.fetchone() or {}).get('cnt', 0)
+        metrics = cursor.fetchone()
 
-        # 2. Loans fully paid
-        cursor.execute("""
-            SELECT COUNT(*) AS cnt FROM loans
-            WHERE borrower_id = %s AND status = 'paid'
-        """, (session['user_id'],))
-        paid_loans = (cursor.fetchone() or {}).get('cnt', 0)
-
-        # 3. Overdue incidents
-        cursor.execute("""
-            SELECT COUNT(*) AS cnt
-            FROM amortization_schedule a
-            JOIN loans l ON a.loan_id = l.id
-            WHERE l.borrower_id = %s
-              AND a.is_paid = 0
-              AND a.due_date < CURDATE()
-        """, (session['user_id'],))
-        overdue_count = (cursor.fetchone() or {}).get('cnt', 0)
-
-        # 4. Active loans
-        cursor.execute("""
-            SELECT COUNT(*) AS cnt FROM loans
-            WHERE borrower_id = %s AND status = 'active'
-        """, (session['user_id'],))
-        active_loans = (cursor.fetchone() or {}).get('cnt', 0)
+        if metrics:
+            credit_score = metrics['credit_score']
+            # I-match ang labels sa HTML mo
+            credit_factors = {
+                'on_time_payments': metrics.get('on_time_payments', 0),
+                'paid_loans': metrics.get('paid_loans', 0),
+                'overdue_count': metrics.get('overdue_count', 0),
+                'active_loans': metrics.get('active_loans', 0)
+            }
+        else:
+            # Fallback kung wala pang profile record
+            credit_score = 500
+            credit_factors = {'on_time_payments': 0, 'paid_loans': 0, 'overdue_count': 0, 'active_loans': 0}
 
         cursor.close()
         conn.close()
 
-        credit_factors = {
-            'on_time_payments': on_time,
-            'paid_loans': paid_loans,
-            'overdue_count': overdue_count,
-            'active_loans': active_loans
-        }
-
-    
-        score = 500
-        score += min(on_time * 10, 200)   # max +200
-        score += paid_loans * 50           # +50 per paid loan
-        score -= overdue_count * 40        # -40 per overdue
-        credit_score = max(300, min(850, score))
-
     except Exception as e:
         print(f"[profile ERROR] {e}")
+        credit_score = 500
+        credit_factors = {'on_time_payments': 0, 'paid_loans': 0, 'overdue_count': 0, 'active_loans': 0}
 
     return render_template('B_profile.html',
                            user=user,
@@ -442,6 +412,7 @@ def make_payment(loan_id):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
 
+    # Kunin ang detalye ng loan
     cursor.execute("""
         SELECT l.*, lt.name AS type_name, lp.plan_name, lp.interest_rate
         FROM loans l
@@ -455,7 +426,6 @@ def make_payment(loan_id):
         flash('Loan not found.', 'danger')
         return redirect(url_for('borrower.borrower_dashboard'))
 
-   
     if request.method == 'POST':
         amount_paid      = request.form.get('amount_paid')
         payment_method   = request.form.get('payment_method') 
@@ -463,100 +433,94 @@ def make_payment(loan_id):
         payment_date     = request.form.get('payment_date')
         
         try:
-            
-            cursor.execute("""
-                SELECT balance FROM dummy_wallets 
-                WHERE user_id = %s AND method = %s
-            """, (session['user_id'], payment_method))
+            # 1. CHECK WALLET BALANCE
+            cursor.execute("SELECT balance FROM dummy_wallets WHERE user_id = %s AND method = %s", (session['user_id'], payment_method))
             wallet = cursor.fetchone()
 
-            
-            
             if not wallet:
-              
                 dummy_val = "SIMULATED-ACC" 
-                
-                cursor.execute("""
-                    INSERT INTO dummy_wallets (user_id, method, account_number, balance)
-                    VALUES (%s, %s, %s, 100000.00)
-                """, (session['user_id'], payment_method, dummy_val))
+                cursor.execute("INSERT INTO dummy_wallets (user_id, method, account_number, balance) VALUES (%s, %s, %s, 100000.00)", (session['user_id'], payment_method, dummy_val))
                 conn.commit() 
-                
                 wallet = {'balance': 100000.00}
 
             if float(wallet['balance']) < float(amount_paid):
-                flash(f'Insufficient {payment_method.upper()} balance! (Current: ₱{float(wallet["balance"]):,.2f})', 'danger')
+                flash(f'Insufficient {payment_method.upper()} balance!', 'danger')
                 return redirect(url_for('borrower.select_loan_to_pay'))
 
-           
-            new_wallet_balance = float(wallet['balance']) - float(amount_paid)
+            # 2. GET AMORTIZATION BREAKDOWN (Para sa accurate na Capital vs Interest)
             cursor.execute("""
-                UPDATE dummy_wallets SET balance = %s 
-                WHERE user_id = %s AND method = %s
-            """, (new_wallet_balance, session['user_id'], payment_method))
-
-            # C. GENERATE PAYMENT NUMBER
-            year = datetime.datetime.now().year
-            cursor.execute("SELECT COUNT(*) AS total FROM payments WHERE YEAR(created_at) = %s", (year,))
-            count_row = cursor.fetchone()
-            pay_no = f"PAY-{year}-{str(count_row['total'] + 1).zfill(6)}"
-
-            
-            cursor.execute("""
-                INSERT INTO payments 
-                (payment_no, loan_id, borrower_id, amount_paid, payment_method, 
-                 reference_number, payment_date, status, verified_at, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'verified', NOW(), NOW())
-            """, (pay_no, loan_id, session['user_id'], amount_paid, payment_method, 
-                  reference_number, payment_date))
-
-            
-            current_loan_balance = float(loan['outstanding_balance'])
-            new_loan_balance = max(0, current_loan_balance - float(amount_paid))
-            
-            cursor.execute("""
-                UPDATE loans 
-                SET outstanding_balance = %s, 
-                    status = IF(%s <= 0, 'paid', status) 
-                WHERE id = %s
-            """, (new_loan_balance, new_loan_balance, loan_id))
-
-            
-            cursor.execute("""
-                UPDATE amortization_schedule 
-                SET is_paid = 1, paid_at = NOW() 
+                SELECT id, principal_due, interest_due FROM amortization_schedule 
                 WHERE loan_id = %s AND is_paid = 0 
                 ORDER BY period_no ASC LIMIT 1
             """, (loan_id,))
+            sched_row = cursor.fetchone()
 
-            conn.commit()
+            # Default breakdown kung sakaling walang sched (fallback)
+            p_portion = float(amount_paid) * 0.90
+            i_portion = float(amount_paid) * 0.10
 
-           
+            if sched_row:
+                p_portion = float(sched_row['principal_due'])
+                i_portion = float(sched_row['interest_due'])
+
+            # 3. DEDUCT FROM WALLET
+            new_wallet_balance = float(wallet['balance']) - float(amount_paid)
+            cursor.execute("UPDATE dummy_wallets SET balance = %s WHERE user_id = %s AND method = %s", (new_wallet_balance, session['user_id'], payment_method))
+
+            # 4. SAVE PAYMENT RECORD
+            year = datetime.datetime.now().year
+            cursor.execute("SELECT COUNT(*) AS total FROM payments WHERE YEAR(created_at) = %s", (year,))
+            pay_no = f"PAY-{year}-{str(cursor.fetchone()['total'] + 1).zfill(6)}"
+
+            cursor.execute("""
+                INSERT INTO payments 
+                (payment_no, loan_id, borrower_id, amount_paid, principal_portion, interest_portion, 
+                 payment_method, reference_number, payment_date, status, verified_at, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'verified', NOW(), NOW())
+            """, (pay_no, loan_id, session['user_id'], amount_paid, p_portion, i_portion, 
+                  payment_method, reference_number, payment_date))
+
+            # 5. UPDATE LOAN BALANCE
+            current_loan_balance = float(loan['outstanding_balance'])
+            new_loan_balance = max(0, current_loan_balance - float(amount_paid))
+            cursor.execute("UPDATE loans SET outstanding_balance = %s, status = IF(%s <= 0, 'paid', status) WHERE id = %s", (new_loan_balance, new_loan_balance, loan_id))
+
+            # 6. MARK SCHEDULE AS PAID
+            cursor.execute("UPDATE amortization_schedule SET is_paid = 1, paid_at = NOW() WHERE loan_id = %s AND is_paid = 0 ORDER BY period_no ASC LIMIT 1", (loan_id,))
+
+            # 7. TREASURY LOGIC (Ang "Sariling Bangko")
+            # Principal goes back to Capital (pautang), Interest goes to Earned (kita/sahod)
+            cursor.execute("""
+                UPDATE system_funds 
+                SET total_capital = total_capital + %s, 
+                    total_interest_earned = total_interest_earned + %s 
+                WHERE id = 1
+            """, (p_portion, i_portion))
+
+            # 8. SYNC METRICS (I-calculate ang bagong Credit Score para makita ni Admin)
+            conn.commit() # I-save muna lahat ng transaction sa taas
+            
+            # Tinatawag ang function na ginawa natin sa Step 2
+            recalculate_borrower_metrics(session['user_id']) 
+
             return redirect(url_for('borrower.select_loan_to_pay') + 
                             f'?success=1&ref={pay_no}&amount={amount_paid}&method={payment_method}&loan_ref={loan["loan_no"]}')
 
         except Exception as e:
             conn.rollback()
+            print(f"Error Payment: {e}")
             flash(f'Payment System Error: {str(e)}', 'danger')
 
+    # Re-fetch data para sa display (GET request)
     cursor.execute("SELECT * FROM amortization_schedule WHERE loan_id = %s AND is_paid = 0 ORDER BY due_date ASC", (loan_id,))
     schedules = cursor.fetchall()
-
-    cursor.execute("""
-        SELECT l.*, lt.name AS type_name 
-        FROM loans l JOIN loan_types lt ON l.loan_type_id = lt.id
-        WHERE l.borrower_id = %s AND l.status IN ('active', 'disbursed')
-    """, (session['user_id'],))
+    cursor.execute("SELECT l.*, lt.name AS type_name FROM loans l JOIN loan_types lt ON l.loan_type_id = lt.id WHERE l.borrower_id = %s AND l.status IN ('active', 'disbursed')", (session['user_id'],))
     active_loans = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return render_template('make_payment.html', 
-                           loan=loan, 
-                           schedules=schedules, 
-                           active_loans=active_loans, 
-                           today=datetime.date.today())
+    return render_template('make_payment.html', loan=loan, schedules=schedules, active_loans=active_loans, today=datetime.date.today())
 
 
 # 5.3 PAYMENT STATUS (polling endpoint)
@@ -995,3 +959,73 @@ def view_receipt_page(pay_no):
         return redirect(url_for('borrower.payment_history'))
 
     return render_template('e_receipt_page.html', payment=payment)
+
+def recalculate_borrower_metrics(user_id):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    
+    # 1. Kunin ang Work Details at Verification Status
+    cursor.execute("""
+        SELECT employment_type, job_role, monthly_transactions, id_verification_status 
+        FROM users WHERE id = %s
+    """, (user_id,))
+    user_info = cursor.fetchone()
+    
+    # 2. INCOME STABILITY LOGIC (Max 150 points)
+    stability = 0
+    # Base on Employment Type (Mas mataas na weight)
+    emp_scores = {"Government": 60, "Private": 50, "Self-Employed": 40, "OFW": 55}
+    stability += emp_scores.get(user_info['employment_type'], 20)
+    
+    # Base on Job Role
+    role_scores = {"Permanent": 60, "Contractual": 30, "JO": 20, "Business Owner": 50}
+    stability += role_scores.get(user_info['job_role'], 10)
+    
+    # Base on Transaction Volume
+    trans_scores = {"Above 100k": 30, "50k-100k": 20, "Below 50k": 10}
+    stability += trans_scores.get(user_info['monthly_transactions'], 5)
+
+    # 3. CREDIT SCORE LOGIC
+    # Bagong Base Score: 500 (Standard starting point para sa "Fair" standing)
+    base_score = 500 
+    
+    # Bonus points for finishing ID Verification
+    verification_bonus = 50 if user_info['id_verification_status'] == 'verified' else 0
+
+    # Kunin ang stats ng payments
+    cursor.execute("SELECT COUNT(*) as on_time FROM payments WHERE borrower_id = %s AND status='verified'", (user_id,))
+    on_time_count = cursor.fetchone()['on_time']
+    
+    cursor.execute("""
+        SELECT COUNT(*) as overdue FROM amortization_schedule a 
+        JOIN loans l ON a.loan_id = l.id 
+        WHERE l.borrower_id = %s AND a.is_paid = 0 AND a.due_date < CURDATE()
+    """, (user_id,))
+    overdue_count = cursor.fetchone()['overdue']
+
+    # FORMULA: Base (500) + Stability (up to 150) + ID Bonus (50) + (On-time * 15) - (Overdue * 100)
+    # Ang isang bagong user na "High Quality" ay magkakaroon ng: 500 + 150 + 50 = 700 agad!
+    final_score = base_score + stability + verification_bonus + (on_time_count * 15) - (overdue_count * 100)
+    final_score = max(300, min(850, final_score)) 
+
+    # 4. BALANCED LOAN LIMIT LOGIC
+    # Ngayon, kahit bagong user, basta "Stable" ang work, makaka-loan na ng disente.
+    if final_score >= 750:   # Excellent
+        loan_limit = 150000.00
+    elif final_score >= 650: # Good
+        loan_limit = 50000.00
+    elif final_score >= 550: # Fair
+        loan_limit = 20000.00
+    else:                    # Poor
+        loan_limit = 10000.00
+
+    # 5. I-SAVE SA DB
+    cursor.execute("""
+        UPDATE borrower_profiles 
+        SET credit_score = %s, income_stability_score = %s, max_loan_limit = %s
+        WHERE user_id = %s
+    """, (final_score, stability, loan_limit, user_id))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
