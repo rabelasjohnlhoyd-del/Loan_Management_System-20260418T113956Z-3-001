@@ -427,6 +427,7 @@ def validate_id_api():
       "liveness_pass": true/false,
       "id_authentic": true/false,
       "confidence_score": 0-100,
+      "extracted_id_number": "exact ID number extracted from the card, or null if unreadable",
       "action": "approve" or "review" or "reject",
       "rejection_reasons": ["reason1", "reason2"],
       "overall_reason": "One sentence summary"
@@ -473,6 +474,8 @@ def validate_id_api():
 
         session['gemini_approved'] = (result['action'] == 'approve')
         session['gemini_result'] = result['action']
+     
+        session['extracted_id_number'] = result.get('extracted_id_number', None)
         return jsonify(result)
 
     except Exception as e:
@@ -510,17 +513,20 @@ def upload_id():
     if request.method == 'POST':
         id_file = request.files.get('valid_id')
         selfie_b64 = request.form.get('selfie_base64', '')
-        id_number = request.form.get('id_number', '').strip()
+
+       
+        id_number = session.get('extracted_id_number', '') or ''
 
         if not id_file or not selfie_b64:
             flash("Please provide both ID and Selfie.", "warning")
             return render_template('upload_id.html')
 
-# ✅ Backend validation ng id_number
+     
         if not id_number:
-            flash("ID number is required.", "danger")
+            flash("Could not extract ID number from your ID. Please upload a clearer photo.", "danger")
             return render_template('upload_id.html')
-        # ✅ SECURITY CHECK 1: Duplicate ID Number
+
+    
         if id_number:
             conn = get_db(); cursor = conn.cursor()
             cursor.execute("SELECT id FROM users WHERE id_number = %s", (id_number,))
