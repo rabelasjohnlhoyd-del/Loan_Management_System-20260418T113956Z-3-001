@@ -191,6 +191,9 @@ def register():
         nature_work = request.form.get('nature_of_work', '').strip()
         funds = request.form.get('source_of_funds', '').strip()
         transactions = request.form.get('monthly_transactions', '0').strip()
+        birth_country = request.form.get('birth_country', '').strip()
+        birth_province = request.form.get('birth_province_ph') or request.form.get('birth_province_intl', '')
+        birth_city = request.form.get('birth_city_ph') or request.form.get('birth_city_intl', '')
 
         if not password or len(password) < 8 or password != confirm:
             flash('Check your password details.', 'danger')
@@ -203,22 +206,24 @@ def register():
             query = """
                 INSERT INTO users 
                 (full_name, first_name, middle_name, last_name, email, password, 
-                 contact_number, date_of_birth, age, 
-                 gender, nationality, civil_status,
-                 province, city, barangay, zip_code, house_street,
+ contact_number, date_of_birth, age, 
+ gender, nationality, civil_status,
+ birth_country, birth_province, birth_city,
+ province, city, barangay, zip_code, house_street,
                  employment_type, job_role, employer_business, nature_of_work, 
                  source_of_funds, monthly_transactions,
                  role, id_verification_status, is_active, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'borrower', 'pending_otp', 1, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'borrower', 'pending_otp', 1, %s)
             """
             
             cursor.execute(query, (
-                full_name, fn, mn, ln, email, hashed_pw, 
-                contact, dob, age, 
-                request.form.get('gender', ''), 
-                request.form.get('nationality', ''), 
-                request.form.get('civil_status', ''),
-                province, city, barangay, zip_code, house_street,
+    full_name, fn, mn, ln, email, hashed_pw, 
+    contact, dob, age, 
+    request.form.get('gender', ''), 
+    request.form.get('nationality', ''), 
+    request.form.get('civil_status', ''),
+    birth_country, birth_province, birth_city,
+    province, city, barangay, zip_code, house_street,
                 emp_type, job_role, employer, nature_work, 
                 funds, transactions,
                 datetime.datetime.now()
@@ -226,7 +231,16 @@ def register():
             conn.commit(); cursor.close(); conn.close()
             
             otp = str(random.randint(100000, 999999))
+<<<<<<< HEAD
             session.update({'otp': otp, 'otp_email': email, 'reg_data': {'email': email, 'full_name': full_name}})
+=======
+            expiry_time = datetime.datetime.now() + datetime.timedelta(minutes=5)
+            session.update({
+                'otp': otp,
+                'otp_email': email,
+                'otp_expiry': expiry_time.timestamp()
+            })
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
             try:
                 msg = Message('Verification Code', recipients=[email])
                 msg.body = f"Your OTP is: {otp}"
@@ -286,7 +300,13 @@ def resend_otp():
     if not email:
         return jsonify({'success': False, 'message': 'Session expired. Please register again.'}), 400
 
+<<<<<<< HEAD
     otp = str(random.randint(100000, 999999)) # FIXED Indentation
+=======
+    # Generate new OTP
+    otp = str(random.randint(100000, 999999))
+
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
     expiry_time = datetime.datetime.now() + datetime.timedelta(minutes=5)
 
     session.update({
@@ -308,28 +328,54 @@ def validate_id_api():
     if 'reg_data' not in session or not session.get('otp_verified'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    gemini_key = os.environ.get('GEMINI_API_KEY')
+    gemini_key = 'AIzaSyBAL665tU2XxTIkwmFPO7zcMJAQnlwYfQ4'
     data = request.json or {}
     id_b64 = data.get('id_image')
     selfie_b64 = data.get('selfie_image')
     registered_name = session['reg_data'].get('full_name', 'Unknown')
 
+<<<<<<< HEAD
+=======
+  
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
     prompt = f"""
-    Strictly verify identity for a Philippine Loan System. 
-    IMAGE 1: Physical Government ID Card.
-    IMAGE 2: Live Selfie.
+    You are an expert identity verifier for a Philippine Fintech system.
     APPLICANT'S REGISTERED NAME: {registered_name}
+<<<<<<< HEAD
     TASKS:
     1. NAME CHECK: Extract the name from IMAGE 1. Does it match "{registered_name}"? 
     2. BIOMETRIC CHECK: Does the face in IMAGE 2 match the portrait in IMAGE 1? 
     3. LIVENESS CHECK: Is IMAGE 2 a live person?
+=======
+    IMAGE 1: Government ID Card (Check for PhilSys, Driver's License, etc.)
+    IMAGE 2: Live Selfie
+    
+    TASKS:
+    1. NAME CHECK: Compare the name on IMAGE 1 with "{registered_name}".
+       - Accept if they match exactly.
+       - Accept if one has a Middle Initial and the other has a Full Middle Name.
+       - Note: Philippine IDs like PhilSys often use 'Last Name, Given Name, Middle Name' format. Be smart in matching.
+    2. BIOMETRIC: Does the face in IMAGE 2 match the ID portrait in IMAGE 1?
+    3. LIVENESS: Is IMAGE 2 a real person? (Reject if it's a photo of a screen or paper).
+
+    DECISION LOGIC:
+    - ACTION "approve": If name and face match 90%-100%.
+    - ACTION "review": If the face matches but the name has a slight typo, or if the ID is a bit blurry but looks authentic.
+    - ACTION "reject": Only if the names are completely different people or the face definitely doesn't match.
+
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
     JSON Output Only:
     {{
       "valid_id": true/false,
       "name_match": true/false,
       "face_match": true/false,
+<<<<<<< HEAD
       "action": "approve" or "reject",
       "overall_reason": "Summary"
+=======
+      "action": "approve", "reject", or "review",
+      "overall_reason": "One sentence summary of your decision"
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
     }}
     """
     try:
@@ -345,19 +391,58 @@ def validate_id_api():
         result = json.loads(response.text.strip().replace('```json', '').replace('```', ''))
         if result.get('name_match') is False or result.get('face_match') is False:
             result['action'] = 'reject'
+<<<<<<< HEAD
+=======
+            result['overall_reason'] = "ID name or face mismatch with registration data."
+
+     
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
         session['gemini_approved'] = (result['action'] == 'approve')
         return jsonify(result)
+<<<<<<< HEAD
     except:
         return jsonify({'action': 'review', 'overall_reason': 'AI check failed. Manual review required.'})
+=======
+    except Exception as e:
+        print(f"GEMINI ERROR: {e}")  
+        session['gemini_result'] = 'review'
+        session['gemini_approved'] = False
+        return jsonify({'action': 'review', 'overall_reason': f'AI check failed: {str(e)}'})
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
 
 @auth.route('/upload-id', methods=['GET', 'POST'])
 def upload_id():
+<<<<<<< HEAD
+=======
+   
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
     if not session.get('otp_verified'):
         return redirect(url_for('auth.login'))
+
+    # ✅ 
+    if 'reg_data' not in session:
+        email = session.get('otp_email', '')
+        try:
+            conn = get_db(); cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT full_name, email FROM users WHERE email = %s", (email,))
+            user = cursor.fetchone()
+            cursor.close(); conn.close()
+            if user:
+                session['reg_data'] = {
+                    'email': user['email'],
+                    'full_name': user['full_name']
+                }
+        except:
+            pass
 
     if request.method == 'POST':
         id_file = request.files.get('valid_id')
         selfie_b64 = request.form.get('selfie_base64', '')
+<<<<<<< HEAD
+=======
+        id_number = request.form.get('id_number', '').strip()
+
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
         if not id_file or not selfie_b64:
             flash("Please provide both ID and Selfie.", "warning")
             return render_template('upload_id.html')
@@ -371,9 +456,33 @@ def upload_id():
             with open(os.path.join(UPLOAD_FOLDER, selfie_fn), 'wb') as f:
                 f.write(selfie_data)
 
+<<<<<<< HEAD
             conn = get_db(); cursor = conn.cursor()
             target_email = session.get('otp_email') or session.get('reg_data', {}).get('email')
             cursor.execute("UPDATE users SET id_document_path = %s, selfie_path = %s, id_verification_status = 'pending' WHERE email = %s", (id_fn, selfie_fn, target_email))
+=======
+        
+            target_email = session.get('otp_email') or session.get('reg_data', {}).get('email')
+
+            gemini_result = session.get('gemini_result', 'pending')
+            # Map: approve = verified, reject = rejected, review/pending = pending
+            if gemini_result == 'approve':
+                final_status = 'verified'
+            elif gemini_result == 'reject':
+                final_status = 'rejected'
+            else:
+                final_status = 'pending'
+
+            # 4. ONE execute lang
+            conn = get_db(); cursor = conn.cursor()
+            query = """
+            UPDATE users 
+            SET id_document_path = %s, selfie_path = %s, 
+            id_verification_status = %s, id_number = %s
+            WHERE email = %s
+            """
+            cursor.execute(query, (id_fn, selfie_fn, final_status, id_number, target_email))
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
             conn.commit(); cursor.close(); conn.close()
             session.clear()
             flash('Success! Verification documents submitted for review.', 'success')
@@ -383,6 +492,12 @@ def upload_id():
 
     return render_template('upload_id.html')
 
+<<<<<<< HEAD
+=======
+# ================================================================
+# SECTION 5: PASSWORD RESET FLOW
+# ================================================================
+>>>>>>> 9ed63ea03f2b21f3f1a23269242e8092df93e57e
 @auth.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
