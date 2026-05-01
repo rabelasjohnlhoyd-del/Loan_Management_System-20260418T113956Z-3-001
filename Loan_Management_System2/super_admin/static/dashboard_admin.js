@@ -1,13 +1,16 @@
 /* ================================================================
    dashboard_admin.js — Admin Dashboard
-   Sidebar toggle matches borrower dashboard pattern exactly
+   Changes:
+   - Notification read state persisted to localStorage
+   - Table pagination: 10 rows per page, client-side
+   - Row hover removed (handled in CSS)
    ================================================================ */
 
 (function () {
   'use strict';
 
   /* ================================================================
-     SIDEBAR TOGGLE — same pattern as borrower dashboard
+     SIDEBAR TOGGLE
      ================================================================ */
   const burgerBtn      = document.getElementById('burgerBtn');
   const sidebar        = document.getElementById('sidebar');
@@ -31,22 +34,17 @@
     document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
   }
 
-  /* Restore desktop preference on page load */
   if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
     openSidebar();
   }
 
   burgerBtn?.addEventListener('click', toggleSidebar);
-
-  /* Close via overlay tap (mobile) */
   sidebarOverlay?.addEventListener('click', closeSidebar);
 
-  /* Close sidebar when a nav link is clicked on mobile */
   sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
     link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
-  /* Re-evaluate on resize */
   window.addEventListener('resize', () => {
     if (!isMobile()) {
       sidebarOverlay.classList.remove('active');
@@ -76,34 +74,83 @@
   });
 
   /* ================================================================
-     NOTIFICATION DROPDOWN
+     NOTIFICATION PERSISTENCE
+     Saves which notif IDs have been read to localStorage.
+     On page load, any notif whose ID is in the read-set gets
+     its .unread class removed so it stays read after refresh.
      ================================================================ */
+  const NOTIF_READ_KEY = 'hiraya_admin_read_notifs';
+
+  function getReadSet() {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(NOTIF_READ_KEY) || '[]'));
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function saveReadSet(set) {
+    try {
+      localStorage.setItem(NOTIF_READ_KEY, JSON.stringify([...set]));
+    } catch (e) { /* quota exceeded, silent fail */ }
+  }
+
+  function markNotifRead(el) {
+    el.classList.remove('unread');
+    el.classList.add('read-local');
+    el.querySelector('.notif-unread-dot')?.remove();
+  }
+
+  /* Apply persisted read state on load */
+  const readSet = getReadSet();
+  document.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
+    const id = item.dataset.notifId;
+    if (readSet.has(id)) {
+      markNotifRead(item);
+    }
+  });
+
+  /* Notification dot: count still-unread items */
   const notifBtn      = document.getElementById('notifBtn');
   const notifDropdown = document.getElementById('notifDropdown');
   const notifDot      = document.getElementById('notifDot');
   const notifMarkAll  = document.getElementById('notifMarkAll');
   const notifWrap     = document.getElementById('notifWrap');
 
-  /* Show red dot if there are unread notifications on load */
-  const unreadCount = document.querySelectorAll('.notif-item.unread').length;
-  if (unreadCount > 0) {
-    notifDot?.classList.remove('hidden');
-  } else {
-    notifDot?.classList.add('hidden');
+  function refreshNotifDot() {
+    const stillUnread = document.querySelectorAll('.notif-item.unread').length;
+    stillUnread > 0
+      ? notifDot?.classList.remove('hidden')
+      : notifDot?.classList.add('hidden');
   }
+  refreshNotifDot();
 
   notifBtn?.addEventListener('click', function (e) {
     e.stopPropagation();
     notifDropdown?.classList.toggle('open');
   });
 
-  /* Mark all as read — removes unread class + dot, closes dropdown */
-  notifMarkAll?.addEventListener('click', () => {
-    document.querySelectorAll('.notif-item.unread').forEach(el => {
-      el.classList.remove('unread');
-      el.querySelector('.notif-unread-dot')?.remove();
+  /* Mark individual notif as read when its link is clicked */
+  document.querySelectorAll('.notif-item[data-notif-id] .notif-item-link').forEach(link => {
+    link.addEventListener('click', () => {
+      const item = link.closest('.notif-item[data-notif-id]');
+      if (!item) return;
+      const id = item.dataset.notifId;
+      markNotifRead(item);
+      readSet.add(id);
+      saveReadSet(readSet);
+      refreshNotifDot();
     });
-    notifDot?.classList.add('hidden');
+  });
+
+  /* Mark all as read */
+  notifMarkAll?.addEventListener('click', () => {
+    document.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
+      markNotifRead(item);
+      readSet.add(item.dataset.notifId);
+    });
+    saveReadSet(readSet);
+    refreshNotifDot();
   });
 
   /* Close when clicking outside */
@@ -145,23 +192,117 @@
 
   document.querySelectorAll('.stat-card[data-animate]').forEach(c => obs.observe(c));
 
-  /* Fallback for cards without data-animate */
   document.querySelectorAll('.stat-card:not([data-animate])').forEach((card, i) => {
     setTimeout(() => card.classList.add('visible'), i * 120);
   });
 
   /* ================================================================
-     TABLE SEARCH
+     TABLE PAGINATION — 10 rows per page, client-side
      ================================================================ */
-  const appSearch = document.getElementById('appSearch');
-  const appTable  = document.getElementById('applicationsTable');
+  const ROWS_PER_PAGE  = 10;
+  const tableBody      = document.getElementById('appTableBody');
+  const paginationWrap = document.getElementById('paginationWrap');
+  const paginationInfo = document.getElementById('paginationInfo');
+  const pageNumbers    = document.getElementById('pageNumbers');
+  const pagePrev       = document.getElementById('pagePrev');
+  const pageNext       = document.getElementById('pageNext');
+  const appSearch      = document.getElementById('appSearch');
 
+  let currentPage  = 1;
+  let allRows      = []; // all <tr> elements (may be filtered)
+  let filteredRows = [];
+
+  function initPagination() {
+    if (!tableBody) return;
+    // Collect all data rows (skip empty-state row)
+    allRows = Array.from(tableBody.querySelectorAll('tr')).filter(
+      r => !r.id || r.id !== 'emptyRow'
+    );
+    filteredRows = [...allRows];
+    renderPage(1);
+  }
+
+  function renderPage(page) {
+    currentPage = page;
+    const total     = filteredRows.length;
+    const totalPages = Math.ceil(total / ROWS_PER_PAGE) || 1;
+    const start     = (page - 1) * ROWS_PER_PAGE;
+    const end       = Math.min(start + ROWS_PER_PAGE, total);
+
+    // Show/hide rows
+    allRows.forEach(r => r.style.display = 'none');
+    filteredRows.forEach((r, idx) => {
+      r.style.display = (idx >= start && idx < end) ? '' : 'none';
+    });
+
+    // Handle empty state row
+    const emptyRow = document.getElementById('emptyRow');
+    if (total === 0) {
+      if (emptyRow) emptyRow.style.display = '';
+    } else {
+      if (emptyRow) emptyRow.style.display = 'none';
+    }
+
+    // Pagination visibility
+    if (total <= ROWS_PER_PAGE && !appSearch?.value.trim()) {
+      paginationWrap?.classList.add('hidden');
+      return;
+    }
+    paginationWrap?.classList.remove('hidden');
+
+    // Info text
+    if (paginationInfo) {
+      paginationInfo.textContent = total === 0
+        ? 'No results found'
+        : `Showing ${start + 1}–${end} of ${total} application${total !== 1 ? 's' : ''}`;
+    }
+
+    // Prev / Next
+    if (pagePrev) pagePrev.disabled = page <= 1;
+    if (pageNext) pageNext.disabled = page >= totalPages;
+
+    // Page number buttons (show max 5 pages around current)
+    if (pageNumbers) {
+      pageNumbers.innerHTML = '';
+      const maxVisible = 5;
+      let startPage = Math.max(1, page - Math.floor(maxVisible / 2));
+      let endPage   = Math.min(totalPages, startPage + maxVisible - 1);
+      if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        const btn = document.createElement('button');
+        btn.className = 'page-num' + (p === page ? ' active' : '');
+        btn.textContent = p;
+        btn.type = 'button';
+        btn.addEventListener('click', () => renderPage(p));
+        pageNumbers.appendChild(btn);
+      }
+    }
+  }
+
+  pagePrev?.addEventListener('click', () => {
+    if (currentPage > 1) renderPage(currentPage - 1);
+  });
+  pageNext?.addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredRows.length / ROWS_PER_PAGE) || 1;
+    if (currentPage < totalPages) renderPage(currentPage + 1);
+  });
+
+  /* ================================================================
+     TABLE SEARCH (live filter + re-paginate)
+     ================================================================ */
   appSearch?.addEventListener('input', () => {
     const q = appSearch.value.trim().toLowerCase();
-    appTable?.querySelectorAll('tbody tr').forEach(row => {
-      row.style.display = q && !row.textContent.toLowerCase().includes(q) ? 'none' : '';
-    });
+    filteredRows = q
+      ? allRows.filter(r => r.textContent.toLowerCase().includes(q))
+      : [...allRows];
+    renderPage(1);
   });
+
+  // Kick off pagination on load
+  initPagination();
 
   /* ================================================================
      AUTO-DISMISS FLASH MESSAGES

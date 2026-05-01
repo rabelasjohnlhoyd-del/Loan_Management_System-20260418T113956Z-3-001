@@ -3,200 +3,278 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Reports — Loan Management System</title>
+  <title>Reports — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='reports.css') }}"/>
 </head>
 <body>
+
+<!-- OVERLAY (mobile sidebar backdrop) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
+  <!-- ═══════════════════════════════════════════════
+       TOPBAR
+  ════════════════════════════════════════════════ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
     </div>
 
-    <!-- USER BOX — dropdown trigger -->
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
+    <div class="topbar-center">
+      <h1 class="topbar-title">Reports</h1>
+      <p class="topbar-sub">Generate and export financial reports</p>
+    </div>
+
+    <div class="topbar-right">
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Admin' }}">
+        {{ session.user_name[0]|upper if session.user_name else 'A' }}
+      </a>
+    </div>
+  </header>
+
+  <!-- BODY ROW -->
+  <div class="body-row">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
+        </div>
+        <span class="s-chevron"></span>
       </div>
-      <span class="s-chevron"></span>
-    </div>
 
-    <!-- USER DROPDOWN -->
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('super_admin.SA_profile') }}">
-        <span class="dd-icon dd-icon--profile"></span>My Profile
-      </a>
-      {% if session.role == 'super_admin' %}
-      <a href="{{ url_for('super_admin.manage_users') }}">
-        <span class="dd-icon dd-icon--manage-users"></span>Manage Users
-      </a>
-      {% endif %}
-      <a href="{{ url_for('super_admin.reports_page') }}">
-        <span class="dd-icon dd-icon--reports"></span>Reports
-      </a>
-      <a href="{{ url_for('super_admin.activity_logs') }}">
-        <span class="dd-icon dd-icon--activity"></span>Activity Logs
-      </a>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-        <span class="nav-icon nav-icon--clock"></span>Applications
-      </a>
-      <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
-        <span class="nav-icon nav-icon--applications"></span>All Loans
-      </a>
-      <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
-      </a>
-      <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
-        <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
-        </button>
-      </form>
-    </div>
-  </aside>
-
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <h1>Reports</h1>
-        <p>Generate and export financial reports</p>
-      </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'A' }}
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('super_admin.SA_profile') }}">
+          <span class="dd-icon dd-icon--profile"></span>My Profile
+        </a>
+        {% if session.role == 'super_admin' %}
+        <a href="{{ url_for('super_admin.manage_users') }}">
+          <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+        </a>
+        {% endif %}
+        <a href="{{ url_for('super_admin.reports_page') }}">
+          <span class="dd-icon dd-icon--reports"></span>Reports
+        </a>
+        <a href="{{ url_for('super_admin.activity_logs') }}">
+          <span class="dd-icon dd-icon--activity"></span>Activity Logs
         </a>
       </div>
-    </header>
 
-    <main class="page-body">
-      <div class="reports-grid">
-        <!-- Report Cards -->
-        <div class="report-card">
-          <div class="report-icon report-icon--blue">📊</div>
-          <div class="report-info">
-            <h3>Loan Performance Report</h3>
-            <p>View loans by type, date range. Includes default rates and profitability analysis.</p>
-            <form method="GET" action="{{ url_for('super_admin.report_loan_performance') }}" class="report-form">
-              <div class="report-form-row">
-                <input type="date" name="date_from" class="form-input-sm" placeholder="From"/>
-                <input type="date" name="date_to" class="form-input-sm" placeholder="To"/>
-              </div>
-              <button type="submit" class="btn btn-primary btn-sm">Generate Report</button>
-            </form>
-          </div>
-        </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--clock"></span>
+          <span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span>
+          <span class="nav-label">All Loans</span>
+        </a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span>
+          <span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+          <span class="nav-icon nav-icon--warning"></span>
+          <span class="nav-label">Penalties &amp; Overdue</span>
+        </a>
+      </nav>
 
-        <div class="report-card">
-          <div class="report-icon report-icon--green">📋</div>
-          <div class="report-info">
-            <h3>Amortization Schedule</h3>
-            <p>View breakdown for a specific loan — principal, interest, and balance.</p>
-            <form method="GET" id="amortForm" class="report-form">
-              <div class="report-form-row">
-                <input type="text" id="loanIdInput" name="loan_id" class="form-input-sm" placeholder="Enter Loan ID"/>
-              </div>
-              <button type="button" class="btn btn-primary btn-sm" onclick="goAmort()">View Schedule</button>
-            </form>
-          </div>
-        </div>
-
-        <div class="report-card">
-          <div class="report-icon report-icon--purple">👤</div>
-          <div class="report-info">
-            <h3>Borrower Payment History</h3>
-            <p>Individual borrower statement — all payments and outstanding balance.</p>
-            <form class="report-form">
-              <div class="report-form-row">
-                <input type="text" id="borrowerIdInput" class="form-input-sm" placeholder="Enter Borrower ID"/>
-              </div>
-              <button type="button" class="btn btn-primary btn-sm" onclick="goBorrowerHistory()">View History</button>
-            </form>
-          </div>
-        </div>
-
-        <div class="report-card">
-          <div class="report-icon report-icon--yellow">🏦</div>
-          <div class="report-info">
-            <h3>Record of Paid Loans</h3>
-            <p>Summary of all fully paid loans — loan details and interest earned.</p>
-            <form method="GET" action="{{ url_for('super_admin.report_paid_loans') }}" class="report-form">
-              <div class="report-form-row">
-                <input type="date" name="date_from" class="form-input-sm" placeholder="From"/>
-                <input type="date" name="date_to" class="form-input-sm" placeholder="To"/>
-              </div>
-              <button type="submit" class="btn btn-primary btn-sm">Generate Report</button>
-            </form>
-          </div>
-        </div>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
       </div>
+    </aside>
 
-      <div class="card" style="margin-top:24px;">
-        <div class="card-header">
-          <h3>Quick Access — Recent Loans</h3>
-          <a href="{{ url_for('super_admin.all_loans') }}" class="btn btn-ghost btn-sm">View All</a>
+    <!-- MAIN CONTENT -->
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- PAGE TITLE ROW -->
+        <div class="page-title-row">
+          <div>
+            <h2 class="page-title">Financial Reports</h2>
+            <p class="page-subtitle">Generate, filter, and export reports for loans and borrowers</p>
+          </div>
         </div>
-        <div class="card-body">
-          <p style="font-size:13px; color:var(--text-muted);">
-            Select a loan from the <a href="{{ url_for('super_admin.all_loans') }}" style="color:var(--primary);">All Loans</a> page for more details.
-          </p>
+
+        <!-- REPORTS GRID -->
+        <div class="reports-grid">
+
+          <!-- Loan Performance -->
+          <div class="report-card" data-animate>
+            <div class="card-header">
+              <div class="report-card-header-left">
+                <div class="report-icon report-icon--blue"></div>
+                <div>
+                  <h3>Loan Performance Report</h3>
+                  <p>View loans by type, date range. Includes default rates and profitability analysis.</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <form method="GET" action="{{ url_for('super_admin.report_loan_performance') }}" class="report-form">
+                <div class="report-form-row">
+                  <div class="form-group-sm">
+                    <label class="form-label-sm">From</label>
+                    <input type="date" name="date_from" class="form-input-sm"/>
+                  </div>
+                  <div class="form-group-sm">
+                    <label class="form-label-sm">To</label>
+                    <input type="date" name="date_to" class="form-input-sm"/>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <span class="btn-icon btn-icon--generate"></span>
+                  Generate Report
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Amortization Schedule -->
+          <div class="report-card" data-animate>
+            <div class="card-header">
+              <div class="report-card-header-left">
+                <div class="report-icon report-icon--green"></div>
+                <div>
+                  <h3>Amortization Schedule</h3>
+                  <p>View breakdown for a specific loan — principal, interest, and balance.</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="report-form">
+                <div class="form-group-sm">
+                  <label class="form-label-sm">Loan ID</label>
+                  <input type="text" id="loanIdInput" class="form-input-sm" placeholder="e.g. 42"/>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="goAmort()">
+                  <span class="btn-icon btn-icon--view"></span>
+                  View Schedule
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Borrower Payment History -->
+          <div class="report-card" data-animate>
+            <div class="card-header">
+              <div class="report-card-header-left">
+                <div class="report-icon report-icon--purple"></div>
+                <div>
+                  <h3>Borrower Payment History</h3>
+                  <p>Individual borrower statement — all payments and outstanding balance.</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="report-form">
+                <div class="form-group-sm">
+                  <label class="form-label-sm">Borrower ID</label>
+                  <input type="text" id="borrowerIdInput" class="form-input-sm" placeholder="e.g. 7"/>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="goBorrowerHistory()">
+                  <span class="btn-icon btn-icon--view"></span>
+                  View History
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Record of Paid Loans -->
+          <div class="report-card" data-animate>
+            <div class="card-header">
+              <div class="report-card-header-left">
+                <div class="report-icon report-icon--yellow"></div>
+                <div>
+                  <h3>Record of Paid Loans</h3>
+                  <p>Summary of all fully paid loans — loan details and interest earned.</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <form method="GET" action="{{ url_for('super_admin.report_paid_loans') }}" class="report-form">
+                <div class="report-form-row">
+                  <div class="form-group-sm">
+                    <label class="form-label-sm">From</label>
+                    <input type="date" name="date_from" class="form-input-sm"/>
+                  </div>
+                  <div class="form-group-sm">
+                    <label class="form-label-sm">To</label>
+                    <input type="date" name="date_to" class="form-input-sm"/>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <span class="btn-icon btn-icon--generate"></span>
+                  Generate Report
+                </button>
+              </form>
+            </div>
+          </div>
+
         </div>
-      </div>
-    </main>
+
+        <!-- QUICK ACCESS CARD -->
+        <div class="card" style="margin-top: 4px;">
+          <div class="card-header">
+            <div>
+              <h3>Quick Access — Recent Loans</h3>
+              <p>Jump directly to a loan for detailed reporting</p>
+            </div>
+            <a href="{{ url_for('super_admin.all_loans') }}" class="btn btn-ghost btn-sm">View All</a>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px; color:var(--text-muted);">
+              Select a loan from the <a href="{{ url_for('super_admin.all_loans') }}" style="color:var(--primary); font-weight:600;">All Loans</a> page for more details.
+            </p>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
   </div>
 </div>
 
-<!-- At the bottom of reports.html -->
-<script src="{{ url_for('super_admin.static', filename='admin_common.js') }}"></script>
-
-<script>
-  function goAmort() {
-    const val = document.getElementById('loanIdInput').value.trim();
-    if (!val) { 
-      alert('Please enter a Loan ID.'); 
-      return; 
-    }
-    // Use 0 as a dummy integer so Flask doesn't crash
-    let url = "{{ url_for('super_admin.report_amortization', loan_id=0) }}";
-    // Replace the "0" at the end of the URL with the actual value
-    window.location.href = url.replace('/0', '/' + val);
-  }
-
-  function goBorrowerHistory() {
-    const val = document.getElementById('borrowerIdInput').value.trim();
-    if (!val) { 
-      alert('Please enter a Borrower ID.'); 
-      return; 
-    }
-    // Use 0 as a dummy integer
-    let url = "{{ url_for('super_admin.report_borrower_history', borrower_id=0) }}";
-    // Replace the "0" at the end of the URL with the actual value
-    window.location.href = url.replace('/0', '/' + val);
-  }
-</script>
-
+<script src="{{ url_for('super_admin.static', filename='reports.js') }}"></script>
 </body>
 </html>

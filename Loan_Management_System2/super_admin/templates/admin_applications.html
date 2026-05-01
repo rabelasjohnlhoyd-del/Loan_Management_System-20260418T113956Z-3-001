@@ -37,14 +37,85 @@
           <span class="topbar-icon topbar-icon--notif"></span>
           <span class="notif-dot hidden" id="notifDot"></span>
         </button>
+
         <div class="notif-dropdown" id="notifDropdown">
           <div class="notif-header">
             <span class="notif-header-title">Notifications</span>
             <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
           </div>
-          <div class="notif-list" id="notifList">
-            <div class="notif-loading">Loading...</div>
-          </div>
+
+          <ul class="notif-list" id="notifList">
+
+            {# ══ Pending Applications ══ #}
+            {% set has_apps = pending_applications_notif or (stats is defined and stats.get('pending_applications', 0) > 0) %}
+            {% if has_apps %}
+              <li class="notif-group-label"><span>Pending Applications</span></li>
+            {% endif %}
+
+            {% if pending_applications_notif %}
+              {% for app in pending_applications_notif %}
+              <li class="notif-item unread" data-notif-id="app-{{ app.id }}">
+                <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">New Application — {{ app.reference_no }}</div>
+                    <div class="notif-item-msg">{{ app.borrower_name }} · {{ app.type_name }} · ₱{{ "{:,.0f}".format(app.amount_requested) }}</div>
+                    <div class="notif-item-time">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '' }}</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+              {% endfor %}
+            {% elif stats is defined and stats.get('pending_applications', 0) > 0 %}
+              <li class="notif-item unread" data-notif-id="pending-apps-summary">
+                <a href="{{ url_for('super_admin.admin_applications') }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">Pending Applications</div>
+                    <div class="notif-item-msg">{{ stats.pending_applications }} application(s) awaiting your review.</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+            {% endif %}
+
+            {# ══ Recent Activity ══ #}
+            {% if activity_logs %}
+              <li class="notif-group-label"><span>Recent Activity</span></li>
+              {% for log in activity_logs[:5] %}
+              <li class="notif-item" data-notif-id="log-{{ log.id if log.id else loop.index }}">
+                <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-item-link">
+                  <div class="notif-item-icon
+                    {% if 'approved' in log.action or 'verified' in log.action or 'paid' in log.action %}notif-icon--green
+                    {% elif 'rejected' in log.action or 'overdue' in log.action %}notif-icon--red
+                    {% elif 'disbursed' in log.action %}notif-icon--teal
+                    {% else %}notif-icon--activity{% endif %}">
+                    <span></span>
+                  </div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">{{ log.action | replace('_',' ') | title }}</div>
+                    <div class="notif-item-msg">
+                      {% if log.details %}{{ log.details }}{% endif %}
+                      {% if log.actor_name %} · by {{ log.actor_name }}{% endif %}
+                    </div>
+                    <div class="notif-item-time">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '' }}</div>
+                  </div>
+                </a>
+              </li>
+              {% endfor %}
+            {% endif %}
+
+            {# ══ Empty state ══ #}
+            {% if not has_apps and not activity_logs %}
+              <li class="notif-empty-item">
+                <span class="notif-empty-icon-img"></span>
+                <p>You're all caught up!</p>
+                <small>No new notifications</small>
+              </li>
+            {% endif %}
+
+          </ul>
+
           <div class="notif-footer">
             <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
               See all notifications →
@@ -52,6 +123,7 @@
           </div>
         </div>
       </div>
+
       <!-- Avatar -->
       <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
@@ -126,7 +198,6 @@
       </div>
 
     </aside>
-    <!-- /SIDEBAR -->
 
     <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
     <div class="main-content">
@@ -253,7 +324,8 @@
                                   {{ app.amount_requested }},
                                   {{ app.term_months }},
                                   '{{ app.submitted_at.strftime("%b %d, %Y") if app.submitted_at else "—" }}',
-                                  '{{ app.status }}'
+                                  '{{ app.status }}',
+                                  {{ app.id }}
                                 )">View</button>
                         <button class="btn btn-success btn-sm action-btn"
                                 onclick="openApproveModal({{ app.id }}, '{{ app.reference_no }}', {{ app.amount_requested }}, {{ app.term_months }})">
@@ -290,13 +362,12 @@
 
       </main>
     </div>
-    <!-- /MAIN CONTENT -->
 
   </div>
 </div>
 
 <!-- ═══════════════════ VIEW MODAL ═══════════════════ -->
-<div class="modal-overlay" id="viewModal">
+<div class="modal-overlay modal-no-backdrop" id="viewModal">
   <div class="modal-box modal-box--wide">
     <div class="modal-header-row">
       <h3>Application Details</h3>
@@ -311,17 +382,17 @@
       <div class="view-detail-section view-detail-section--highlight"><div class="view-section-label">Amount Requested</div><div class="view-section-value view-section-value--big" id="viewAmount"></div></div>
       <div class="view-detail-section view-detail-section--highlight"><div class="view-section-label">Loan Term</div><div class="view-section-value view-section-value--big" id="viewTerm"></div></div>
     </div>
-    <div class="modal-actions modal-actions--spaced">
-      <button class="btn-cancel" onclick="closeModals()">Close</button>
-      <div style="display:flex; gap:8px;" id="viewActionButtons"></div>
-    </div>
+    <div class="modal-actions modal-actions--right" id="viewActionButtons"></div>
   </div>
 </div>
 
 <!-- ═══════════════════ APPROVE MODAL ═══════════════════ -->
-<div class="modal-overlay" id="approveModal">
+<div class="modal-overlay modal-no-backdrop" id="approveModal">
   <div class="modal-box">
-    <h3>Approve Application</h3>
+    <div class="modal-header-row">
+      <h3>Approve Application</h3>
+      <button class="modal-close-x" onclick="closeModals()">&times;</button>
+    </div>
     <p id="approveDesc"></p>
     <div class="modal-amount-row">
       <div class="modal-amount-item"><div class="modal-amount-label">Requested Amount</div><div class="modal-amount-value" id="approveAmount"></div></div>
@@ -331,31 +402,31 @@
       <label class="modal-label">Note <span>(optional)</span></label>
       <textarea class="modal-textarea" id="approveNote" placeholder="Add a note for the borrower..."></textarea>
     </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+    <div class="modal-actions modal-actions--right">
       <button class="btn-approve" onclick="submitApprove()">Yes, Approve</button>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════════ REJECT MODAL ═══════════════════ -->
-<div class="modal-overlay" id="rejectModal">
+<div class="modal-overlay modal-no-backdrop" id="rejectModal">
   <div class="modal-box">
-    <h3>Reject Application</h3>
+    <div class="modal-header-row">
+      <h3>Reject Application</h3>
+      <button class="modal-close-x" onclick="closeModals()">&times;</button>
+    </div>
     <p id="rejectDesc"></p>
     <div class="modal-field">
       <label class="modal-label">Reason for rejection <span>(optional)</span></label>
       <textarea class="modal-textarea" id="rejectReason"
                 placeholder="e.g. Insufficient income, incomplete documents..."></textarea>
     </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+    <div class="modal-actions modal-actions--right">
       <button class="btn-reject-confirm" onclick="submitReject()">Yes, Reject</button>
     </div>
   </div>
 </div>
 
 <script src="{{ url_for('super_admin.static', filename='admin_applications.js') }}"></script>
-<script src="{{ url_for('super_admin.static', filename='admin_applications_ui.js') }}"></script>
 </body>
 </html>

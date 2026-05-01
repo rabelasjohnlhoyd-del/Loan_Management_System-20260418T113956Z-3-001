@@ -682,21 +682,24 @@ body:not(.sidebar-open) .sidebar { transform: translateX(calc(-1 * var(--sidebar
    MODAL
    ================================================================ */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.45);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 400; opacity: 0; pointer-events: none; transition: opacity .2s;
-  padding: 16px;
+  position: fixed; inset: 0; background: rgba(0,0,0,.50);
+  display: none; align-items: center; justify-content: center;
+  z-index: 400; padding: 16px;
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
 }
-.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-overlay.open { display: flex; }
 
 .modal-box {
   background: var(--white); border-radius: var(--r-lg);
   box-shadow: var(--shadow-lg); padding: 28px;
   width: 100%; max-width: 430px;
-  transform: translateY(12px); transition: transform .2s;
+  animation: modalIn .2s ease;
   max-height: 90vh; overflow-y: auto;
 }
-.modal-overlay.open .modal-box { transform: translateY(0); }
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
 
 .modal-icon {
   width: 54px; height: 54px; border-radius: 50%;
@@ -841,43 +844,48 @@ body:not(.sidebar-open) .sidebar { transform: translateX(calc(-1 * var(--sidebar
   /* Mobile table — card style per row */
   .data-table thead { display: none; }
   .data-table tbody tr {
-    display: block; padding: 12px 16px;
+    display: block;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border);
   }
   .data-table tbody tr:last-child { border-bottom: none; }
+
+  /* Each cell = one row: label on left, value on right */
   .data-table tbody td {
-    display: flex; align-items: center;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
-    padding: 7px 0; border: none; font-size: 13px;
-    gap: 8px;
+    padding: 6px 0;
+    border: none;
+    font-size: 13px;
   }
+
+  /* Label from data-label attribute */
   .data-table tbody td::before {
     content: attr(data-label);
-    font-size: 10px; font-weight: 700;
-    color: var(--text-muted); text-transform: uppercase;
-    letter-spacing: 0.6px; flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    flex-shrink: 0;
     min-width: 90px;
   }
-  /* Right-align the value side */
-  .data-table tbody td > *,
-  .data-table tbody td > span,
-  .data-table tbody td > a,
-  .data-table tbody td > div {
+
+  /* Value wrapper — pushes to right */
+  .data-table tbody td .td-val {
     text-align: right;
     margin-left: auto;
   }
-  /* Type cell has two lines — stack them on the right */
-  .data-table tbody td .td-name,
-  .data-table tbody td .td-sub {
-    text-align: right;
-  }
-  /* Empty last-column td (no label needed) */
-  .data-table tbody td:last-child {
+  .data-table tbody td .td-val .td-name { font-weight: 500; color: var(--text-h); }
+  .data-table tbody td .td-val .td-sub  { font-size: 11px; color: var(--text-muted); }
+
+  /* Action cell — no label, button right-aligned */
+  .data-table tbody td.td-action {
     justify-content: flex-end;
+    padding-top: 8px;
   }
-  .data-table tbody td:last-child::before {
-    display: none;
-  }
+  .data-table tbody td.td-action::before { display: none; }
 
   .verify-actions { flex-direction: column; }
   .btn-verify { width: 100%; justify-content: center; }

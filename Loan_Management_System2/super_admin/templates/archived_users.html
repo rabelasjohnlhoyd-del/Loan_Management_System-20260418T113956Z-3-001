@@ -3,22 +3,19 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Manage Users — Hiraya Management System</title>
+  <title>Archived Users — Hiraya Management System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='manage_users.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='archived_users.css') }}"/>
 </head>
 <body>
 
-<!-- OVERLAY (mobile sidebar backdrop) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
-       TOPBAR
-  ════════════════════════════════════════════════ -->
+  <!-- TOPBAR -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -32,7 +29,6 @@
         </div>
       </div>
     </div>
-
     <div class="topbar-right">
       <div class="notif-wrap" id="notifWrap">
         <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
@@ -58,9 +54,6 @@
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════════
-       BODY ROW
-  ════════════════════════════════════════════════ -->
   <div class="body-row">
 
     <!-- SIDEBAR -->
@@ -113,9 +106,13 @@
           <span class="nav-icon nav-icon--warning"></span>
           <span class="nav-label">Penalties &amp; Overdue</span>
         </a>
-        <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item active">
+        <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item">
           <span class="nav-icon nav-icon--manage-users"></span>
           <span class="nav-label">Manage Users</span>
+        </a>
+        <a href="{{ url_for('super_admin.archived_users') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--archive"></span>
+          <span class="nav-label">Archived Users</span>
         </a>
       </nav>
 
@@ -130,26 +127,22 @@
 
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <div class="main-content">
       <main class="page-body">
 
         <!-- PAGE HEADER -->
         <div class="loans-page-header">
           <div class="loans-page-header-left">
-            <a href="{{ url_for('auth.dashboard') }}" class="btn-back">
+            <a href="{{ url_for('super_admin.manage_users') }}" class="btn-back">
               <span class="btn-back-icon"></span>
-              Dashboard
+              Manage Users
             </a>
             <div>
-              <h2 class="loans-page-title">Manage Staff Users</h2>
-              <p class="loans-page-sub">Manage admin, loan officer, and auditor accounts</p>
+              <h2 class="loans-page-title">Archived Users</h2>
+              <p class="loans-page-sub">Accounts that have been archived and can no longer log in</p>
             </div>
           </div>
-          <a href="{{ url_for('super_admin.create_user') }}" class="btn-add-user">
-            <span class="btn-add-icon"></span>
-            Add User
-          </a>
         </div>
 
         <!-- FLASH MESSAGES -->
@@ -170,7 +163,7 @@
         {% endwith %}
 
         <!-- FILTER BAR -->
-        <form method="GET" action="{{ url_for('super_admin.manage_users') }}" class="filter-bar">
+        <form method="GET" action="{{ url_for('super_admin.archived_users') }}" class="filter-bar">
           <div class="search-wrap">
             <span class="search-icon"></span>
             <input type="text" class="search-input" name="search"
@@ -178,35 +171,37 @@
                    value="{{ search if search else '' }}"/>
           </div>
           <select name="role" class="filter-select">
-            <option value="all" {{ 'selected' if not role_filter or role_filter == 'all' }}>All Roles</option>
-            <option value="super_admin"  {{ 'selected' if role_filter == 'super_admin'  }}>Super Admin</option>
-            <option value="admin"        {{ 'selected' if role_filter == 'admin'        }}>Admin</option>
+            <option value="all"         {{ 'selected' if not role_filter or role_filter == 'all' }}>All Roles</option>
             <option value="loan_officer" {{ 'selected' if role_filter == 'loan_officer' }}>Loan Officer</option>
             <option value="auditor"      {{ 'selected' if role_filter == 'auditor'      }}>Auditor</option>
           </select>
-          <select name="status" class="filter-select">
-            <option value="all"      {{ 'selected' if not status_filter or status_filter == 'all' }}>All Status</option>
-            <option value="active"   {{ 'selected' if status_filter == 'active'   }}>Active</option>
-            <option value="inactive" {{ 'selected' if status_filter == 'inactive' }}>Inactive</option>
-          </select>
           <button type="submit" class="btn-filter">Filter</button>
-          {% if search or (role_filter and role_filter != 'all') or (status_filter and status_filter != 'all') %}
-          <a href="{{ url_for('super_admin.manage_users') }}" class="btn-clear">Clear</a>
+          {% if search or (role_filter and role_filter != 'all') %}
+          <a href="{{ url_for('super_admin.archived_users') }}" class="btn-clear">Clear</a>
           {% endif %}
         </form>
+
+        <!-- INFO BANNER -->
+        <div class="info-banner">
+          <span class="info-banner-icon"></span>
+          <div>
+            <strong>Archived Accounts:</strong> These users have been archived and can no longer log in to the system.
+            You can restore an account anytime by clicking the <strong>Restore</strong> button.
+          </div>
+        </div>
 
         <!-- TABLE CARD -->
         <div class="card">
           <div class="card-body">
             {% if users %}
-            <table class="data-table" id="usersTable">
+            <table class="data-table" id="archivedTable">
               <thead>
                 <tr>
                   <th>User</th>
                   <th>Role</th>
                   <th>Contact</th>
-                  <th>Status</th>
-                  <th>Member Since</th>
+                  <th>Archived On</th>
+                  <th>Archived By</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -215,7 +210,9 @@
                 <tr>
                   <td data-label="User">
                     <div class="user-cell">
-                      <div class="user-avatar">{{ u.full_name[0]|upper if u.full_name else '?' }}</div>
+                      <div class="user-avatar user-avatar--archived">
+                        {{ u.full_name[0]|upper if u.full_name else '?' }}
+                      </div>
                       <div>
                         <div class="td-name">{{ u.full_name }}</div>
                         <div class="td-sub">{{ u.email }}</div>
@@ -230,39 +227,21 @@
                   <td data-label="Contact">
                     <span class="td-contact">{{ u.contact_number if u.contact_number else '—' }}</span>
                   </td>
-                  <td data-label="Status">
-                    <span class="status-dot {{ 'active' if u.is_active else 'inactive' }}">
-                      {{ 'Active' if u.is_active else 'Inactive' }}
-                    </span>
+                  <td data-label="Archived On">
+                    {{ u.archived_at.strftime('%b %d, %Y') if u.archived_at else '—' }}
                   </td>
-                  <td data-label="Member Since">
-                    {{ u.created_at.strftime('%b %d, %Y') if u.created_at else '—' }}
+                  <td data-label="Archived By">
+                    <span class="td-archived-by">{{ u.archived_by_name if u.archived_by_name else '—' }}</span>
                   </td>
                   <td data-label="Action">
-                    <div class="action-wrap">
-                      {% if u.role not in ['super_admin', 'admin'] %}
-                        <!-- Deactivate / Activate toggle -->
-                        <form method="POST"
-                              action="{{ url_for('super_admin.toggle_user_status', user_id=u.id) }}"
-                              onsubmit="return confirm('{{ 'Deactivate' if u.is_active else 'Activate' }} this user?')">
-                          <button type="submit"
-                                  class="btn-toggle {{ 'btn-toggle--deactivate' if u.is_active else 'btn-toggle--activate' }}">
-                            {{ 'Deactivate' if u.is_active else 'Activate' }}
-                          </button>
-                        </form>
-                        <!-- Archive -->
-                        <form method="POST"
-                              action="{{ url_for('super_admin.archive_user', user_id=u.id) }}"
-                              onsubmit="return confirm('Archive this user? They will no longer be able to log in.')">
-                          <button type="submit" class="btn-archive">
-                            <span class="btn-archive-icon"></span>
-                            Archive
-                          </button>
-                        </form>
-                      {% else %}
-                        <span class="action-protected" title="Protected account">—</span>
-                      {% endif %}
-                    </div>
+                    <form method="POST"
+                          action="{{ url_for('super_admin.restore_user', user_id=u.id) }}"
+                          onsubmit="return confirm('Restore this user? They will be able to log in again.')">
+                      <button type="submit" class="btn-restore">
+                        <span class="btn-restore-icon"></span>
+                        Restore
+                      </button>
+                    </form>
                   </td>
                 </tr>
                 {% endfor %}
@@ -271,12 +250,12 @@
             {% else %}
             <div class="table-empty">
               <span class="empty-icon"></span>
-              <p class="empty-title">No users found</p>
+              <p class="empty-title">No archived users</p>
               <p class="empty-sub">
                 {% if search or role_filter %}
-                  No users match your search. <a href="{{ url_for('super_admin.manage_users') }}" class="empty-link">Clear filters</a>
+                  No archived users match your search. <a href="{{ url_for('super_admin.archived_users') }}" class="empty-link">Clear filters</a>
                 {% else %}
-                  Add a user to get started.
+                  Archived accounts will appear here.
                 {% endif %}
               </p>
             </div>
@@ -298,6 +277,6 @@
   </div>
 </div>
 
-<script src="{{ url_for('super_admin.static', filename='manage_users.js') }}"></script>
+<script src="{{ url_for('super_admin.static', filename='archived_users.js') }}"></script>
 </body>
 </html>

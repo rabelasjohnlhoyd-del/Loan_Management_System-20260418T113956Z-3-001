@@ -1,6 +1,10 @@
 /* ================================================================
-   admin_applications_ui.js — Sidebar, Notifications, Dropdown
-   Mirrors borrower page logic exactly
+   admin_applications.js — Full JS
+   Changes vs original:
+   1. Notifications: localStorage-based persistence (no API needed)
+   2. View modal   : no backdrop-close, no Close button
+   3. Approve modal: no backdrop-close, X button only, no Cancel
+   4. Reject modal : no backdrop-close, X button only, no Cancel
    ================================================================ */
 
 (function () {
@@ -20,31 +24,24 @@
     if (isMobile()) sidebarOverlay.classList.add('active');
     if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '1');
   }
-
   function closeSidebar() {
     document.body.classList.remove('sidebar-open');
     sidebarOverlay.classList.remove('active');
     if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '0');
   }
-
   function toggleSidebar() {
     document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
   }
 
-  /* Restore desktop preference on page load */
-  if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
-    openSidebar();
-  }
+  if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
 
   burgerBtn?.addEventListener('click', toggleSidebar);
   sidebarOverlay?.addEventListener('click', closeSidebar);
 
-  /* Close on nav click (mobile) */
   sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
     link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
-  /* Re-evaluate on resize */
   window.addEventListener('resize', () => {
     if (!isMobile()) {
       sidebarOverlay.classList.remove('active');
@@ -65,7 +62,6 @@
     userDropdown.classList.toggle('open');
     userToggle.classList.toggle('open');
   });
-
   document.addEventListener('click', (e) => {
     if (!userToggle?.contains(e.target) && !userDropdown?.contains(e.target)) {
       userDropdown?.classList.remove('open');
@@ -76,144 +72,103 @@
   /* ================================================================
      ACTIVE NAV HIGHLIGHT
      ================================================================ */
-  const path = window.location.pathname;
-  document.querySelectorAll('.nav-item').forEach(function (el) {
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-item[href]').forEach(el => {
     const href = el.getAttribute('href');
-    if (href && href !== '#' && path.startsWith(href)) {
+    if (href && href !== '#' && currentPath.startsWith(href) && href !== '/') {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       el.classList.add('active');
     }
   });
 
   /* ================================================================
-     NOTIFICATIONS
+     NOTIFICATIONS — localStorage persistence
+     Same pattern as dashboard_admin.js
+     Reads from the rendered <ul#notifList> items that have
+     data-notif-id attributes. If the page uses server-rendered
+     notif items, they must have data-notif-id set in the template.
+     Falls back gracefully if the list is empty / API-driven.
      ================================================================ */
-  const notifBtn      = document.getElementById('notifBtn');
-  const notifDropdown = document.getElementById('notifDropdown');
-  const notifDot      = document.getElementById('notifDot');
-  const notifList     = document.getElementById('notifList');
-  const notifMarkAll  = document.getElementById('notifMarkAll');
-  const notifWrap     = document.getElementById('notifWrap');
+  const NOTIF_READ_KEY = 'hiraya_admin_read_notifs';
+  const notifBtn       = document.getElementById('notifBtn');
+  const notifDropdown  = document.getElementById('notifDropdown');
+  const notifDot       = document.getElementById('notifDot');
+  const notifMarkAll   = document.getElementById('notifMarkAll');
+  const notifWrap      = document.getElementById('notifWrap');
+  const notifList      = document.getElementById('notifList');
 
-  let notifLoaded = false;
+  function getReadSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(NOTIF_READ_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+  function saveReadSet(set) {
+    try { localStorage.setItem(NOTIF_READ_KEY, JSON.stringify([...set])); }
+    catch (e) { /* quota */ }
+  }
 
+function markNotifItemRead(el) {
+  el.classList.remove('unread');
+  el.classList.add('read-local');
+  el.querySelectorAll('.notif-unread-dot').forEach(d => d.remove());
+}
+  function refreshNotifDot() {
+    const stillUnread = notifList?.querySelectorAll('.notif-item.unread').length ?? 0;
+    stillUnread > 0
+      ? notifDot?.classList.remove('hidden')
+      : notifDot?.classList.add('hidden');
+  }
+
+  /* Apply persisted read state to server-rendered items */
+  const readSet = getReadSet();
+  notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
+    if (readSet.has(item.dataset.notifId)) markNotifItemRead(item);
+  });
+  refreshNotifDot();
+
+  /* Toggle dropdown */
   notifBtn?.addEventListener('click', function (e) {
     e.stopPropagation();
-    const isOpen = notifDropdown.classList.toggle('open');
-    if (isOpen && !notifLoaded) {
-      loadNotifications();
-    }
+    notifDropdown?.classList.toggle('open');
   });
-
   document.addEventListener('click', (e) => {
-    if (!notifWrap?.contains(e.target)) {
-      notifDropdown?.classList.remove('open');
-    }
+    if (!notifWrap?.contains(e.target)) notifDropdown?.classList.remove('open');
   });
 
-  function loadNotifications() {
-    notifLoaded = true;
-    notifList.innerHTML = '<div class="notif-loading">Loading...</div>';
+  /* Mark individual notif as read on click */
+  notifList?.addEventListener('click', function (e) {
+    const item = e.target.closest('.notif-item[data-notif-id]');
+    if (!item || !item.classList.contains('unread')) return;
+    markNotifItemRead(item);
+    readSet.add(item.dataset.notifId);
+    saveReadSet(readSet);
+    refreshNotifDot();
+  });
 
-    fetch('/super_admin/api/notifications')
-      .then(res => res.json())
-      .then(data => renderNotifications(data))
-      .catch(() => {
-        notifList.innerHTML = '<div class="notif-empty"><p>Could not load notifications.</p><small>Please try again later.</small></div>';
-      });
-  }
-
-  function renderNotifications(data) {
-    const items = Array.isArray(data) ? data : (data.notifications || []);
-
-    const unreadCount = items.filter(n => !n.is_read).length;
-    if (unreadCount > 0) {
-      notifDot.classList.remove('hidden');
-    } else {
-      notifDot.classList.add('hidden');
-    }
-
-    if (items.length === 0) {
-      notifList.innerHTML = `
-        <div class="notif-empty">
-          <p>No notifications</p>
-          <small>You're all caught up!</small>
-        </div>`;
-      return;
-    }
-
-    const bellIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E";
-
-    notifList.innerHTML = items.map(n => `
-      <div class="notif-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}">
-        <div class="notif-item-icon">
-          <span style="
-            -webkit-mask-image: url('${bellIcon}');
-            mask-image: url('${bellIcon}');
-            mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-            -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-          "></span>
-        </div>
-        <div class="notif-item-body">
-          <div class="notif-item-title">${escHtml(n.title || 'Notification')}</div>
-          <div class="notif-item-msg">${escHtml(n.message || '')}</div>
-          <div class="notif-item-time">${formatTime(n.created_at)}</div>
-        </div>
-        ${!n.is_read ? '<span class="notif-unread-dot"></span>' : ''}
-      </div>
-    `).join('');
-
-    notifList.querySelectorAll('.notif-item').forEach(el => {
-      el.addEventListener('click', () => markAsRead(el.dataset.id, el));
-    });
-  }
-
-  function markAsRead(id, el) {
-    if (!el.classList.contains('unread')) return;
-    fetch(`/super_admin/api/notifications/${id}/read`, { method: 'POST' })
-      .then(res => res.ok && updateUnreadUI(el))
-      .catch(() => {});
-  }
-
-  function updateUnreadUI(el) {
-    el.classList.remove('unread');
-    el.querySelector('.notif-unread-dot')?.remove();
-    const remaining = notifList.querySelectorAll('.notif-item.unread').length;
-    if (remaining === 0) notifDot.classList.add('hidden');
-  }
-
+  /* Mark all as read */
   notifMarkAll?.addEventListener('click', () => {
-    fetch('/super_admin/api/notifications/read-all', { method: 'POST' })
-      .then(res => {
-        if (res.ok) {
-          notifList.querySelectorAll('.notif-item.unread').forEach(el => updateUnreadUI(el));
-        }
-      })
-      .catch(() => {});
+    notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
+      markNotifItemRead(item);
+      readSet.add(item.dataset.notifId);
+    });
+    saveReadSet(readSet);
+    refreshNotifDot();
   });
-
-  /* Check unread count on page load */
-  fetch('/admin/api/notifications/count')
-    .then(res => res.json())
-    .then(data => {
-      if ((data.count ?? 0) > 0) notifDot?.classList.remove('hidden');
-    })
-    .catch(() => {});
 
   /* ================================================================
-     CLIENT-SIDE PAGINATION (10 rows per page)
+     PAGINATION — 10 rows per page, client-side
      ================================================================ */
-  const ROWS_PER_PAGE = 10;
-  const tableBody     = document.getElementById('tableBody');
+  const ROWS_PER_PAGE  = 10;
+  const tableBody      = document.getElementById('tableBody');
   const paginationWrap = document.getElementById('paginationWrap');
   const paginationInfo = document.getElementById('paginationInfo');
   const paginationBtns = document.getElementById('paginationBtns');
   const resultCount    = document.getElementById('resultCount');
 
   if (tableBody) {
-    const allRows   = Array.from(tableBody.querySelectorAll('tr'));
-    const totalRows = allRows.length;
+    const allRows    = Array.from(tableBody.querySelectorAll('tr'));
+    const totalRows  = allRows.length;
     const totalPages = Math.ceil(totalRows / ROWS_PER_PAGE);
-    let currentPage = 1;
+    let   currentPage = 1;
 
     if (resultCount) resultCount.textContent = totalRows + ' result(s)';
 
@@ -226,52 +181,46 @@
         row.style.display = (i >= start && i < end) ? '' : 'none';
       });
 
-      // Info text
       const from = totalRows === 0 ? 0 : start + 1;
       const to   = Math.min(end, totalRows);
-      paginationInfo.textContent = totalRows === 0
-        ? 'No results'
-        : 'Showing ' + from + '–' + to + ' of ' + totalRows + ' results';
+      if (paginationInfo) {
+        paginationInfo.textContent = totalRows === 0
+          ? 'No results'
+          : 'Showing ' + from + '–' + to + ' of ' + totalRows + ' results';
+      }
 
-      // Buttons
+      if (!paginationBtns) return;
       paginationBtns.innerHTML = '';
 
       if (totalPages <= 1) {
-        paginationWrap.style.display = totalRows === 0 ? 'none' : 'flex';
+        if (paginationWrap) paginationWrap.style.display = totalRows === 0 ? 'none' : 'flex';
         return;
       }
 
-      // Prev
+      /* Prev */
       const prev = makeBtn('‹', page === 1, false, () => showPage(page - 1));
       prev.classList.add('page-btn--wide');
       prev.title = 'Previous';
       paginationBtns.appendChild(prev);
 
-      // Page numbers — show max 5 around current
+      /* Page numbers */
       const delta = 2;
-      let pages = [];
+      const pages = [];
       for (let p = 1; p <= totalPages; p++) {
-        if (p === 1 || p === totalPages || (p >= page - delta && p <= page + delta)) {
-          pages.push(p);
-        }
+        if (p === 1 || p === totalPages || (p >= page - delta && p <= page + delta)) pages.push(p);
       }
-
       let last = 0;
       pages.forEach(p => {
         if (last && p - last > 1) {
-          // Ellipsis
           const dots = document.createElement('button');
-          dots.className = 'page-btn';
-          dots.textContent = '…';
-          dots.disabled = true;
+          dots.className = 'page-btn'; dots.textContent = '…'; dots.disabled = true;
           paginationBtns.appendChild(dots);
         }
-        const btn = makeBtn(p, false, p === page, () => showPage(p));
-        paginationBtns.appendChild(btn);
+        paginationBtns.appendChild(makeBtn(p, false, p === page, () => showPage(p)));
         last = p;
       });
 
-      // Next
+      /* Next */
       const next = makeBtn('›', page === totalPages, false, () => showPage(page + 1));
       next.classList.add('page-btn--wide');
       next.title = 'Next';
@@ -280,7 +229,7 @@
 
     function makeBtn(label, disabled, active, onClick) {
       const btn = document.createElement('button');
-      btn.className = 'page-btn' + (active ? ' active' : '');
+      btn.className   = 'page-btn' + (active ? ' active' : '');
       btn.textContent = label;
       btn.disabled    = disabled;
       btn.addEventListener('click', onClick);
@@ -291,26 +240,148 @@
   }
 
   /* ================================================================
-     HELPERS
+     AUTO-DISMISS FLASH MESSAGES
      ================================================================ */
-  function escHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  function formatTime(ts) {
-    if (!ts) return '';
-    const date = new Date(ts);
-    if (isNaN(date)) return ts;
-    const now  = new Date();
-    const diff = Math.floor((now - date) / 1000);
-    if (diff < 60)    return 'Just now';
-    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
+  setTimeout(() => {
+    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
+  }, 5000);
 
 })();
+
+/* ================================================================
+   MODAL LOGIC
+   - closeModals()      : X button lang ang nag-close
+   - openModal(id)      : opens modal
+   - Backdrop click     : DISABLED for all modals with .modal-no-backdrop
+   - Escape key         : still closes (convenience)
+   ================================================================ */
+
+let currentAppId = null;
+
+function closeModals() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+}
+
+function openModal(id) {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+  document.getElementById(id).classList.add('open');
+}
+
+/* Backdrop click: only close modals that do NOT have .modal-no-backdrop */
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function (e) {
+    if (e.target === this && !this.classList.contains('modal-no-backdrop')) {
+      closeModals();
+    }
+  });
+});
+
+/* Escape key closes any modal */
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeModals();
+});
+
+/* ── Format helpers ──────────────────────────────────── */
+function formatCurrency(amount) {
+  return '₱' + parseFloat(amount).toLocaleString('en-PH', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+}
+function getStatusLabel(status) {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/* ── POST form helper ────────────────────────────────── */
+function submitForm(url, fields) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = url;
+  Object.entries(fields).forEach(([name, value]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden'; input.name = name; input.value = value;
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+}
+
+/* ── VIEW MODAL ──────────────────────────────────────── */
+function openViewModal(refNo, borrowerName, borrowerEmail, typeName, planName,
+                       amount, term, submittedAt, status, appId) {
+  document.getElementById('viewRef').textContent           = refNo;
+  document.getElementById('viewBorrowerName').textContent  = borrowerName;
+  document.getElementById('viewBorrowerEmail').textContent = borrowerEmail;
+  document.getElementById('viewTypeName').textContent      = typeName;
+  document.getElementById('viewPlanName').textContent      = planName;
+  document.getElementById('viewAmount').textContent        = formatCurrency(amount);
+  document.getElementById('viewTerm').textContent          = term + ' months';
+  document.getElementById('viewSubmitted').textContent     = submittedAt;
+
+  const statusColors = {
+    submitted:    { bg: '#eff6ff', color: '#3b82f6' },
+    under_review: { bg: '#fffbea', color: '#b45309' },
+    approved:     { bg: '#f0fdf4', color: '#16a34a' },
+    rejected:     { bg: '#fdf0f0', color: '#e05252' },
+    cancelled:    { bg: '#f4f8f7', color: '#9bbcb7' },
+  };
+  const sc = statusColors[status] || { bg: '#f4f8f7', color: '#5a7a76' };
+  document.getElementById('viewStatusBadge').innerHTML =
+    `<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:${sc.bg};color:${sc.color};">${getStatusLabel(status)}</span>`;
+
+  /* Approve + Reject buttons (only for actionable statuses) */
+  const actionDiv = document.getElementById('viewActionButtons');
+  actionDiv.innerHTML = '';
+
+  if (appId && (status === 'submitted' || status === 'under_review')) {
+    currentAppId = appId;
+
+    const approveBtn       = document.createElement('button');
+    approveBtn.className   = 'btn-approve';
+    approveBtn.textContent = 'Approve';
+    approveBtn.onclick     = function () { closeModals(); openApproveModal(appId, refNo, amount, term); };
+
+    const rejectBtn             = document.createElement('button');
+    rejectBtn.className         = 'btn-reject-confirm';
+    rejectBtn.textContent       = 'Reject';
+    rejectBtn.onclick           = function () { closeModals(); openRejectModal(appId, refNo); };
+
+    actionDiv.appendChild(approveBtn);
+    actionDiv.appendChild(rejectBtn);
+  }
+
+  openModal('viewModal');
+}
+
+/* ── APPROVE MODAL ───────────────────────────────────── */
+function openApproveModal(appId, refNo, amount, term) {
+  currentAppId = appId;
+  document.getElementById('approveDesc').textContent   = `You are about to approve application ${refNo}.`;
+  document.getElementById('approveAmount').textContent = formatCurrency(amount);
+  document.getElementById('approveTerm').textContent   = term + ' months';
+  document.getElementById('approveNote').value         = '';
+  openModal('approveModal');
+}
+
+function submitApprove() {
+  if (!currentAppId) { alert('Error: No application selected. Please try again.'); return; }
+  submitForm(`/admin/applications/${currentAppId}/review`, {
+    action: 'approve',
+    note:   document.getElementById('approveNote').value
+  });
+}
+
+/* ── REJECT MODAL ────────────────────────────────────── */
+function openRejectModal(appId, refNo) {
+  currentAppId = appId;
+  document.getElementById('rejectDesc').textContent = `You are about to reject application ${refNo}.`;
+  document.getElementById('rejectReason').value     = '';
+  openModal('rejectModal');
+}
+
+function submitReject() {
+  if (!currentAppId) { alert('Error: No application selected. Please try again.'); return; }
+  submitForm(`/admin/applications/${currentAppId}/review`, {
+    action:           'reject',
+    rejection_reason: document.getElementById('rejectReason').value
+  });
+}

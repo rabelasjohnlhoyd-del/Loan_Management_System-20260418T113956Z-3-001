@@ -46,7 +46,7 @@
             <div class="notif-loading">Loading...</div>
           </div>
           <div class="notif-footer">
-            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
+            <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
               See all notifications →
             </a>
           </div>
@@ -296,14 +296,16 @@
                     <tr>
                       <td data-label="Loan No."><span class="td-ref">{{ loan.loan_no }}</span></td>
                       <td data-label="Type">
-                        <div class="td-name">{{ loan.type_name }}</div>
-                        <div class="td-sub">{{ loan.plan_name }}</div>
+                        <div class="td-val">
+                          <div class="td-name">{{ loan.type_name }}</div>
+                          <div class="td-sub">{{ loan.plan_name }}</div>
+                        </div>
                       </td>
-                      <td data-label="Principal">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</td>
-                      <td data-label="Balance">&#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
-                      <td data-label="Status"><span class="loan-status {{ loan.status }}">{{ loan.status | title }}</span></td>
-                      <td data-label="Date">{{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</td>
-                      <td data-label="Action"><a href="{{ url_for('super_admin.loan_detail', loan_id=loan.id) }}" class="btn btn-outline btn-sm">View</a></td>
+                      <td data-label="Principal"><span class="td-val">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</span></td>
+                      <td data-label="Balance"><span class="td-val">&#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}</span></td>
+                      <td data-label="Status"><span class="td-val"><span class="loan-status {{ loan.status }}">{{ loan.status | title }}</span></span></td>
+                      <td data-label="Date"><span class="td-val">{{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</span></td>
+                      <td class="td-action"><a href="{{ url_for('super_admin.loan_detail', loan_id=loan.id) }}" class="btn btn-outline btn-sm">View</a></td>
                     </tr>
                     {% endfor %}
                   </tbody>
@@ -339,11 +341,11 @@
                   <tbody>
                     {% for app in active_applications %}
                     <tr>
-                      <td data-label="Reference"><span class="td-ref">{{ app.reference_no }}</span></td>
-                      <td data-label="Type">{{ app.type_name }}</td>
-                      <td data-label="Amount">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</td>
-                      <td data-label="Status"><span class="app-status {{ app.status }}">{{ app.status | replace('_',' ') | title }}</span></td>
-                      <td data-label="Action"><a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="btn btn-outline btn-sm">View</a></td>
+                      <td data-label="Reference"><span class="td-val td-ref">{{ app.reference_no }}</span></td>
+                      <td data-label="Type"><span class="td-val">{{ app.type_name }}</span></td>
+                      <td data-label="Amount"><span class="td-val">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</span></td>
+                      <td data-label="Status"><span class="td-val"><span class="app-status {{ app.status }}">{{ app.status | replace('_',' ') | title }}</span></span></td>
+                      <td class="td-action"><a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="btn btn-outline btn-sm">View</a></td>
                     </tr>
                     {% endfor %}
                   </tbody>
@@ -457,5 +459,75 @@
 </form>
 
 <script src="{{ url_for('super_admin.static', filename='borrower_detail.js') }}"></script>
+<script src="{{ url_for('super_admin.static', filename='borrower_detail_ui.js') }}"></script>
+<script>
+  /* ── Fallback: ensure modal functions exist even if borrower_detail.js fails ── */
+  if (typeof openVerifyModal === 'undefined') {
+    var _verifyAction = null;
+
+    window.openVerifyModal = function(action, borrowerId, borrowerName) {
+      _verifyAction = action;
+      var icon  = document.getElementById('modalIcon');
+      var title = document.getElementById('modalTitle');
+      var desc  = document.getElementById('modalDesc');
+      var btn   = document.getElementById('modalConfirmBtn');
+
+      if (action === 'accept') {
+        icon.textContent = '✅';
+        icon.className   = 'modal-icon modal-icon--accept';
+        title.textContent = 'Approve ID Verification';
+        desc.textContent  = 'You are about to verify the identity of ' + borrowerName + '. They will be notified once confirmed.';
+        btn.textContent   = 'Yes, Approve';
+        btn.className     = 'btn-confirm btn-confirm--accept';
+      } else {
+        icon.textContent = '❌';
+        icon.className   = 'modal-icon modal-icon--reject';
+        title.textContent = 'Reject ID Verification';
+        desc.textContent  = 'You are about to reject the ID of ' + borrowerName + '. They may re-upload.';
+        btn.textContent   = 'Yes, Reject';
+        btn.className     = 'btn-confirm btn-confirm--reject';
+      }
+
+      document.getElementById('modalNote').value = '';
+      document.getElementById('verifyModal').classList.add('open');
+    };
+
+    window.closeModal = function() {
+      document.getElementById('verifyModal').classList.remove('open');
+    };
+
+    window.submitVerification = function() {
+      var note = document.getElementById('modalNote').value.trim();
+      if (_verifyAction === 'accept') {
+        document.getElementById('acceptNote').value = note;
+        document.getElementById('acceptForm').submit();
+      } else {
+        document.getElementById('rejectNote').value = note;
+        document.getElementById('rejectForm').submit();
+      }
+    };
+
+    document.getElementById('verifyModal').addEventListener('click', function(e) {
+      /* intentionally empty — clicking outside does NOT close the modal */
+    });
+  }
+
+  if (typeof openLightbox === 'undefined') {
+    window.openLightbox = function(src) {
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightbox').classList.add('open');
+    };
+    window.closeLightbox = function() {
+      document.getElementById('lightbox').classList.remove('open');
+    };
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      /* Modal stays open on Escape — only close via Cancel button */
+      if (typeof closeLightbox === 'function') closeLightbox();
+    }
+  });
+</script>
 </body>
 </html>
