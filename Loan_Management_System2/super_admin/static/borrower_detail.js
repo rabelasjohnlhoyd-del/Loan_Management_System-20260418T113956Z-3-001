@@ -1,6 +1,6 @@
 /* ================================================================
-   borrower_detail_ui.js — Sidebar, Notifications, User Dropdown
-   Mirrors admin_applications_ui.js exactly
+   borrower_detail_ui.js — Sidebar, User Dropdown, Notifications
+   NOTIFICATIONS: localStorage version (matches all_loans.js)
    ================================================================ */
 
 (function () {
@@ -31,7 +31,6 @@
     document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
   }
 
-  /* Restore desktop preference on page load */
   if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
     openSidebar();
   }
@@ -39,12 +38,10 @@
   burgerBtn?.addEventListener('click', toggleSidebar);
   sidebarOverlay?.addEventListener('click', closeSidebar);
 
-  /* Close on nav click (mobile) */
   sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
     link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
-  /* Re-evaluate on resize */
   window.addEventListener('resize', () => {
     if (!isMobile()) {
       sidebarOverlay.classList.remove('active');
@@ -85,141 +82,70 @@
   });
 
   /* ================================================================
-     NOTIFICATIONS
+     NOTIFICATIONS — localStorage (MATCHES all_loans.js)
      ================================================================ */
-  const notifBtn      = document.getElementById('notifBtn');
-  const notifDropdown = document.getElementById('notifDropdown');
-  const notifDot      = document.getElementById('notifDot');
-  const notifList     = document.getElementById('notifList');
-  const notifMarkAll  = document.getElementById('notifMarkAll');
-  const notifWrap     = document.getElementById('notifWrap');
+  const NOTIF_READ_KEY = 'hiraya_admin_read_notifs';
+  const notifBtn       = document.getElementById('notifBtn');
+  const notifDropdown  = document.getElementById('notifDropdown');
+  const notifDot       = document.getElementById('notifDot');
+  const notifMarkAll   = document.getElementById('notifMarkAll');
+  const notifWrap      = document.getElementById('notifWrap');
+  const notifList      = document.getElementById('notifList');
 
-  let notifLoaded = false;
+  function getReadSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(NOTIF_READ_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+
+  function saveReadSet(set) {
+    try { localStorage.setItem(NOTIF_READ_KEY, JSON.stringify([...set])); }
+    catch (e) { /* quota */ }
+  }
+
+  function markNotifItemRead(el) {
+    el.classList.remove('unread');
+    el.classList.add('read-local');
+    el.querySelectorAll('.notif-unread-dot').forEach(d => d.remove());
+  }
+
+  function refreshNotifDot() {
+    const stillUnread = notifList?.querySelectorAll('.notif-item.unread').length ?? 0;
+    stillUnread > 0
+      ? notifDot?.classList.remove('hidden')
+      : notifDot?.classList.add('hidden');
+  }
+
+  const readSet = getReadSet();
+  notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
+    if (readSet.has(item.dataset.notifId)) markNotifItemRead(item);
+  });
+  refreshNotifDot();
 
   notifBtn?.addEventListener('click', function (e) {
     e.stopPropagation();
-    const isOpen = notifDropdown.classList.toggle('open');
-    if (isOpen && !notifLoaded) {
-      loadNotifications();
-    }
+    notifDropdown?.classList.toggle('open');
   });
 
   document.addEventListener('click', (e) => {
-    if (!notifWrap?.contains(e.target)) {
-      notifDropdown?.classList.remove('open');
-    }
+    if (!notifWrap?.contains(e.target)) notifDropdown?.classList.remove('open');
   });
 
-  function loadNotifications() {
-    notifLoaded = true;
-    notifList.innerHTML = '<div class="notif-loading">Loading...</div>';
-
-    fetch('/super_admin/api/notifications')
-      .then(res => res.json())
-      .then(data => renderNotifications(data))
-      .catch(() => {
-        notifList.innerHTML = '<div class="notif-empty"><p>Could not load notifications.</p><small>Please try again later.</small></div>';
-      });
-  }
-
-  function renderNotifications(data) {
-    const items = Array.isArray(data) ? data : (data.notifications || []);
-
-    const unreadCount = items.filter(n => !n.is_read).length;
-    if (unreadCount > 0) {
-      notifDot.classList.remove('hidden');
-    } else {
-      notifDot.classList.add('hidden');
-    }
-
-    if (items.length === 0) {
-      notifList.innerHTML = `
-        <div class="notif-empty">
-          <p>No notifications</p>
-          <small>You're all caught up!</small>
-        </div>`;
-      return;
-    }
-
-    const bellIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E";
-
-    notifList.innerHTML = items.map(n => `
-      <div class="notif-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}">
-        <div class="notif-item-icon">
-          <span style="
-            -webkit-mask-image: url('${bellIcon}');
-            mask-image: url('${bellIcon}');
-            mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-            -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-          "></span>
-        </div>
-        <div class="notif-item-body">
-          <div class="notif-item-title">${escHtml(n.title || 'Notification')}</div>
-          <div class="notif-item-msg">${escHtml(n.message || '')}</div>
-          <div class="notif-item-time">${formatTime(n.created_at)}</div>
-        </div>
-        ${!n.is_read ? '<span class="notif-unread-dot"></span>' : ''}
-      </div>
-    `).join('');
-
-    notifList.querySelectorAll('.notif-item').forEach(el => {
-      el.addEventListener('click', () => markAsRead(el.dataset.id, el));
-    });
-  }
-
-  function markAsRead(id, el) {
-    if (!el.classList.contains('unread')) return;
-    fetch(`/super_admin/api/notifications/${id}/read`, { method: 'POST' })
-      .then(res => res.ok && updateUnreadUI(el))
-      .catch(() => {});
-  }
-
-  function updateUnreadUI(el) {
-    el.classList.remove('unread');
-    el.querySelector('.notif-unread-dot')?.remove();
-    const remaining = notifList.querySelectorAll('.notif-item.unread').length;
-    if (remaining === 0) notifDot.classList.add('hidden');
-  }
+  notifList?.addEventListener('click', function (e) {
+    const item = e.target.closest('.notif-item[data-notif-id]');
+    if (!item || !item.classList.contains('unread')) return;
+    markNotifItemRead(item);
+    readSet.add(item.dataset.notifId);
+    saveReadSet(readSet);
+    refreshNotifDot();
+  });
 
   notifMarkAll?.addEventListener('click', () => {
-    fetch('/super_admin/api/notifications/read-all', { method: 'POST' })
-      .then(res => {
-        if (res.ok) {
-          notifList.querySelectorAll('.notif-item.unread').forEach(el => updateUnreadUI(el));
-        }
-      })
-      .catch(() => {});
+    notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
+      markNotifItemRead(item);
+      readSet.add(item.dataset.notifId);
+    });
+    saveReadSet(readSet);
+    refreshNotifDot();
   });
-
-  /* Check unread count on page load */
-  fetch('/admin/api/notifications/count')
-    .then(res => res.json())
-    .then(data => {
-      if ((data.count ?? 0) > 0) notifDot?.classList.remove('hidden');
-    })
-    .catch(() => {});
-
-  /* ================================================================
-     HELPERS
-     ================================================================ */
-  function escHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  function formatTime(ts) {
-    if (!ts) return '';
-    const date = new Date(ts);
-    if (isNaN(date)) return ts;
-    const now  = new Date();
-    const diff = Math.floor((now - date) / 1000);
-    if (diff < 60)    return 'Just now';
-    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
 
 })();

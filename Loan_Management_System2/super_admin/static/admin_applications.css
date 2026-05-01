@@ -295,7 +295,7 @@ body:not(.sidebar-open) .sidebar { transform: translateX(calc(-1 * var(--sidebar
 }
 
 .nav-badge {
-  background: #e05252; color: #fff;
+  background: #de3030; color: #fff;
   font-size: 10px; font-weight: 700; min-width: 18px; height: 18px;
   padding: 0 5px; border-radius: 99px;
   display: inline-flex; align-items: center; justify-content: center;

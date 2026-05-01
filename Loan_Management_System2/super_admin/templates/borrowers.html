@@ -36,20 +36,97 @@
           <span class="topbar-icon topbar-icon--notif"></span>
           <span class="notif-dot hidden" id="notifDot"></span>
         </button>
-        <div class="notif-dropdown" id="notifDropdown">
-          <div class="notif-header">
-            <span class="notif-header-title">Notifications</span>
-            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+<div class="notif-dropdown" id="notifDropdown">
+  <div class="notif-header">
+    <span class="notif-header-title">Notifications</span>
+    <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+  </div>
+
+  <ul class="notif-list" id="notifList">
+
+    {# ══ Pending Applications ══ #}
+    {% set has_apps = pending_applications_notif or (stats is defined and stats.get('pending_applications', 0) > 0) %}
+    {% if has_apps %}
+      <li class="notif-group-label"><span>Pending Applications</span></li>
+    {% endif %}
+
+    {% if pending_applications_notif %}
+      {% for app in pending_applications_notif %}
+      <li class="notif-item unread" data-notif-id="app-{{ app.id }}">
+        <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="notif-item-link">
+          <div class="notif-item-icon notif-icon--warning"><span></span></div>
+          <div class="notif-item-body">
+            <div class="notif-item-title">New Application — {{ app.reference_no }}</div>
+            <div class="notif-item-msg">{{ app.borrower_name }} · {{ app.type_name }} · ₱{{ "{:,.0f}".format(app.amount_requested) }}</div>
+            <div class="notif-item-time">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '' }}</div>
           </div>
-          <div class="notif-list" id="notifList">
-            <div class="notif-loading">Loading...</div>
+          <span class="notif-unread-dot"></span>
+        </a>
+      </li>
+      {% endfor %}
+    {% elif stats is defined and stats.get('pending_applications', 0) > 0 %}
+      <li class="notif-item unread" data-notif-id="pending-apps-summary">
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="notif-item-link">
+          <div class="notif-item-icon notif-icon--warning"><span></span></div>
+          <div class="notif-item-body">
+            <div class="notif-item-title">Pending Applications</div>
+            <div class="notif-item-msg">{{ stats.pending_applications }} application(s) awaiting your review.</div>
           </div>
-          <div class="notif-footer">
-            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
-              See all notifications →
-            </a>
+          <span class="notif-unread-dot"></span>
+        </a>
+      </li>
+    {% endif %}
+
+    {# ══ Recent Activity ══ #}
+    {% if activity_logs %}
+      <li class="notif-group-label"><span>Recent Activity</span></li>
+      {% for log in activity_logs[:5] %}
+      <li class="notif-item" data-notif-id="log-{{ log.id if log.id else loop.index }}">
+        <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-item-link">
+          <div class="notif-item-icon
+            {% if 'approved' in log.action or 'verified' in log.action or 'paid' in log.action %}notif-icon--green
+            {% elif 'rejected' in log.action or 'overdue' in log.action %}notif-icon--red
+            {% elif 'disbursed' in log.action %}notif-icon--teal
+            {% else %}notif-icon--activity{% endif %}">
+            <span></span>
           </div>
-        </div>
+          <div class="notif-item-body">
+            <div class="notif-item-title">{{ log.action | replace('_',' ') | title }}</div>
+            <div class="notif-item-msg">
+              {% if log.details %}
+                {% if log.details.startswith('{') and log.details.endswith('}') %}
+                  {% set clean_details = log.details|replace('{"message": "', '')|replace('"}', '') %}
+                  {{ clean_details }}
+                {% else %}
+                  {{ log.details }}
+                {% endif %}
+              {% endif %}
+              {% if log.actor_name %} · by {{ log.actor_name }}{% endif %}
+            </div>
+            <div class="notif-item-time">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '' }}</div>
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    {% endif %}
+
+    {# ══ Empty state ══ #}
+    {% if not has_apps and not activity_logs %}
+      <li class="notif-empty-item">
+        <span class="notif-empty-icon-img"></span>
+        <p>You're all caught up!</p>
+        <small>No new notifications</small>
+      </li>
+    {% endif %}
+
+  </ul>
+
+  <div class="notif-footer">
+    <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
+      See all notifications →
+    </a>
+  </div>
+</div>
       </div>
       <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
