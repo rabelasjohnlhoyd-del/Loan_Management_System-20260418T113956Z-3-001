@@ -515,6 +515,11 @@ def upload_id():
         if not id_file or not selfie_b64:
             flash("Please provide both ID and Selfie.", "warning")
             return render_template('upload_id.html')
+
+# ✅ Backend validation ng id_number
+        if not id_number:
+            flash("ID number is required.", "danger")
+            return render_template('upload_id.html')
         # ✅ SECURITY CHECK 1: Duplicate ID Number
         if id_number:
             conn = get_db(); cursor = conn.cursor()

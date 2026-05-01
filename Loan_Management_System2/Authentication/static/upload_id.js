@@ -155,10 +155,17 @@ async function handleSubmitClick(e) {
   const idTypeEl = document.getElementById('id_type');
 
   // Basic Validation
-  if (!idTypeEl.value || !idInput.files[0] || !capturedSelfieB64) {
+  // Basic Validation
+const idNumberEl = document.getElementById('id_number');
+if (!idTypeEl.value || !idInput.files[0] || !capturedSelfieB64) {
     alert("Please provide ID type, ID photo, and live selfie.");
     return;
-  }
+}
+if (!idNumberEl.value.trim()) {
+    alert("Please enter your ID number.");
+    idNumberEl.focus();
+    return;
+}
 
 
 
