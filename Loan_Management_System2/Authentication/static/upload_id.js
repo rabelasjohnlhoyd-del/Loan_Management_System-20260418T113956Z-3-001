@@ -160,11 +160,21 @@ async function handleSubmitClick(e) {
     return;
   }
 
-  // Kung na-approve na ng AI, tuloy na sa submit
-  if (appState === 'approved' || appState === 'review') {
+
+
+if (appState === 'approved') {
     document.getElementById('finalIdForm').submit();
     return;
-  }
+}
+
+
+if (appState === 'review') {
+    const confirm = window.confirm("Your documents need manual review. Submit anyway?");
+    if (confirm) {
+        document.getElementById('finalIdForm').submit();
+    }
+    return;
+}
 
   // --- START AI VERIFICATION ---
   setState('processing');
@@ -181,7 +191,7 @@ async function handleSubmitClick(e) {
       body: JSON.stringify({
         id_image: idB64,
         selfie_image: capturedSelfieB64,
-        id_type: idTypeEl.value // IPINAPASA PARA SA NAME CROSS-CHECK
+        id_type: idTypeEl.value 
       })
     });
 

@@ -364,37 +364,72 @@ def validate_id_api():
     data = request.json or {}
     id_b64 = data.get('id_image')
     selfie_b64 = data.get('selfie_image')
+    id_type = data.get('id_type', 'Unknown')
     
-    # ✅ SECURITY: Get the registered name to cross-check with the ID
     registered_name = session['reg_data'].get('full_name', 'Unknown')
 
-  
     prompt = f"""
-    You are an expert identity verifier for a Philippine Fintech system.
-    APPLICANT'S REGISTERED NAME: {registered_name}
-    IMAGE 1: Government ID Card (Check for PhilSys, Driver's License, etc.)
-    IMAGE 2: Live Selfie
-    
-    TASKS:
-    1. NAME CHECK: Compare the name on IMAGE 1 with "{registered_name}".
-       - Accept if they match exactly.
-       - Accept if one has a Middle Initial and the other has a Full Middle Name.
-       - Note: Philippine IDs like PhilSys often use 'Last Name, Given Name, Middle Name' format. Be smart in matching.
-    2. BIOMETRIC: Does the face in IMAGE 2 match the ID portrait in IMAGE 1?
-    3. LIVENESS: Is IMAGE 2 a real person? (Reject if it's a photo of a screen or paper).
+    You are a STRICT identity verification officer for a Philippine Fintech Loan System.
+    Your job is to REJECT suspicious submissions. When in doubt, REJECT.
 
-    DECISION LOGIC:
-    - ACTION "approve": If name and face match 90%-100%.
-    - ACTION "review": If the face matches but the name has a slight typo, or if the ID is a bit blurry but looks authentic.
-    - ACTION "reject": Only if the names are completely different people or the face definitely doesn't match.
+    APPLICANT'S REGISTERED NAME: "{registered_name}"
+    DECLARED ID TYPE: "{id_type}"
 
-    JSON Output Only:
+    IMAGE 1: Physical Government ID Card
+    IMAGE 2: Live Selfie of the applicant
+
+    STRICT VERIFICATION RULES:
+
+    RULE 1 — ID TYPE MATCH (CRITICAL):
+    - The ID in IMAGE 1 MUST match the declared type: "{id_type}"
+    - If the applicant declared "National ID (PhilSys)" but uploaded a Passport, Driver's License, or any other ID → AUTOMATIC REJECT
+    - Check for official Philippine government ID markings, logos, and format
+    - If you cannot confidently identify the ID type → REJECT
+
+    RULE 2 — NAME MATCH (CRITICAL):
+    - Extract the FULL NAME from IMAGE 1
+    - Compare with registered name: "{registered_name}"
+    - Accept ONLY if names match at least 95% (minor middle name abbreviation is okay)
+    - Any significant name difference → REJECT
+    - If name on ID is unreadable or blurry → REJECT
+
+    RULE 3 — FACE MATCH (CRITICAL):
+    - The face in IMAGE 2 MUST clearly match the portrait in IMAGE 1
+    - If IMAGE 2 is blurry, dark, or face is not clearly visible → REJECT
+    - If the person in IMAGE 2 looks different from IMAGE 1 → REJECT
+    - If IMAGE 2 is a photo of a screen, printed paper, or photo of a photo → REJECT
+    - Minimum face clarity required: face must be well-lit and clearly visible
+
+    RULE 4 — ID AUTHENTICITY:
+    - IMAGE 1 must be a PHYSICAL card, not a screenshot or photocopy
+    - ID must not be expired, damaged, or tampered
+    - If ID appears fake or digitally altered → REJECT
+
+    RULE 5 — SELFIE LIVENESS:
+    - IMAGE 2 must be a LIVE photo, not a printed photo or screen capture
+    - Person must be looking at camera with neutral expression
+    - Background must be real environment, not suspicious
+    - If selfie quality is too poor to verify identity → REJECT
+
+    STRICT DECISION RULES:
+    - "approve": ALL 5 rules pass with HIGH confidence (90%+)
+    - "review": Minor issues only (slight blur but still readable, minor name abbreviation)
+    - "reject": ANY critical rule fails — wrong ID type, name mismatch, face mismatch, fake ID, blurry selfie
+
+    IMPORTANT: Be STRICT. It is better to reject a legitimate user than to approve a fraudulent one.
+
+    Respond in JSON only — no other text:
     {{
       "valid_id": true/false,
+      "id_type_match": true/false,
       "name_match": true/false,
       "face_match": true/false,
-      "action": "approve", "reject", or "review",
-      "overall_reason": "One sentence summary of your decision"
+      "liveness_pass": true/false,
+      "id_authentic": true/false,
+      "confidence_score": 0-100,
+      "action": "approve" or "review" or "reject",
+      "rejection_reasons": ["reason1", "reason2"],
+      "overall_reason": "One sentence summary"
     }}
     """
 
@@ -410,21 +445,41 @@ def validate_id_api():
         )
         result = json.loads(response.text.strip().replace('```json', '').replace('```', ''))
         
-        # Manual safety check
-        if result.get('name_match') is False or result.get('face_match') is False:
-            result['action'] = 'reject'
-            result['overall_reason'] = "ID name or face mismatch with registration data."
+        # ✅ HARD RULES — override AI kung may critical failure
+        rejection_reasons = []
 
-     
+        if not result.get('id_type_match'):
+            rejection_reasons.append("ID type does not match declared document type.")
+
+        if not result.get('name_match'):
+            rejection_reasons.append("Name on ID does not match registered name.")
+
+        if not result.get('face_match'):
+            rejection_reasons.append("Face in selfie does not match ID portrait.")
+
+        if not result.get('liveness_pass'):
+            rejection_reasons.append("Selfie failed liveness check — use a live photo.")
+
+        if not result.get('id_authentic'):
+            rejection_reasons.append("ID appears to be invalid, fake, or a screenshot.")
+
+        if result.get('confidence_score', 0) < 85:
+            rejection_reasons.append(f"Confidence score too low: {result.get('confidence_score')}%")
+
+        if rejection_reasons:
+            result['action'] = 'reject'
+            result['rejection_reasons'] = rejection_reasons
+            result['overall_reason'] = " | ".join(rejection_reasons)
+
         session['gemini_approved'] = (result['action'] == 'approve')
         session['gemini_result'] = result['action']
         return jsonify(result)
+
     except Exception as e:
-        print(f"GEMINI ERROR: {e}")  
+        print(f"GEMINI ERROR: {e}")
         session['gemini_result'] = 'review'
         session['gemini_approved'] = False
         return jsonify({'action': 'review', 'overall_reason': f'AI check failed: {str(e)}'})
-
 # 4.5 UPLOAD ID — THE GUARD (Final Save)
 # 4.5 UPLOAD ID — THE GUARD (Final Save)
 # ================================================================
@@ -460,6 +515,29 @@ def upload_id():
         if not id_file or not selfie_b64:
             flash("Please provide both ID and Selfie.", "warning")
             return render_template('upload_id.html')
+        # ✅ SECURITY CHECK 1: Duplicate ID Number
+        if id_number:
+            conn = get_db(); cursor = conn.cursor()
+            cursor.execute("SELECT id FROM users WHERE id_number = %s", (id_number,))
+            if cursor.fetchone():
+                cursor.close(); conn.close()
+                flash("This ID number is already registered. Please use a different ID.", "danger")
+                return render_template('upload_id.html')
+            cursor.close(); conn.close()
+
+        # ✅ SECURITY CHECK 2: Duplicate ID Photo (via image hash)
+        import hashlib
+        id_file_bytes = id_file.read()
+        id_photo_hash = hashlib.sha256(id_file_bytes).hexdigest()
+        id_file.seek(0)
+
+        conn = get_db(); cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE id_photo_hash = %s", (id_photo_hash,))
+        if cursor.fetchone():
+            cursor.close(); conn.close()
+            flash("This ID photo is already registered. Please use a different ID.", "danger")
+            return render_template('upload_id.html')
+        cursor.close(); conn.close()
 
         try:
             # 1. Generate unique filenames
@@ -490,10 +568,11 @@ def upload_id():
             query = """
             UPDATE users 
             SET id_document_path = %s, selfie_path = %s, 
-            id_verification_status = %s, id_number = %s
+            id_verification_status = %s, id_number = %s,
+            id_photo_hash = %s
             WHERE email = %s
             """
-            cursor.execute(query, (id_fn, selfie_fn, final_status, id_number, target_email))
+            cursor.execute(query, (id_fn, selfie_fn, final_status, id_number, id_photo_hash, target_email))
             conn.commit(); cursor.close(); conn.close()
 
             # Clear session after successful submission
