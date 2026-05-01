@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from datetime import timedelta
 import os
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 db_config = {
     'host': 'localhost',
