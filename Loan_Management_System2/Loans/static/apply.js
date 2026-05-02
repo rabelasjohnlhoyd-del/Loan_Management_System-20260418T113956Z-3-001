@@ -675,7 +675,7 @@
       });
     }
 
-    // 🛑 DAGDAG: Restriction Check para sa Loan Types
+    // 🛑 NEW: Restriction Check para sa Loan Types base sa Trust Limit
     function initLoanTypeRestrictions() {
         if (!loanTypeSelect) return;
         loanTypeSelect.querySelectorAll('option').forEach(opt => {
@@ -690,45 +690,61 @@
     }
 
 function populatePlans(typeId, preselectPlanId) {
-    // 1. I-filter ang mga plans na tugma sa Loan Type
-    const filtered = _PLANS_DATA.filter(p => String(p.loan_type_id) === String(typeId));
+      const filtered = _PLANS_DATA.filter(p => String(p.loan_type_id) === String(typeId));
 
-    // 2. I-reset at ipakita ang Plan Group
-    planSelect.innerHTML = '<option value="">— Select Plan —</option>';
-    planHint.textContent = '';
-    
-    // Itago muna ang mga susunod na steps hangga't walang planong pinipili
-    amountGroup.style.display = 'none';
-    termGroup.style.display   = 'none';
-    amountInput.value         = '';
-    selectedPlan              = null;
-    document.getElementById('amt-slider-wrap')?.remove();
+      planSelect.innerHTML = '<option value="">— Select Plan —</option>';
+      planHint.textContent = '';
+      amountGroup.style.display = 'none';
+      termGroup.style.display   = 'none';
+      amountInput.value         = '';
+      termSelect.innerHTML      = '<option value="">— Select Term —</option>';
+      selectedPlan              = null;
+      resetCalculator();
+      document.getElementById('amt-slider-wrap')?.remove();
 
-    if (!filtered.length) {
-      planGroup.style.display = 'none';
-      return;
-    }
+      if (!filtered.length) { planGroup.style.display = 'none'; return; }
 
-    // 3. I-loop ang mga plans at i-check ang limit
-    filtered.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      
-      const isDisabled = parseFloat(p.min_amount) > _USER_LIMIT;
-      
-      if (isDisabled) {
-        opt.disabled = true;
-        opt.textContent = `${p.plan_name} (Limit too low: Min ₱${Number(p.min_amount).toLocaleString()})`;
-      } else {
-        opt.textContent = `${p.plan_name} — ${p.interest_rate}% p.a.`;
+      filtered.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        
+        // 🧠 LOGIC: Kunin ang mga kaukulang halaga
+        const pMin = parseFloat(p.min_amount);
+        const pMax = parseFloat(p.max_amount);
+        
+        // Check kung kaya ba ng limit ng user ang minimum hiram ng planong ito
+        const isDisabled = pMin > _USER_LIMIT;
+
+        // 🧠 DYNAMIC TEXT: Capping the display maximum at User's Trust Limit
+        const displayMax = Math.min(pMax, _USER_LIMIT);
+
+        if (isDisabled) {
+            opt.disabled = true;
+            opt.textContent = `${p.plan_name} (Limit too low: Needs min ₱${Number(pMin).toLocaleString()})`;
+            opt.style.color = '#999';
+        } else {
+            // Ngayon, imbes na laging 5M ang ipakita, ipapakita na nito kung ano ang totoong kayang hiramin ng user
+            opt.textContent = `${p.plan_name} — ${p.interest_rate}% p.a. (₱${Number(pMin).toLocaleString()} – ₱${Number(displayMax).toLocaleString()})`;
+        }
+        planSelect.appendChild(opt);
+      });
+
+      planGroup.style.display = '';
+
+      if (preselectPlanId) {
+        planSelect.value = preselectPlanId;
+        onPlanChange();
+      } else if (filtered.length === 1) {
+        // I-auto select lang kung ang nag-iisang plan ay hindi disabled
+        const firstValidPlan = filtered.find(p => parseFloat(p.min_amount) <= _USER_LIMIT);
+        if (firstValidPlan) {
+          planSelect.value = firstValidPlan.id;
+          onPlanChange();
+        }
       }
-      planSelect.appendChild(opt);
-    });
 
-    // 4. Ipakita ang dropdown
-    planGroup.style.display = 'block'; 
-    window._updateSteps?.(2); // Gawing "Active" ang Step 2 sa UI
-  }
+      window._updateSteps?.(2);
+    }
 
     function onPlanChange() {
       const planId = planSelect.value;
@@ -744,13 +760,16 @@ function populatePlans(typeId, preselectPlanId) {
       selectedPlan = _PLANS_DATA.find(p => String(p.id) === String(planId));
       if (!selectedPlan) return;
 
-      // 🛑 DAGDAG: I-set ang Max based sa user limit vs plan max
+      // 🛑 NEW: I-set ang Max based sa user limit vs plan max
       const maxPossible = Math.min(parseFloat(selectedPlan.max_amount), _USER_LIMIT);
 
       amountInput.min         = selectedPlan.min_amount;
       amountInput.max         = maxPossible;
       amountInput.placeholder = `₱${Number(selectedPlan.min_amount).toLocaleString()} – ₱${Number(maxPossible).toLocaleString()}`;
-      amountHint.innerHTML    = `Min: ₱${Number(selectedPlan.min_amount).toLocaleString()} | <strong style="color:var(--primary-dark)">Current Limit: ₱${Number(maxPossible).toLocaleString()}</strong>`;
+      
+      // I-update ang text label sa baba ng input
+      amountHint.innerHTML    = `Min: ₱${Number(selectedPlan.min_amount).toLocaleString()} | <strong style="color:var(--mint-darker)">Your Current Limit: ₱${Number(maxPossible).toLocaleString()}</strong>`;
+      
       amountGroup.style.display = '';
       buildAmountSlider(selectedPlan.min_amount, maxPossible);
 
@@ -778,14 +797,10 @@ function populatePlans(typeId, preselectPlanId) {
       let hint = selectedPlan.collateral_required
         ? `<span style="color:#f59e0b;">⚠ Collateral required: ${selectedPlan.collateral_notes || 'See officer for details'}</span>`
         : `<span style="color:#22c55e;">✔ No collateral required</span>`;
-      if (parseFloat(selectedPlan.processing_fee) > 0) {
-        hint += `<br><span style="color:#94a3b8;font-size:12px;">Processing fee: ${selectedPlan.processing_fee}% of principal</span>`;
-      }
       planHint.innerHTML = hint;
 
       updateCalculator();
       window._updateSteps?.(3);
-      window.showToast('success', 'Plan Selected', `${selectedPlan.plan_name} — ${selectedPlan.interest_rate}% p.a.`, 3000);
     }
 
     /* Upload zone */

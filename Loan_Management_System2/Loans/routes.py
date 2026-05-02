@@ -217,11 +217,12 @@ def apply():
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
         
-        # 1. KUNIN ANG MGA SECURITY METRICS NG USER (Para sa Proactive Blocking)
+        # 1. KUNIN ANG MGA SECURITY METRICS AT TRUST LIMIT (Para sa Anti-Scam at Risk Pricing)
         cursor.execute("""
             SELECT 
                 u.id_verification_status,
                 COALESCE(bp.max_loan_limit, 5000.00) as user_limit,
+                COALESCE(bp.credit_score, 500) as current_score,
                 (SELECT COUNT(*) FROM loans WHERE borrower_id = u.id AND status IN ('active', 'disbursed', 'overdue')) as active_count,
                 (SELECT COUNT(*) FROM loan_applications WHERE borrower_id = u.id AND status IN ('submitted', 'under_review')) as pending_count
             FROM users u
@@ -230,27 +231,26 @@ def apply():
         """, (session['user_id'],))
         user_metrics = cursor.fetchone()
 
-        # Fallback security check kung biglang nawala ang metrics
         if not user_metrics:
-            flash("Profile record not found. Please contact support.", "danger")
+            flash("Profile data sync error. Please try logging in again.", "danger")
             return redirect(url_for('borrower.borrower_dashboard'))
 
-        # 🛑 SECURITY GUARD 1: ID VERIFICATION CHECK
+        # 🛑 GUARD 1: ID VERIFICATION (Requirement bago makautang)
         if user_metrics['id_verification_status'] != 'verified':
-            flash('Security Policy: Your identity must be verified before applying for a loan.', 'warning')
+            flash('Security Policy: Your identity must be verified before applying for any loan.', 'warning')
             return redirect(url_for('borrower.borrower_dashboard'))
 
-        # 🛑 SECURITY GUARD 2: ACTIVE LOAN CHECK (Blocking GET and POST)
+        # 🛑 GUARD 2: ACTIVE LOAN CHECK (Anti-Scam: Limit to 1 active loan)
         if user_metrics['active_count'] >= 1:
-            flash('Security Alert: You still have an existing active loan. Please settle it first to apply for a new one.', 'danger')
+            flash('Security Alert: You currently have an active loan. Please settle it first to maintain a healthy credit score.', 'danger')
             return redirect(url_for('loans.my_loans'))
 
-        # 🛑 SECURITY GUARD 3: PENDING APPLICATION CHECK (Blocking GET and POST)
+        # 🛑 GUARD 3: PENDING APPLICATION CHECK (Anti-Spam)
         if user_metrics['pending_count'] >= 1:
-            flash('Multiple Submission Blocked: You already have a pending application being processed.', 'warning')
+            flash('Application in Progress: You already have a pending application being reviewed by our officers.', 'warning')
             return redirect(url_for('loans.my_applications'))
 
-        # Data for the form
+        # Data preparation para sa dropdowns at calculator
         user_limit = float(user_metrics['user_limit'])
         cursor.execute("SELECT * FROM loan_types WHERE is_active = 1")
         types = cursor.fetchall()
@@ -262,7 +262,7 @@ def apply():
         """)
         plans = cursor.fetchall()
 
-        # 2. HANDLE POST REQUEST (SUBMISSION)
+        # 2. HANDLE SUBMISSION (POST)
         if request.method == 'POST':
             loan_type_id = request.form.get('loan_type_id')
             loan_plan_id = request.form.get('loan_plan_id')
@@ -270,9 +270,8 @@ def apply():
             term_months  = request.form.get('term_months', '').strip()
             purpose      = request.form.get('purpose', '').strip()
 
-            # Submission Validation
             if not all([loan_type_id, loan_plan_id, amount, term_months]):
-                flash('All fields are required.', 'danger')
+                flash('All required fields must be filled out.', 'danger')
                 return render_template('apply.html', types=types, plans=plans, user_limit=user_limit, selected_plan_id=request.form.get('loan_plan_id', type=int))
 
             try:
@@ -282,20 +281,23 @@ def apply():
                 flash('Invalid amount or term format.', 'danger')
                 return render_template('apply.html', types=types, plans=plans, user_limit=user_limit, selected_plan_id=request.form.get('loan_plan_id', type=int))
 
-            # 🛑 FINAL SUBMISSION GUARD: Trust Limit Enforcement
+            # 🛑 FINAL SECURITY CHECK: Trust Limit Enforcement
+            # Ito ang haharang kung nag-manual override ang user sa frontend
             if amount > user_limit:
-                flash(f'Unauthorized Amount: Based on your current Credit Score, you can only borrow up to ₱{user_limit:,.2f}.', 'danger')
+                flash(f'Unauthorized Amount: Based on your current Financial Trust Profile, your limit is ₱{user_limit:,.2f}.', 'danger')
                 return render_template('apply.html', types=types, plans=plans, user_limit=user_limit, selected_plan_id=int(loan_plan_id))
 
-            # Check specific plan constraints
+            # Fetch specific plan constraints
             cursor.execute("SELECT * FROM loan_plans WHERE id = %s", (loan_plan_id,))
             plan = cursor.fetchone()
+            
             if plan:
+                # Anti-Palugi: I-validate kung pasok sa min/max ng mismong plano
                 if not (float(plan['min_amount']) <= amount <= float(plan['max_amount'])):
-                    flash(f'Plan Restriction: Amount must be between ₱{float(plan["min_amount"]):,.2f} and ₱{float(plan["max_amount"]):,.2f}.', 'danger')
+                    flash(f'Plan Restriction: The amount for this plan must be between ₱{float(plan["min_amount"]):,.2f} and ₱{float(plan["max_amount"]):,.2f}.', 'danger')
                     return render_template('apply.html', types=types, plans=plans, user_limit=user_limit, selected_plan_id=int(loan_plan_id))
 
-            # ── EXECUTION: SAVE TO DATABASE ──
+            # ── EXECUTION: SAVE APPLICATION ──
             ref_no = generate_reference('LA', 'loan_applications', 'id')
             cursor.execute("""
                 INSERT INTO loan_applications
@@ -306,7 +308,7 @@ def apply():
 
             app_id = cursor.lastrowid
 
-            # Handle File Uploads
+            # Handle file uploads (Requirements)
             docs = request.files.getlist('documents')
             os.makedirs(UPLOAD_DOCS, exist_ok=True)
             for doc in docs:
@@ -316,18 +318,19 @@ def apply():
                     cursor.execute("INSERT INTO application_documents (application_id, document_type, file_path) VALUES (%s, 'requirement', %s)", (app_id, fname))
 
             conn.commit()
-            flash(f'Application {ref_no} submitted successfully!', 'success')
+            flash(f'Application {ref_no} submitted for officer review!', 'success')
             return redirect(url_for('loans.my_applications'))
 
     except Exception as e:
         if conn: conn.rollback()
-        flash(f'Application Error: {str(e)}', 'danger')
+        print(f"Apply Logic Error: {e}")
+        flash(f'An error occurred: {str(e)}', 'danger')
         return redirect(url_for('borrower.borrower_dashboard'))
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
 
-    # 3. HANDLE GET REQUEST (RENDER FORM)
+    # 3. RENDER FORM (GET)
     selected_plan_id = request.args.get('plan', type=int)
     return render_template('apply.html', 
                            types=types, 

@@ -208,59 +208,107 @@
   /* ================================================================
      6. NAVIGATION & BUTTON HANDLERS
   ================================================================ */
+// ─── 1. SELECT LOAN ───
   window.selectLoan = function (el, id, ref, amount, type, due) {
+    // I-save ang base monthly amount
     selectedLoanData = { id, ref, amount, type, due };
+    
+    // I-set ang initial value ng input box sa 1 monthly payment
+    const amtInput = document.getElementById('inputAmountToPay');
+    if(amtInput) amtInput.value = amount;
+    
+    // Ipakita ang minimum amount hint
+    const hint = document.getElementById('minAmountHint');
+    if(hint) hint.textContent = `Minimum Monthly Due: ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+
     document.querySelectorAll('.loan-select-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
-    setTimeout(() => { hideSection('sectionSelectLoan'); showSection('sectionStep2'); setStep(2); }, 300);
+    
+    setTimeout(() => { 
+      hideSection('sectionSelectLoan'); 
+      showSection('sectionStep2'); 
+      setStep(2); 
+    }, 300);
   };
 
+  // ─── 2. QUICK AMOUNT HELPER ───
+  window.setQuickAmount = function(months) {
+    if(!selectedLoanData) return;
+    const total = selectedLoanData.amount * months;
+    const amtInput = document.getElementById('inputAmountToPay');
+    if(amtInput) {
+        amtInput.value = total.toFixed(2);
+        // I-shake or pulse effect para mapansin na nagbago
+        amtInput.style.backgroundColor = '#eaf8f5';
+        setTimeout(() => amtInput.style.backgroundColor = '', 300);
+    }
+  };
+
+  // ─── 3. SELECT METHOD ───
   window.selectMethod = function (method, el) {
     selectedMethod = method;
-    
-    
     document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
-    
     
     const btnContinue = document.getElementById('btnContinueToQR');
     if (btnContinue) {
         btnContinue.disabled = false;
         btnContinue.classList.add('ready'); 
     }
-};
-
-  window.proceedToStep3 = function () {
-    hideSection('sectionStep2'); showSection('sectionStep3'); setStep(3); buildQRScreen();
   };
 
+  // ─── 4. PROCEED TO AUTHORIZE ───
+  window.proceedToStep3 = function () {
+    const finalAmount = document.getElementById('inputAmountToPay').value;
+    
+    // Validation para hindi malugi ang system (Minimum check)
+    if(!finalAmount || parseFloat(finalAmount) < selectedLoanData.amount) {
+        alert("Wait! The amount cannot be lower than your current monthly due (₱" + selectedLoanData.amount.toLocaleString() + ")");
+        return;
+    }
+
+    // I-save ang final amount na babayaran
+    selectedLoanData.userSelectedAmount = finalAmount;
+    
+    hideSection('sectionStep2'); 
+    showSection('sectionStep3'); 
+    setStep(3); 
+    buildQRScreen();
+  };
+
+  // ─── 5. BUILD QR SUMMARY ───
   function buildQRScreen() {
     const d = methodDetails[selectedMethod]; 
     
     setText('sumLoanRef', selectedLoanData.ref);
     setText('sumMethod',  d.icon + ' ' + d.name);
-    setText('sumAmount',  '₱' + parseFloat(selectedLoanData.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 }));
+    
+    // Ipakita yung piniling amount (pwedeng advanced) sa Summary
+    setText('sumAmount',  '₱' + parseFloat(selectedLoanData.userSelectedAmount).toLocaleString('en-PH', { minimumFractionDigits: 2 }));
 
     const form = document.getElementById('paymentForm');
     if (form) form.action = '/borrower/payments/make/' + selectedLoanData.id;
 
     setHidden('hiddenLoanId', selectedLoanData.id);
-    
-    
     setHidden('hiddenMethod', selectedMethod); 
-    
     setHidden('hiddenRef', 'TXN-' + Math.random().toString(36).toUpperCase().slice(-8));
-    setHidden('hiddenAmount', selectedLoanData.amount);
+    
+    // Pasa ang tamang amount sa hidden input para sa Python
+    setHidden('hiddenAmount', selectedLoanData.userSelectedAmount);
+    
     setHidden('hiddenDate', new Date().toISOString().split('T')[0]);
     resetScanner();
-}
+  }
 
+  // ─── 6. FINAL SUBMIT ───
   window.submitPayment = function () {
-    btnConfirm.disabled = true;
-    btnConfirm.innerHTML = "Processing Payment...";
+    const btn = document.getElementById('btnConfirmPayment');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="notif-spinner"></span> Processing...';
     document.getElementById('paymentForm').submit();
   };
 
+  // ─── 7. BACK BUTTONS ───
   window.backToStep1 = function () { hideSection('sectionStep2'); showSection('sectionSelectLoan'); setStep(1); };
   window.backToStep2 = function () { hideSection('sectionStep3'); showSection('sectionStep2'); setStep(2); };
 

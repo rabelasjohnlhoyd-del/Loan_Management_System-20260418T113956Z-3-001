@@ -21,13 +21,10 @@
        TOPBAR
   ════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
-
-    <!-- Left: burger + brand -->
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
         <span></span><span></span><span></span>
       </button>
-
       <div class="topbar-brand">
         <div class="topbar-logo">$</div>
         <div class="topbar-brand-text">
@@ -37,45 +34,38 @@
       </div>
     </div>
 
-    <!-- Right: back button + avatar -->
-    <!-- Right: notif + avatar -->
-<div class="topbar-right">
-  <div class="notif-wrap" id="notifWrap">
-    <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
-      <span class="topbar-icon topbar-icon--notif"></span>
-      <span class="notif-dot hidden" id="notifDot"></span>
-    </button>
-    <div class="notif-dropdown" id="notifDropdown">
-      <div class="notif-header">
-        <span class="notif-header-title">Notifications</span>
-        <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+    <div class="topbar-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-loading">Loading...</div>
+          </div>
+          <div class="notif-footer">
+            <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
+          </div>
+        </div>
       </div>
-      <div class="notif-list" id="notifList">
-        <div class="notif-loading">Loading...</div>
-      </div>
-      <div class="notif-footer">
-        <a href="{{ url_for('loans.notifications_page') }}" class="notif-see-all">
-          See all notifications →
-        </a>
-      </div>
-    </div>
-  </div>
 
-  <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
-    {{ session.user_name[0]|upper if session.user_name else 'U' }}
-  </a>
-</div>
+      <a href="{{ url_for('borrower.profile') }}" class="topbar-avatar" title="{{ session.user_name }}">
+        {{ session.user_name[0]|upper if session.user_name else 'U' }}
+      </a>
+    </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════════
-       BODY ROW — sidebar + main
-  ════════════════════════════════════════════════ -->
   <div class="body-row">
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
-
-      <!-- User block -->
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
         <div class="s-user-info">
@@ -135,25 +125,25 @@
 
         <!-- PAGE HEADER -->
         <div class="profile-page-header">
-  <div class="profile-page-header-left">
-    <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
-      <span class="btn-back-icon"></span>
-      Dashboard
-    </a>
-    <div>
-      <h2 class="profile-page-title">My Profile</h2>
-      <p class="profile-page-sub">Account details and settings</p>
-    </div>
-  </div>
-  {% set status = user.get('id_verification_status', 'pending') if user else 'pending' %}
-  <span class="badge {% if status == 'verified' %}badge--approved{% elif status == 'rejected' %}badge--rejected{% else %}badge--pending{% endif %}">
-    ID: {{ status | title }}
-  </span>
-</div>
-        <!-- PROFILE CONTENT -->
+          <div class="profile-page-header-left">
+            <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
+              <span class="btn-back-icon"></span>
+              Dashboard
+            </a>
+            <div>
+              <h2 class="profile-page-title">My Profile</h2>
+              <p class="profile-page-sub">Account details and settings</p>
+            </div>
+          </div>
+          {% set id_status = user.get('id_verification_status', 'pending') %}
+          <span class="badge {% if id_status == 'verified' %}badge--approved{% elif id_status == 'rejected' %}badge--rejected{% else %}badge--pending{% endif %}">
+            ID Status: {{ id_status | title }}
+          </span>
+        </div>
+
         <div class="profile-content">
 
-          <!-- Personal Information -->
+          <!-- 1. PERSONAL INFORMATION CARD -->
           <div class="card">
             <div class="card-header">
               <div>
@@ -164,86 +154,85 @@
             <div class="card-body">
               <div class="profile-header-section">
                 <div class="profile-avatar">
-                  {{ user.get('full_name', '?')[0]|upper if user else '?' }}
+                  {{ user.get('full_name', '?')[0]|upper }}
                 </div>
                 <div>
-                  <h3 class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</h3>
-                  <p class="profile-email">{{ user.get('email', '') if user else '' }}</p>
-                  <span class="badge badge--info">Borrower</span>
+                  <h3 class="profile-name">{{ user.get('full_name', 'N/A') }}</h3>
+                  <p class="profile-email">{{ user.get('email', '') }}</p>
+                  <span class="badge badge--info">Borrower Member</span>
                 </div>
               </div>
               <div class="profile-info-grid">
                 <div class="profile-field">
                   <div class="profile-field-label">Full Name</div>
-                  <div class="profile-field-value">{{ user.get('full_name', '—') if user else '—' }}</div>
+                  <div class="profile-field-value">{{ user.get('full_name', '—') }}</div>
                 </div>
                 <div class="profile-field">
                   <div class="profile-field-label">Email Address</div>
-                  <div class="profile-field-value">{{ user.get('email', '—') if user else '—' }}</div>
+                  <div class="profile-field-value">{{ user.get('email', '—') }}</div>
                 </div>
                 <div class="profile-field">
                   <div class="profile-field-label">Date of Birth</div>
-                  <div class="profile-field-value">{{ user.get('date_of_birth', '—') if user else '—' }}</div>
+                  <div class="profile-field-value">{{ user.get('date_of_birth', '—') }}</div>
                 </div>
                 <div class="profile-field">
                   <div class="profile-field-label">Age</div>
-                  <div class="profile-field-value">{{ user.get('age', '—') if user else '—' }}</div>
+                  <div class="profile-field-value">{{ user.get('age', '—') }}</div>
                 </div>
                 <div class="profile-field">
                   <div class="profile-field-label">Contact Number</div>
-                  <div class="profile-field-value">{{ user.get('contact_number', '—') if user else '—' }}</div>
+                  <div class="profile-field-value">{{ user.get('contact_number', '—') }}</div>
                 </div>
                 <div class="profile-field">
                   <div class="profile-field-label">Member Since</div>
-                  <div class="profile-field-value">{{ user.get('created_at', '—') if user else '—' }}</div>
+                  <div class="profile-field-value">{{ user.get('created_at', '—') }}</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Credit Score Card -->
-          {% set cs = credit_score if credit_score is defined and credit_score else 0 %}
+          <!-- 2. CREDIT SCORE CARD (SYNCHRONIZED) -->
+          {% set cs = credit_score | default(500) %}
+          
+          {# UI Logic for labels and colors #}
           {% if cs >= 750 %}
-            {% set cs_label = 'Excellent' %}
-            {% set cs_class = 'cs--excellent' %}
-            {% set cs_tip = 'Outstanding credit standing. You qualify for the best loan terms and lowest interest rates.' %}
+            {% set cs_label = 'Excellent' %}{% set cs_class = 'cs--excellent' %}
+            {% set cs_tip = 'Outstanding credit standing. You qualify for the best loan terms and highest limits.' %}
           {% elif cs >= 650 %}
-            {% set cs_label = 'Good' %}
-            {% set cs_class = 'cs--good' %}
+            {% set cs_label = 'Good' %}{% set cs_class = 'cs--good' %}
             {% set cs_tip = 'Good credit standing. Keep paying on time to reach Excellent status.' %}
           {% elif cs >= 550 %}
-            {% set cs_label = 'Fair' %}
-            {% set cs_class = 'cs--fair' %}
-            {% set cs_tip = 'Fair credit standing. Avoid late payments and settle overdue loans to improve your score.' %}
+            {% set cs_label = 'Fair' %}{% set cs_class = 'cs--fair' %}
+            {% set cs_tip = 'Fair credit standing. Settle overdue loans to improve your trust limit.' %}
           {% else %}
-            {% set cs_label = 'Poor' %}
-            {% set cs_class = 'cs--poor' %}
-            {% set cs_tip = 'Poor credit standing. Settling overdue accounts and making on-time payments will help rebuild your score.' %}
+            {% set cs_label = 'Poor' %}{% set cs_class = 'cs--poor' %}
+            {% set cs_tip = 'Poor credit standing. Making on-time payments will help rebuild your score.' %}
           {% endif %}
+
+          {# Formula: (Score - Min) / (Max - Min) * 100 #}
           {% set cs_pct = [([((cs - 300) / 550 * 100)|round|int, 0]|max), 100]|min %}
 
           <div class="card">
             <div class="card-header">
               <div>
-                <h3>Credit Score</h3>
-                <p>Based on your loan and payment history</p>
+                <h3>Financial Trust Profile</h3>
+                <p>Based on your income stability and payment behavior</p>
               </div>
               <span class="badge cs-badge {{ cs_class }}">{{ cs_label }}</span>
             </div>
 
             <div class="card-body">
               <div class="cs-main">
-
-                <!-- Score dial -->
+                <!-- Score Dial -->
                 <div class="cs-dial-wrap">
                   <div class="cs-dial {{ cs_class }}">
-                    <span class="cs-number">{{ cs if cs > 0 else '—' }}</span>
-                    <span class="cs-range-label">out of 850</span>
+                    <span class="cs-number">{{ cs }}</span>
+                    <span class="cs-range-label">Credit Score</span>
                   </div>
                 </div>
 
-                <!-- Bar + factors -->
                 <div class="cs-details">
+                  <!-- Progress Bar -->
                   <div class="cs-bar-wrap">
                     <div class="cs-bar-labels">
                       <span>Poor</span><span>Fair</span><span>Good</span><span>Excellent</span>
@@ -257,9 +246,7 @@
                       </div>
                       <div class="cs-bar-marker" style="left: {{ cs_pct }}%;"></div>
                     </div>
-                    <div class="cs-bar-range">
-                      <span>300</span><span>850</span>
-                    </div>
+                    <div class="cs-bar-range"><span>300</span><span>850</span></div>
                   </div>
 
                   <div class="cs-tip">
@@ -267,49 +254,60 @@
                     <p>{{ cs_tip }}</p>
                   </div>
 
+                  <!-- Factors Grid -->
                   <div class="cs-factors">
                     <div class="cs-factor">
                       <div class="cs-factor-icon cs-factor-icon--payments"></div>
                       <div class="cs-factor-body">
-                        <div class="cs-factor-label">On-time Payments</div>
-                        <div class="cs-factor-value">{{ credit_factors.on_time_payments if credit_factors is defined else '—' }}</div>
+                        <div class="cs-factor-label">Verified Payments</div>
+                        <div class="cs-factor-value">{{ credit_factors.on_time_payments | default(0) }}</div>
                       </div>
                     </div>
                     <div class="cs-factor">
                       <div class="cs-factor-icon cs-factor-icon--loans"></div>
                       <div class="cs-factor-body">
-                        <div class="cs-factor-label">Loans Fully Paid</div>
-                        <div class="cs-factor-value">{{ credit_factors.paid_loans if credit_factors is defined else '—' }}</div>
+                        <div class="cs-factor-label">Fully Paid Loans</div>
+                        <div class="cs-factor-value">{{ credit_factors.paid_loans | default(0) }}</div>
                       </div>
                     </div>
                     <div class="cs-factor">
                       <div class="cs-factor-icon cs-factor-icon--overdue"></div>
                       <div class="cs-factor-body">
-                        <div class="cs-factor-label">Overdue Incidents</div>
-                        <div class="cs-factor-value cs-factor-value--bad">{{ credit_factors.overdue_count if credit_factors is defined else '—' }}</div>
+                        <div class="cs-factor-label">Overdue Tags</div>
+                        <div class="cs-factor-value {% if credit_factors.overdue_count > 0 %}cs-factor-value--bad{% endif %}">
+                          {{ credit_factors.overdue_count | default(0) }}
+                        </div>
                       </div>
                     </div>
                     <div class="cs-factor">
                       <div class="cs-factor-icon cs-factor-icon--active"></div>
                       <div class="cs-factor-body">
                         <div class="cs-factor-label">Active Loans</div>
-                        <div class="cs-factor-value">{{ credit_factors.active_loans if credit_factors is defined else '—' }}</div>
+                        <div class="cs-factor-value">{{ credit_factors.active_loans | default(0) }}</div>
+                      </div>
+                    </div>
+                    <!-- Isama ito sa loob ng Credit Score card or Personal Info -->
+                    <div class="cs-factor" style="background: var(--success-bg); border-color: #86efac;">
+                      <div class="cs-factor-icon" style="background-image: url('data:image/svg+xml,...libra-icon...')"></div>
+                      <div class="cs-factor-body">
+                        <div class="cs-factor-label">Total Interest Saved</div>
+                        <div class="cs-factor-value" style="color: var(--success);">
+                            ₱{{ "{:,.2f}".format(user.total_interest_saved | default(0)) }}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
 
         </div>
-
       </main>
-    </div><!-- /.main-content -->
+    </div>
 
-  </div><!-- /.body-row -->
-</div><!-- /.app-wrap -->
+  </div>
+</div>
 
 <script src="{{ url_for('borrower.static', filename='dashboard_borrower.js') }}"></script>
 </body>

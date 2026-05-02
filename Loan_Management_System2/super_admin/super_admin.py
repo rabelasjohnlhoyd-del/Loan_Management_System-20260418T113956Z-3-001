@@ -90,10 +90,15 @@ def unlock_user(user_id):
 @login_required
 @role_required('admin', 'super_admin')
 def admin_dashboard():
+    # 1. Initialize stats with default values to avoid Undefined errors in HTML
     stats = {
-        'total_loans': 0, 'active_loans': 0, 'total_borrowers': 0,
-        'total_disbursed': 0, 'pending_applications': 0,
-        'total_interest_earned': 0.00  # <--- Siguraduhing may default value ito
+        'total_loans': 0, 
+        'active_loans': 0, 
+        'total_borrowers': 0,
+        'total_disbursed': 0.00, 
+        'pending_applications': 0,
+        'total_interest_earned': 0.00,
+        'staff_salary_budget': 0.00  # <--- Ito ang gagamitin para sa Payroll Budget card
     }
     recent_applications = []
     activity_logs = []
@@ -102,23 +107,66 @@ def admin_dashboard():
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ... (yung mga existing queries mo andito) ...
-        
-        # ✅ DAGDAG: Kunin ang kinita ng system mula sa system_funds table
+        # ─── A. TREASURY STATS (Ang Pera ng Bangko) ───
         cursor.execute("SELECT total_interest_earned FROM system_funds WHERE id = 1")
         fund_row = cursor.fetchone()
         if fund_row:
-            stats['total_interest_earned'] = float(fund_row['total_interest_earned'])
+            earned = float(fund_row['total_interest_earned'])
+            stats['total_interest_earned'] = earned
+            # Implementasyon ng Step 4: 40% ng kinita ay naka-allocate sa suweldo ng staff
+            stats['staff_salary_budget'] = earned * 0.40
         else:
             stats['total_interest_earned'] = 0.00
+            stats['staff_salary_budget'] = 0.00
 
-        # ... (itutuloy ang rest ng function mo) ...
+        # ─── B. CORE SYSTEM STATS ───
+        # Bilang ng lahat ng borrowers
+        cursor.execute("SELECT COUNT(*) as total FROM users WHERE role = 'borrower'")
+        stats['total_borrowers'] = cursor.fetchone()['total']
+
+        # Bilang ng mga nag-aantay na application
+        cursor.execute("SELECT COUNT(*) as total FROM loan_applications WHERE status IN ('submitted', 'under_review')")
+        stats['pending_applications'] = cursor.fetchone()['total']
+
+        # Bilang ng mga kasalukuyang nagbabayad na loan
+        cursor.execute("SELECT COUNT(*) as total FROM loans WHERE status = 'active'")
+        stats['active_loans'] = cursor.fetchone()['total']
+
+        # Kabuuang perang nailabas na ng system (Puhunan)
+        cursor.execute("SELECT COALESCE(SUM(disbursed_amount), 0) as total FROM loans")
+        stats['total_disbursed'] = float(cursor.fetchone()['total'])
+
+        # Kabuuang bilang ng loans (History)
+        cursor.execute("SELECT COUNT(*) as total FROM loans")
+        stats['total_loans'] = cursor.fetchone()['total']
+
+        # ─── C. TABLES DATA (Recent Activity) ───
+        # Kunin ang 5 pinakabagong applications
+        cursor.execute("""
+            SELECT la.id, la.reference_no, la.amount_requested, la.status, la.submitted_at,
+                   u.full_name AS borrower_name, lt.name AS type_name
+            FROM loan_applications la
+            JOIN users u ON u.id = la.borrower_id
+            JOIN loan_types lt ON lt.id = la.loan_type_id
+            ORDER BY la.submitted_at DESC LIMIT 5
+        """)
+        recent_applications = cursor.fetchall()
+
+        # Kunin ang 10 pinakabagong system logs
+        cursor.execute("""
+            SELECT al.id, al.action, al.details, al.created_at, u.full_name AS actor_name
+            FROM audit_logs al
+            LEFT JOIN users u ON al.user_id = u.id
+            ORDER BY al.created_at DESC LIMIT 10
+        """)
+        activity_logs = cursor.fetchall()
 
         cursor.close()
         conn.close()
+
     except Exception as e:
-        print(f"Dashboard Data Error: {e}")
-        flash(f'Dashboard data error: {str(e)}', 'warning')
+        print(f"CRITICAL DASHBOARD ERROR: {e}")
+        flash(f'Dashboard partially loaded. Error: {str(e)}', 'warning')
 
     return render_template('dashboard_admin.html',
         stats=stats,
