@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Verification — Hiraya Officer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+ 
+</head>
+<body>
+<div class="app-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="s-logo"></div>
+        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
+      </div>
+    </div>
+    <div class="sidebar-user" id="userDropdownToggle">
+      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
+      <span class="s-chevron"></span>
+    </div>
+    <div class="user-dropdown" id="userDropdown">
+      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+      <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
+      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item"><span class="nav-icon nav-icon--verification"></span>ID Verification</a>
+      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>Applications</a>
+      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
+      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item"><span class="nav-icon nav-icon--loans"></span>Active Loans</a>
+      <a href="{{ url_for('officer.payment_list') }}" class="nav-item active"><span class="nav-icon nav-icon--payments"></span>Payments</a>
+    </nav>
+    <div class="sidebar-footer">
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div>
+        <div class="topbar-heading">Payment Verification</div>
+        <div class="topbar-sub">Review and verify borrower payment submissions</div>
+      </div>
+      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+    </header>
+
+    <main class="page-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}<div class="flash-wrap">{% for c, m in messages %}<div class="alert alert-{{ c }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+      {% endwith %}
+
+      <div class="toolbar">
+        <form method="GET" action="{{ url_for('officer.payment_list') }}" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;">
+          <div class="search-wrap">
+            <span class="search-icon"></span>
+            <input type="text" name="search" placeholder="Search borrower, loan no, ref…" value="{{ search }}"/>
+          </div>
+          <div class="filter-tabs">
+            <a href="{{ url_for('officer.payment_list', status='all') }}" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All <span class="tab-count">{{ counts.get('all', 0) }}</span></a>
+            <a href="{{ url_for('officer.payment_list', status='pending') }}" class="filter-tab {% if status_filter == 'pending' %}active{% endif %}">Pending <span class="tab-count">{{ counts.get('pending', 0) }}</span></a>
+            <a href="{{ url_for('officer.payment_list', status='approved') }}" class="filter-tab {% if status_filter == 'approved' %}active{% endif %}">Approved <span class="tab-count">{{ counts.get('approved', 0) }}</span></a>
+            <a href="{{ url_for('officer.payment_list', status='rejected') }}" class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">Rejected <span class="tab-count">{{ counts.get('rejected', 0) }}</span></a>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Borrower</th>
+                <th>Loan No.</th>
+                <th>Amount Paid</th>
+                <th>Outstanding Balance</th>
+                <th>Method</th>
+                <th>Reference No.</th>
+                <th>Payment Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in payments %}
+              <tr>
+                <td>
+                  <div class="borrower-name">{{ p.borrower_name }}</div>
+                  <div class="borrower-email">{{ p.borrower_email }}</div>
+                </td>
+                <td style="font-size:11px;font-family:monospace;color:var(--muted);">{{ p.loan_no }}</td>
+                <td style="font-weight:700;color:var(--green);">₱{{ "{:,.2f}".format(p.amount_paid) }}</td>
+                <td style="color:var(--muted);">₱{{ "{:,.2f}".format(p.outstanding_balance) }}</td>
+                <td style="font-size:12px;">{{ p.payment_method or '—' }}</td>
+                <td style="font-size:11px;font-family:monospace;color:var(--muted);">{{ p.reference_no or '—' }}</td>
+                <td style="font-size:12px;color:var(--muted);">
+                  {% if p.payment_date %}{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date.__class__.__name__ != 'str' else p.payment_date }}{% else %}—{% endif %}
+                </td>
+                <td>
+                  {% if p.status == 'pending' %}<span class="badge badge--pending">Pending</span>
+                  {% elif p.status == 'approved' %}<span class="badge badge--approved">Approved</span>
+                  {% elif p.status == 'rejected' %}<span class="badge badge--rejected">Rejected</span>
+                  {% else %}<span class="badge" style="background:rgba(100,116,139,.12);color:var(--muted);">{{ p.status | title }}</span>{% endif %}
+                </td>
+                <td>
+                  {% if p.status == 'pending' %}
+                  <form method="POST" action="{{ url_for('officer.verify_payment', payment_id=p.id) }}" class="verify-form">
+                    <textarea name="notes" class="verify-notes" placeholder="Notes (optional)…" rows="2"></textarea>
+                    <div class="verify-actions">
+                      <button type="submit" name="action" value="approved" class="btn-approve">✓ Approve</button>
+                      <button type="submit" name="action" value="rejected" class="btn-reject">✗ Reject</button>
+                    </div>
+                  </form>
+                  {% else %}
+                  <span style="font-size:12px;color:var(--muted);">Processed</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="9"><div class="empty-state">No payments found.</div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+</body>
+</html>

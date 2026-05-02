@@ -1,76 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>My Profile — Hiraya</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
-  <link rel="stylesheet" href="{{ url_for('auth.static', filename='O_profile.css') }}"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
 </head>
 <body>
-
 <div class="app-wrap">
 
-  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
-  <aside class="sidebar" id="sidebar">
-
+  <!-- ════════════ SIDEBAR ════════════ -->
+  <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-brand">
         <div class="s-logo"></div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
-        </div>
+        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
       </div>
     </div>
 
     <div class="sidebar-user" id="userDropdownToggle">
       <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
       <div class="s-user-info">
-        <h4>{{ session.user_name if session.user_name else 'Officer' }}</h4>
-        <div class="s-role-badge">OFFICER</div>
+        <h4>{{ session.user_name }}</h4>
+        <div class="s-role-badge">LOAN OFFICER</div>
       </div>
       <span class="s-chevron"></span>
     </div>
 
     <div class="user-dropdown" id="userDropdown">
-      <!-- Pointing to the officer profile route -->
       <a href="{{ url_for('officer.profile') }}">
         <span class="dd-icon dd-icon--profile"></span>My Profile
       </a>
-      <!-- Activity logs specific to this officer -->
       <a href="{{ url_for('officer.my_activity') }}">
         <span class="dd-icon dd-icon--activity"></span>My Activity
       </a>
     </div>
 
     <nav class="sidebar-nav">
-      <!-- Updated Dashboard link to the officer blueprint -->
       <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
         <span class="nav-icon nav-icon--dashboard"></span>Dashboard
       </a>
-
-      <!-- PDF Requirement: ID Verification (Biometric Matching) -->
       <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
         <span class="nav-icon nav-icon--verification"></span>ID Verification
       </a>
-
-      <!-- Loan Applications (Shared with Admin route) -->
-      <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-        <span class="nav-icon nav-icon--clock"></span>Applications
+      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
+        <span class="nav-icon nav-icon--applications"></span>Applications
       </a>
-
-      <!-- Borrowers Management (Risk Level & Credit Score) -->
       <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
         <span class="nav-icon nav-icon--borrowers"></span>Borrowers
       </a>
-
-      <!-- Payment Verification -->
-      <a href="{{ url_for('super_admin.all_payments') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loans"></span>Payments
+      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item">
+        <span class="nav-icon nav-icon--loans"></span>Active Loans
+      </a>
+      <a href="{{ url_for('officer.payment_list') }}" class="nav-item">
+        <span class="nav-icon nav-icon--payments"></span>Payments
       </a>
     </nav>
 
@@ -81,90 +67,103 @@
         </button>
       </form>
     </div>
-
   </aside>
 
-  <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+  <!-- ════════════ MAIN CONTENT ════════════ -->
   <div class="main-content">
-
     <header class="topbar">
       <div class="topbar-left">
-        <button class="menu-btn" id="menuBtn">&#9776;</button>
         <div>
           <div class="topbar-heading">My Profile</div>
-          <div class="topbar-sub">Account details and settings</div>
+          <div class="topbar-sub">Account information</div>
         </div>
       </div>
       <div class="topbar-right">
-        <!-- Back to officer dashboard -->
-        <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">
-          ← Back to Dashboard
-        </a>
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
       </div>
     </header>
 
     <main class="page-body">
-      <div class="profile-content">
-        <div class="card">
 
-          <div class="card-header">
-            <div>
-              <h3>Personal Information</h3>
-              <p>Your registered account details</p>
-            </div>
-            {% set status = user.get('id_verification_status', 'pending') if user else 'pending' %}
-            <span class="badge {% if status == 'verified' %}badge--approved{% elif status == 'rejected' %}badge--rejected{% else %}badge--pending{% endif %}">
-              Status: {{ status | title }}
-            </span>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-wrap">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
           </div>
+        {% endif %}
+      {% endwith %}
 
-          <div class="card-body">
-            <div class="profile-header-section">
-              <div class="profile-avatar">
-                {{ user.get('full_name', '?')[0]|upper if user else '?' }}
-              </div>
-              <div>
-                <h3 class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</h3>
-                <p class="profile-email">{{ user.get('email', '') if user else '' }}</p>
-                <span class="badge badge--info">Loan Officer</span>
-              </div>
-            </div>
+      <div class="profile-card">
+        <div class="profile-banner"></div>
 
-            <div class="profile-info-grid">
-              <div class="profile-field">
-                <div class="profile-field-label">Full Name</div>
-                <div class="profile-field-value">{{ user.get('full_name', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Email Address</div>
-                <div class="profile-field-value">{{ user.get('email', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Date of Birth</div>
-                <div class="profile-field-value">{{ user.get('date_of_birth', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Age</div>
-                <div class="profile-field-value">{{ user.get('age', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Contact Number</div>
-                <div class="profile-field-value">{{ user.get('contact_number', '—') if user else '—' }}</div>
-              </div>
-              <div class="profile-field">
-                <div class="profile-field-label">Staff Member Since</div>
-                <div class="profile-field-value">{{ user.get('created_at', '—') if user else '—' }}</div>
-              </div>
+        <div class="profile-header">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar-big">
+              {{ user.get('full_name', '?')[0]|upper if user else '?' }}
             </div>
           </div>
-
+          <div class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</div>
+          <div class="profile-email">{{ user.get('email', '') if user else '' }}</div>
+          <div class="profile-meta">
+            <span class="badge badge--officer">Loan Officer</span>
+            {% set vstatus = user.get('id_verification_status', 'pending') if user else 'pending' %}
+            {% if vstatus == 'verified' %}
+              <span class="badge badge--verified">✓ Verified</span>
+            {% elif vstatus == 'rejected' %}
+              <span class="badge badge--rejected">✗ Rejected</span>
+            {% else %}
+              <span class="badge badge--pending">⏳ {{ vstatus | title }}</span>
+            {% endif %}
+          </div>
         </div>
+
+        <div class="divider"></div>
+
+        <div class="info-section">
+          <div class="info-section-title">Personal Details</div>
+          <div class="info-grid">
+            <div class="info-field">
+              <div class="info-label">Full Name</div>
+              <div class="info-value">{{ user.get('full_name', '—') if user else '—' }}</div>
+            </div>
+            <div class="info-field">
+              <div class="info-label">Email Address</div>
+              <div class="info-value">{{ user.get('email', '—') if user else '—' }}</div>
+            </div>
+            <div class="info-field">
+              <div class="info-label">Contact Number</div>
+              <div class="info-value {% if not (user and user.get('contact_number')) %}empty{% endif %}">
+                {{ user.get('contact_number', '—') if user else '—' }}
+              </div>
+            </div>
+            <div class="info-field">
+              <div class="info-label">Date of Birth</div>
+              <div class="info-value {% if not (user and user.get('date_of_birth')) %}empty{% endif %}">
+                {{ user.get('date_of_birth', '—') if user else '—' }}
+              </div>
+            </div>
+            <div class="info-field">
+              <div class="info-label">Age</div>
+              <div class="info-value">{{ user.get('age', '—') if user else '—' }}</div>
+            </div>
+            <div class="info-field">
+              <div class="info-label">Member Since</div>
+              <div class="info-value">
+                {% if user and user.get('created_at') %}
+                  {{ user.get('created_at').strftime('%B %d, %Y') if user.get('created_at') and user.get('created_at').__class__.__name__ != 'str' else user.get('created_at') }}
+                {% else %}—{% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
-
 </div>
 
-<script src="{{ url_for('auth.static', filename='profile.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
 </body>
 </html>

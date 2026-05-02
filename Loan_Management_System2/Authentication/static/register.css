@@ -608,3 +608,15 @@ body {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+
+.step-content { display: none; }
+    .step-content.active { display: block !important; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .m-check { font-size: 11px; color: var(--gray-600); display: flex; align-items: center; gap: 5px; margin-top: -8px; margin-bottom: 10px; cursor: pointer; }
+    .form-section-title { font-size: 13px; font-weight: 700; color: var(--mint-dark); margin: 20px 0 10px; border-bottom: 1px solid var(--gray-200); padding-bottom: 5px; text-transform: uppercase; }
+    input:disabled, select:disabled { background-color: #f1f5f9 !important; cursor: not-allowed; }
+    .readonly-field { background-color: #f8fafc !important; font-weight: 600; color: #1e293b; border: 1px solid #e2e8f0 !important; cursor: default; }
+    .others-input { margin-top: 5px; display: none; }
+    .review-label { font-size: 11px; color: #64748b; margin-bottom: 4px; display: block; font-weight: 600; margin-left: 2px; }
+    .security-hint { font-size: 10px; color: #64748b; margin-top: -8px; margin-bottom: 10px; display: block; padding-left: 2px; }
