@@ -467,7 +467,6 @@ def make_payment(loan_id):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
 
-    # 1. KUNIN ANG DETALYE NG LOAN
     cursor.execute("""
         SELECT l.*, lt.name AS type_name, lp.plan_name, lp.interest_rate
         FROM loans l
@@ -488,50 +487,49 @@ def make_payment(loan_id):
         payment_date = request.form.get('payment_date')
         
         try:
-            # 2. WALLET CHECK
+            # 1. WALLET CHECK
             cursor.execute("SELECT balance FROM dummy_wallets WHERE user_id = %s AND method = %s", (session['user_id'], payment_method))
             wallet = cursor.fetchone()
             if not wallet or Decimal(str(wallet['balance'])) < amount_paid:
-                flash(f'Insufficient balance in your {payment_method.upper()} wallet.', 'danger')
+                flash(f'Insufficient balance.', 'danger')
                 return redirect(url_for('borrower.select_loan_to_pay'))
 
-            # 3. PAYMENT PROCESSING PER PERIOD
+            # 2. PAYMENT PROCESSING PER PERIOD
             remaining_to_process = amount_paid
             total_principal_paid = Decimal('0.00')
             total_interest_paid = Decimal('0.00')
             total_rebate_given = Decimal('0.00')
-            REBATE_RATE = Decimal('0.20') # 20% Rebate para sa Advance Payment
+            REBATE_RATE = Decimal('0.20')
 
             cursor.execute("SELECT * FROM amortization_schedule WHERE loan_id = %s AND is_paid = 0 ORDER BY period_no ASC", (loan_id,))
             unpaid_rows = cursor.fetchall()
-            today = datetime.date.today()
 
-            for row in unpaid_rows:
+            # Gagamit tayo ng enumerate para malaman kung pang-ilan yung binabayaran
+            for index, row in enumerate(unpaid_rows):
                 if remaining_to_process <= 0: break
                 
                 p_due = Decimal(str(row['principal_due']))
                 i_due = Decimal(str(row['interest_due']))
                 
-                # Check kung "Advance" (> 25 days) para bigyan ng 20% Rebate
-                is_advance = row['due_date'] > (today + datetime.timedelta(days=25))
-                
-                if is_advance:
+                # --- LOGIC UPDATE: REBATE ONLY FOR ADVANCE (2nd month onwards) ---
+                # index == 0: Ito yung pinaka-unang unpaid (Current or Overdue). NO REBATE.
+                # index > 0: Ito yung mga susunod pang buwan (Advance). WITH REBATE.
+                if index > 0:
                     rebate = i_due * REBATE_RATE
                     actual_i_to_pay = i_due - rebate
                     total_rebate_given += rebate
                 else:
-                    actual_i_to_pay = i_due
+                    actual_i_to_pay = i_due # Full interest para sa unang unpaid row
                 
                 period_total = p_due + actual_i_to_pay
 
                 if remaining_to_process >= period_total:
-                    # Markahan bilang PAID ang buong period
                     cursor.execute("UPDATE amortization_schedule SET is_paid = 1, paid_at = NOW() WHERE id = %s", (row['id'],))
                     remaining_to_process -= period_total
                     total_principal_paid += p_due
                     total_interest_paid += actual_i_to_pay
                 else:
-                    # Partial payment logic: Sobra sa interest pero kulang sa full period
+                    # Partial payment logic: Ituring na principal ang sobra
                     if remaining_to_process > actual_i_to_pay:
                         total_principal_paid += (remaining_to_process - actual_i_to_pay)
                         total_interest_paid += actual_i_to_pay
@@ -539,17 +537,16 @@ def make_payment(loan_id):
                         total_interest_paid += remaining_to_process
                     remaining_to_process = 0
 
-            # --- FIX SA "BUTAL" (The 25.77 / 118.16 Fix) ---
+            # 3. EXTRA MONEY HANDLING (BUTAL)
             if remaining_to_process > 0:
                 total_principal_paid += remaining_to_process
                 remaining_to_process = 0
 
-            # 4. UPDATE LOAN BALANCE & NEXT DUE DATE
+            # 4. UPDATE LOAN BALANCE
             current_ob = Decimal(str(loan['outstanding_balance']))
             actual_deduction = total_principal_paid + total_rebate_given
             new_ob_dec = max(Decimal('0.00'), current_ob - actual_deduction)
 
-            # Hanapin ang susunod na unpaid due date pagkatapos ng bayad
             cursor.execute("SELECT due_date FROM amortization_schedule WHERE loan_id = %s AND is_paid = 0 ORDER BY due_date ASC LIMIT 1", (loan_id,))
             next_due_row = cursor.fetchone()
             next_due = next_due_row['due_date'] if next_due_row else None
@@ -558,17 +555,16 @@ def make_payment(loan_id):
             cursor.execute("UPDATE loans SET outstanding_balance = %s, next_due_date = %s, status = %s WHERE id = %s", 
                            (new_ob_dec, next_due, loan_status, loan_id))
 
-            # --- TRANSPARENCY FIX: Sync huling paid row balance sa Dashboard ---
+            # TRANSPARENCY FIX: Sync table row balance sa dashboard
             cursor.execute("""
-                UPDATE amortization_schedule 
-                SET balance_after = %s 
-                WHERE loan_id = %s AND is_paid = 1 
-                ORDER BY period_no DESC LIMIT 1
+                UPDATE amortization_schedule SET balance_after = %s 
+                WHERE loan_id = %s AND is_paid = 1 ORDER BY period_no DESC LIMIT 1
             """, (new_ob_dec, loan_id))
 
-            # 5. WALLET & SYSTEM FUNDS UPDATE
+            # 5. WALLET & SYSTEM UPDATES
             cursor.execute("UPDATE dummy_wallets SET balance = balance - %s WHERE user_id = %s AND method = %s", (amount_paid, session['user_id'], payment_method))
             
+            # Payment Record
             year = datetime.datetime.now().year
             cursor.execute("SELECT COUNT(*) AS total FROM payments WHERE YEAR(created_at) = %s", (year,))
             pay_no = f"PAY-{year}-{str(cursor.fetchone()['total'] + 1).zfill(6)}"
@@ -579,6 +575,7 @@ def make_payment(loan_id):
             """, (pay_no, loan_id, session['user_id'], amount_paid, total_principal_paid, total_interest_paid, 
                   payment_method, reference_number, payment_date))
 
+            # Update Treasury
             cursor.execute("UPDATE system_funds SET total_capital = total_capital + %s, total_interest_earned = total_interest_earned + %s WHERE id = 1", 
                            (total_principal_paid, total_interest_paid))
             
@@ -588,25 +585,19 @@ def make_payment(loan_id):
 
             conn.commit()
 
-            # 6. RE-AMORTIZATION (Triggered if user paid extra)
+            # 6. RE-AMORTIZATION
             if new_ob_dec > 0 and (total_principal_paid > Decimal(str(loan['monthly_payment'])) * Decimal('0.5')):
                 cursor.execute("SELECT MAX(period_no) as last_p FROM amortization_schedule WHERE loan_id = %s AND is_paid = 1", (loan_id,))
                 last_period = cursor.fetchone()['last_p'] or 0
-                
                 cursor.execute("SELECT COUNT(*) as rem FROM amortization_schedule WHERE loan_id = %s AND is_paid = 0", (loan_id,))
                 rem_months = cursor.fetchone()['rem']
 
                 if rem_months > 0:
                     cursor.execute("DELETE FROM amortization_schedule WHERE loan_id = %s AND is_paid = 0", (loan_id,))
+                    today = datetime.date.today()
+                    # Reference date adjustment
+                    reference_date = (next_due - datetime.timedelta(days=30)) if next_due else today
                     
-                    # --- FIX: ADJUST REFERENCE DATE ---
-                    # Dahil ang build_amortization ay laging nag-a-add ng 30 days para sa unang row,
-                    # kailangan nating i-set ang start_date pabalik ng 30 days mula sa saktong target due date.
-                    if next_due:
-                        reference_date = next_due - datetime.timedelta(days=30)
-                    else:
-                        reference_date = today
-
                     new_sched = build_amortization(float(new_ob_dec), float(loan['interest_rate']), rem_months, 
                                                    reference_date, starting_period=last_period + 1)
                     
@@ -622,7 +613,7 @@ def make_payment(loan_id):
                     conn.commit()
 
             recalculate_borrower_metrics(session['user_id'])
-            flash(f'Payment Successful! Interest saved: ₱{total_rebate_given:,.2f}', 'success')
+            flash('Payment Successful!', 'success')
             return redirect(url_for('borrower.select_loan_to_pay') + f'?success=1&ref={pay_no}')
 
         except Exception as e:
