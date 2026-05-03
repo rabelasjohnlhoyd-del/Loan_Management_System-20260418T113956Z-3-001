@@ -8,6 +8,166 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('auth.static', filename='login.css') }}"/>
+  <style>
+    /* ── Locked Account Banner ── */
+    .locked-banner {
+      background: #fef2f2;
+      border: 1.5px solid #fecaca;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    .locked-banner-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .locked-banner-top .lock-icon-wrap {
+      width: 32px;
+      height: 32px;
+      background: #fee2e2;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .locked-banner-top .lock-icon-wrap svg {
+      width: 16px;
+      height: 16px;
+      stroke: #dc2626;
+      fill: none;
+    }
+    .locked-banner-top .lock-text strong {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #dc2626;
+    }
+    .locked-banner-top .lock-text span {
+      font-size: 0.78rem;
+      color: #b91c1c;
+    }
+    .locked-contact {
+      background: #fff;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+      color: #7f1d1d;
+    }
+    .locked-contact p {
+      margin: 0 0 4px;
+      font-weight: 600;
+      color: #991b1b;
+    }
+    .locked-contact a {
+      color: #dc2626;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .locked-contact a:hover { text-decoration: underline; }
+    .locked-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-request-unlock {
+      flex: 1;
+      min-width: 130px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: #dc2626;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-request-unlock:hover { background: #b91c1c; }
+    .btn-request-unlock svg {
+      width: 13px; height: 13px;
+      stroke: #fff; fill: none;
+      flex-shrink: 0;
+    }
+    .btn-reset-instead {
+      flex: 1;
+      min-width: 130px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: #fff;
+      color: #dc2626;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1.5px solid #fecaca;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-reset-instead:hover { background: #fef2f2; }
+
+    /* Request unlock form hidden by default */
+    .unlock-request-form { display: none; margin-top: 10px; }
+    .unlock-request-form.visible { display: block; }
+    .unlock-request-form .urf-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #991b1b;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .unlock-request-form input[type="email"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #fecaca;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-family: 'DM Sans', sans-serif;
+      color: #1a1a2e;
+      outline: none;
+      box-sizing: border-box;
+      margin-bottom: 8px;
+      transition: border-color .15s;
+    }
+    .unlock-request-form input[type="email"]:focus { border-color: #dc2626; }
+    .urf-submit {
+      width: 100%;
+      padding: 9px;
+      border-radius: 8px;
+      background: #dc2626;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background .15s;
+    }
+    .urf-submit:hover { background: #b91c1c; }
+    .urf-cancel {
+      display: block;
+      text-align: center;
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+    .urf-cancel:hover { color: #dc2626; }
+  </style>
 </head>
 <body>
 
@@ -32,10 +192,62 @@
       {% if messages %}
         <div class="flash-stack">
           {% for category, message in messages %}
-            <div class="flash-msg {{ category }}">
-              <span>{{ message }}</span>
-              <button class="f-close" aria-label="Close">&times;</button>
-            </div>
+
+            {% if category == 'danger' and 'locked' in message|lower %}
+              <!-- ── LOCKED ACCOUNT BANNER ── -->
+              <div class="locked-banner">
+                <div class="locked-banner-top">
+                  <div class="lock-icon-wrap">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <rect height="11" rx="2" ry="2" width="18" x="3" y="11"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div class="lock-text">
+                    <strong>Account Locked</strong>
+                    <span>Too many failed login attempts</span>
+                  </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="locked-contact">
+                  <p>Need help? Contact our support team:</p>
+                  📧 rabelasjohnlhoyd@gmail.com
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="locked-actions">
+                  <button class="btn-request-unlock" type="button" onclick="showUnlockForm()">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Request Unlock
+                  </button>
+                  <a href="{{ url_for('auth.forgot_password') }}" class="btn-reset-instead">
+                    🔑 Reset Password
+                  </a>
+                </div>
+
+                <!-- Hidden unlock request form -->
+                <div class="unlock-request-form" id="unlockRequestForm">
+                  <form method="POST" action="{{ url_for('auth.request_unlock') }}">
+                    <label class="urf-label">Enter your email to send an unlock request to our officer:</label>
+                    <input type="email" name="email" placeholder="your@email.com" required />
+                    <button type="submit" class="urf-submit">Send Unlock Request</button>
+                    <span class="urf-cancel" onclick="hideUnlockForm()">Cancel</span>
+                  </form>
+                </div>
+
+              </div>
+
+            {% else %}
+              <!-- ── NORMAL FLASH MESSAGE ── -->
+              <div class="flash-msg {{ category }}">
+                <span>{{ message }}</span>
+                <button class="f-close" aria-label="Close">&times;</button>
+              </div>
+            {% endif %}
+
           {% endfor %}
         </div>
       {% endif %}
@@ -43,7 +255,10 @@
 
     <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
 
-      <p class="form-heading">Login</p>
+      <p class="form-heading">
+      
+        Login
+      </p>
 
       <div class="field">
         <span class="field-icon field-icon--email"></span>
@@ -97,5 +312,13 @@
 </div>
 
 <script src="{{ url_for('auth.static', filename='login.js') }}"></script>
+<script>
+  function showUnlockForm() {
+    document.getElementById('unlockRequestForm').classList.add('visible');
+  }
+  function hideUnlockForm() {
+    document.getElementById('unlockRequestForm').classList.remove('visible');
+  }
+</script>
 </body>
 </html>

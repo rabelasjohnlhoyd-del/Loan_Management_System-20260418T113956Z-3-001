@@ -70,12 +70,13 @@ def log_activity(action, details='', status='success'):
 @role_required('loan_officer')
 def officer_dashboard():
     stats = {
-        'pending_applications': 0,
-        'pending_verifications': 0,
-        'active_loans': 0,
-        'total_borrowers': 0,
-        'pending_payments': 0
-    }
+    'pending_applications': 0,
+    'pending_verifications': 0,
+    'active_loans': 0,
+    'total_borrowers': 0,
+    'pending_payments': 0,
+    'locked_accounts': 0      # ← DAGDAG
+}
     recent_applications = []
     verification_queue = []
 
@@ -110,10 +111,10 @@ def officer_dashboard():
         recent_applications = cursor.fetchall()
 
         cursor.execute("""
-            SELECT id, full_name, email, created_at
-            FROM users WHERE id_verification_status = 'pending'
-            ORDER BY created_at DESC LIMIT 5
-        """)
+    SELECT COUNT(*) AS cnt FROM users
+    WHERE failed_attempts >= 5 AND role = 'borrower'
+""")
+        stats['locked_accounts'] = cursor.fetchone()['cnt']
         verification_queue = cursor.fetchall()
 
         cursor.close()
@@ -880,3 +881,106 @@ def api_stats():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+
+
+# ================================================================
+# SECTION 10: LOCKED ACCOUNT MANAGEMENT
+# ================================================================
+@officer_bp.route('/locked-accounts')
+@login_required
+@role_required('loan_officer')
+def locked_accounts():
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id, full_name, email, contact_number,
+                   failed_attempts, last_login, created_at
+            FROM users
+            WHERE failed_attempts >= 5 AND role = 'borrower'
+            ORDER BY last_login DESC
+        """)
+        locked_users = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        locked_users = []
+
+    return render_template('O_locked_accounts.html', locked_users=locked_users)
+
+
+@officer_bp.route('/unlock-account/<int:user_id>', methods=['POST'])
+@login_required
+@role_required('loan_officer')
+def unlock_account(user_id):
+    notes = request.form.get('notes', '').strip()
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # Kunin ang user info para sa email
+        cursor.execute("""
+            SELECT full_name, email FROM users
+            WHERE id = %s AND failed_attempts >= 5
+        """, (user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            flash('Account not found or not locked.', 'warning')
+            cursor.close(); conn.close()
+            return redirect(url_for('officer.locked_accounts'))
+
+        # 1. I-unlock ang account
+        cursor.execute("""
+            UPDATE users SET failed_attempts = 0 WHERE id = %s
+        """, (user_id,))
+
+        # 2. I-resolve ang unlock request
+        cursor.execute("""
+            UPDATE unlock_requests
+            SET status = 'resolved', notes = %s
+            WHERE user_id = %s AND status = 'pending'
+        """, (notes, user_id))
+
+        conn.commit()
+
+        # 3. Mag-send ng email gamit ang template
+        try:
+            from Loan_Management_System2 import mail
+            from flask_mail import Message as MailMessage
+            from flask import render_template
+
+            html_body = render_template(
+                'email_unlock.html',
+                full_name=user['full_name'],
+                notes=notes,
+                login_url='http://127.0.0.1:5000/auth/login',
+                support_email='support@hiraya.com'
+            )
+
+            msg = MailMessage(
+                subject='✅ Your Hiraya Account Has Been Unlocked',
+                recipients=[user['email']],
+                html=html_body
+            )
+            mail.send(msg)
+
+        except Exception as mail_err:
+            print(f"Email send error: {mail_err}")
+
+        log_activity(
+            'unlock_account',
+            f'User ID {user_id} ({user["email"]}) unlocked. Notes: {notes}'
+        )
+        flash(f'Account unlocked. Email sent to {user["email"]}.', 'success')
+
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+
+    return redirect(url_for('officer.locked_accounts'))
