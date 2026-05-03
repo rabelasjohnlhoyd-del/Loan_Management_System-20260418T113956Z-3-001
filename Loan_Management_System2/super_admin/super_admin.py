@@ -90,58 +90,51 @@ def unlock_user(user_id):
 @login_required
 @role_required('admin', 'super_admin')
 def admin_dashboard():
-    # 1. Initialize stats with default values to avoid Undefined errors in HTML
     stats = {
-        'total_loans': 0, 
-        'active_loans': 0, 
+        'total_loans': 0,
+        'active_loans': 0,
         'total_borrowers': 0,
-        'total_disbursed': 0.00, 
+        'total_disbursed': 0.00,
         'pending_applications': 0,
         'total_interest_earned': 0.00,
-        'staff_salary_budget': 0.00  # <--- Ito ang gagamitin para sa Payroll Budget card
+        'staff_salary_budget': 0.00
     }
-    recent_applications = []
-    activity_logs = []
+    recent_applications        = []
+    activity_logs              = []
+    pending_applications_notif = []
 
     try:
-        conn = get_db()
+        conn   = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ─── A. TREASURY STATS (Ang Pera ng Bangko) ───
+        # ── Treasury stats ──
         cursor.execute("SELECT total_interest_earned FROM system_funds WHERE id = 1")
         fund_row = cursor.fetchone()
         if fund_row:
             earned = float(fund_row['total_interest_earned'])
             stats['total_interest_earned'] = earned
-            # Implementasyon ng Step 4: 40% ng kinita ay naka-allocate sa suweldo ng staff
-            stats['staff_salary_budget'] = earned * 0.40
+            stats['staff_salary_budget']   = earned * 0.40
         else:
             stats['total_interest_earned'] = 0.00
-            stats['staff_salary_budget'] = 0.00
+            stats['staff_salary_budget']   = 0.00
 
-        # ─── B. CORE SYSTEM STATS ───
-        # Bilang ng lahat ng borrowers
+        # ── Core stats ──
         cursor.execute("SELECT COUNT(*) as total FROM users WHERE role = 'borrower'")
         stats['total_borrowers'] = cursor.fetchone()['total']
 
-        # Bilang ng mga nag-aantay na application
         cursor.execute("SELECT COUNT(*) as total FROM loan_applications WHERE status IN ('submitted', 'under_review')")
         stats['pending_applications'] = cursor.fetchone()['total']
 
-        # Bilang ng mga kasalukuyang nagbabayad na loan
         cursor.execute("SELECT COUNT(*) as total FROM loans WHERE status = 'active'")
         stats['active_loans'] = cursor.fetchone()['total']
 
-        # Kabuuang perang nailabas na ng system (Puhunan)
         cursor.execute("SELECT COALESCE(SUM(disbursed_amount), 0) as total FROM loans")
         stats['total_disbursed'] = float(cursor.fetchone()['total'])
 
-        # Kabuuang bilang ng loans (History)
         cursor.execute("SELECT COUNT(*) as total FROM loans")
         stats['total_loans'] = cursor.fetchone()['total']
 
-        # ─── C. TABLES DATA (Recent Activity) ───
-        # Kunin ang 5 pinakabagong applications
+        # ── Recent applications ──
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested, la.status, la.submitted_at,
                    u.full_name AS borrower_name, lt.name AS type_name
@@ -152,7 +145,7 @@ def admin_dashboard():
         """)
         recent_applications = cursor.fetchall()
 
-        # Kunin ang 10 pinakabagong system logs
+        # ── Activity logs ──
         cursor.execute("""
             SELECT al.id, al.action, al.details, al.created_at, u.full_name AS actor_name
             FROM audit_logs al
@@ -160,6 +153,18 @@ def admin_dashboard():
             ORDER BY al.created_at DESC LIMIT 10
         """)
         activity_logs = cursor.fetchall()
+
+        # ── Notification dropdown ──
+        cursor.execute("""
+            SELECT la.id, la.reference_no, la.amount_requested, la.status, la.submitted_at,
+                   u.full_name AS borrower_name, lt.name AS type_name
+            FROM loan_applications la
+            JOIN users u ON u.id = la.borrower_id
+            JOIN loan_types lt ON lt.id = la.loan_type_id
+            WHERE la.status IN ('submitted', 'under_review')
+            ORDER BY la.submitted_at DESC LIMIT 10
+        """)
+        pending_applications_notif = cursor.fetchall()
 
         cursor.close()
         conn.close()
@@ -172,6 +177,7 @@ def admin_dashboard():
         stats=stats,
         recent_applications=recent_applications,
         activity_logs=activity_logs,
+        pending_applications_notif=pending_applications_notif,
         user_name=session.get('user_name'))
 
 
@@ -201,7 +207,7 @@ def auditor_dashboard():
 
 
 # ─────────────────────────────────────────────
-# ADMIN: ALL APPLICATIONS  ← ONLY ONE, with notifications
+# ADMIN: ALL APPLICATIONS
 # ─────────────────────────────────────────────
 @super_admin_bp.route('/applications')
 @login_required
@@ -254,7 +260,6 @@ def admin_applications():
         cursor.execute("SELECT * FROM loan_types WHERE is_active=1")
         types = cursor.fetchall()
 
-        # ── Notification dropdown data ──
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested,
                    la.status, la.submitted_at,
@@ -303,7 +308,7 @@ def admin_applications():
 
 
 # ─────────────────────────────────────────────
-# ADMIN: APPLICATION DETAIL  ← fixed, separate from admin_applications
+# ADMIN: APPLICATION DETAIL
 # ─────────────────────────────────────────────
 @super_admin_bp.route('/applications/<int:app_id>')
 @login_required
@@ -313,7 +318,6 @@ def application_detail(app_id):
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ===== 1. MAIN APPLICATION DATA =====
         cursor.execute("""
             SELECT la.*, lt.name AS type_name, lp.plan_name, lp.interest_rate,
                    lp.processing_fee, lp.collateral_required,
@@ -330,21 +334,18 @@ def application_detail(app_id):
             flash('Application not found.', 'danger')
             return redirect(url_for('super_admin.admin_applications'))
 
-        # ===== 2. DOCUMENTS =====
         cursor.execute(
             "SELECT * FROM application_documents WHERE application_id = %s",
             (app_id,)
         )
         docs = cursor.fetchall()
 
-        # ===== 3. MONTHLY PAYMENT =====
         monthly = calculate_monthly_payment(
             float(app['amount_requested'] or 0),
             float(app['interest_rate'] or 0),
             app['term_months'] or 0
         )
 
-        # ===== 4. STATS =====
         cursor.execute(
             "SELECT COUNT(*) AS cnt FROM loan_applications WHERE status IN ('submitted','under_review')"
         )
@@ -356,7 +357,6 @@ def application_detail(app_id):
             'pending_payments': pending_pays,
         }
 
-        # ===== 5. PENDING APPLICATIONS FOR NOTIFICATION =====
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested, la.submitted_at,
                    u.full_name AS borrower_name, lt.name AS type_name
@@ -369,9 +369,6 @@ def application_detail(app_id):
         """)
         pending_applications_notif = cursor.fetchall()
 
-        # ================================================================
-        # 6. RECENT ACTIVITY — GAMIT ANG AUDIT_LOGS (MAY DATA NA!)
-        # ================================================================
         cursor.execute("""
             SELECT al.id, al.action, al.details, al.created_at,
                    u.full_name AS actor_name
@@ -398,7 +395,6 @@ def application_detail(app_id):
                            activity_logs=activity_logs)
 
 
-
 # ─────────────────────────────────────────────
 # ADMIN: ALL LOANS
 # ─────────────────────────────────────────────
@@ -410,7 +406,6 @@ def all_loans():
     search        = request.args.get('search', '').strip()
     type_filter   = request.args.get('type', 'all')
 
-    # Default values
     pending_applications_notif = []
     activity_logs              = []
     stats                      = {'pending_applications': 0}
@@ -419,9 +414,6 @@ def all_loans():
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ================================================================
-        # 1. MAIN LOANS QUERY
-        # ================================================================
         query = """
             SELECT l.*, lt.name AS type_name, lp.plan_name,
                    u.full_name AS borrower_name, u.email AS borrower_email
@@ -449,30 +441,20 @@ def all_loans():
         cursor.execute(query, params)
         loan_list = cursor.fetchall()
 
-        # Convert to float for calculations
         for l in loan_list:
             l['disbursed_amount']    = float(l.get('disbursed_amount') or 0)
             l['outstanding_balance'] = float(l.get('outstanding_balance') or 0)
             l['principal_amount']    = float(l.get('principal_amount') or 0)
             l['monthly_payment']     = float(l.get('monthly_payment') or 0)
 
-        # ================================================================
-        # 2. COUNTS FOR STATUS TABS
-        # ================================================================
         cursor.execute("SELECT status, COUNT(*) AS cnt FROM loans GROUP BY status")
         counts = {r['status']: r['cnt'] for r in cursor.fetchall()}
         cursor.execute("SELECT COUNT(*) AS cnt FROM loans")
         counts['all'] = cursor.fetchone()['cnt']
 
-        # ================================================================
-        # 3. LOAN TYPES FOR FILTER
-        # ================================================================
         cursor.execute("SELECT * FROM loan_types WHERE is_active=1")
         types = cursor.fetchall()
 
-        # ================================================================
-        # 4. PENDING APPLICATIONS FOR NOTIFICATION
-        # ================================================================
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested,
                    la.submitted_at,
@@ -487,20 +469,13 @@ def all_loans():
         """)
         pending_applications_notif = cursor.fetchall()
 
-        # ================================================================
-        # 5. STATS (for counts and sidebar badge)
-        # ================================================================
         cursor.execute("""
             SELECT COUNT(*) AS cnt FROM loan_applications
             WHERE status IN ('submitted', 'under_review')
         """)
         stats['pending_applications'] = cursor.fetchone()['cnt']
 
-        # ================================================================
-        # 6. RECENT ACTIVITY LOGS (with fallback for missing columns)
-        # ================================================================
         try:
-            # Try with 'details' column
             cursor.execute("""
                 SELECT al.id, al.action, al.details, al.created_at,
                        u.full_name AS actor_name
@@ -511,7 +486,6 @@ def all_loans():
             """)
             activity_logs = cursor.fetchall()
         except Exception:
-            # Fallback: without 'details' column
             cursor.execute("""
                 SELECT al.id, al.action, al.created_at,
                        u.full_name AS actor_name
@@ -521,7 +495,6 @@ def all_loans():
                 LIMIT 5
             """)
             activity_logs = cursor.fetchall()
-            # Add dummy details so template doesn't break
             for log in activity_logs:
                 log['details'] = f"Activity: {log['action']}"
 
@@ -559,7 +532,6 @@ def borrowers():
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ========== MAIN BORROWERS QUERY ==========
         query = """
             SELECT u.id, u.full_name, u.email, u.contact_number,
                    u.id_verification_status, u.is_active, u.created_at,
@@ -592,7 +564,6 @@ def borrowers():
         cursor.execute(query, params)
         borrowers_list = cursor.fetchall()
 
-        # ========== STATS ==========
         cursor.execute("SELECT COUNT(*) AS cnt FROM users WHERE role='borrower'")
         total = cursor.fetchone()['cnt']
         cursor.execute("SELECT COUNT(*) AS cnt FROM users WHERE role='borrower' AND is_active=1")
@@ -600,7 +571,6 @@ def borrowers():
         cursor.execute("SELECT COUNT(*) AS cnt FROM borrower_profiles WHERE risk_level='high'")
         high_risk = cursor.fetchone()['cnt']
 
-        # ========== PENDING APPLICATIONS FOR NOTIFICATION ==========
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested, la.submitted_at,
                    u.full_name AS borrower_name, lt.name AS type_name
@@ -613,11 +583,9 @@ def borrowers():
         """)
         pending_applications_notif = cursor.fetchall()
 
-        # ========== STATS FOR SIDEBAR BADGE ==========
         cursor.execute("SELECT COUNT(*) AS cnt FROM loan_applications WHERE status IN ('submitted','under_review')")
         stats = {'pending_applications': cursor.fetchone()['cnt']}
 
-        # ========== RECENT ACTIVITY LOGS ==========
         try:
             cursor.execute("""
                 SELECT al.id, al.action, al.details, al.created_at,
@@ -669,7 +637,6 @@ def borrower_detail(borrower_id):
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ========== BORROWER DATA ==========
         cursor.execute("""
             SELECT u.*, COALESCE(bp.credit_score, 500) AS credit_score,
                    COALESCE(bp.risk_level, 'medium') AS risk_level,
@@ -690,7 +657,6 @@ def borrower_detail(borrower_id):
             flash('Borrower not found.', 'danger')
             return redirect(url_for('super_admin.borrowers'))
 
-        # ========== LOAN HISTORY ==========
         cursor.execute("""
             SELECT l.*, lt.name AS type_name, lp.plan_name
             FROM loans l
@@ -707,7 +673,6 @@ def borrower_detail(borrower_id):
             l['monthly_payment']     = float(l.get('monthly_payment') or 0)
             l['disbursed_amount']    = float(l.get('disbursed_amount') or 0)
 
-        # ========== ACTIVE APPLICATIONS ==========
         cursor.execute("""
             SELECT la.*, lt.name AS type_name
             FROM loan_applications la
@@ -717,7 +682,6 @@ def borrower_detail(borrower_id):
         """, (borrower_id,))
         active_applications = cursor.fetchall()
 
-        # ========== NOTIFICATION DATA ==========
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested, la.submitted_at,
                    u.full_name AS borrower_name, lt.name AS type_name
@@ -782,9 +746,6 @@ def loan_detail(loan_id):
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ================================================================
-        # 1. LOAN DATA
-        # ================================================================
         cursor.execute("""
             SELECT l.*, lt.name AS type_name, lp.plan_name,
                    u.full_name AS borrower_name, u.email AS borrower_email,
@@ -801,16 +762,12 @@ def loan_detail(loan_id):
             flash('Loan not found.', 'danger')
             return redirect(url_for('super_admin.all_loans'))
 
-        # Convert to floats
         loan['principal_amount']    = float(loan.get('principal_amount', 0))
         loan['outstanding_balance'] = float(loan.get('outstanding_balance', 0))
         loan['monthly_payment']     = float(loan.get('monthly_payment', 0))
         loan['disbursed_amount']    = float(loan.get('disbursed_amount', 0))
         loan['processing_fee']      = float(loan.get('processing_fee', 0))
 
-        # ================================================================
-        # 2. AMORTIZATION SCHEDULE
-        # ================================================================
         cursor.execute("""
             SELECT * FROM amortization_schedule
             WHERE loan_id = %s
@@ -823,9 +780,6 @@ def loan_detail(loan_id):
             row['total_due']     = float(row.get('total_due', 0))
             row['balance_after'] = float(row.get('balance_after', 0))
 
-        # ================================================================
-        # 3. PAYMENT HISTORY
-        # ================================================================
         cursor.execute("""
             SELECT p.*, u.full_name AS verified_by_name
             FROM payments p
@@ -837,9 +791,6 @@ def loan_detail(loan_id):
         for row in payment_history:
             row['amount_paid'] = float(row.get('amount_paid', 0))
 
-        # ================================================================
-        # 4. PENALTIES
-        # ================================================================
         cursor.execute("""
             SELECT * FROM penalties WHERE loan_id = %s ORDER BY created_at DESC
         """, (loan_id,))
@@ -847,26 +798,15 @@ def loan_detail(loan_id):
         for row in penalties:
             row['amount'] = float(row.get('amount', 0))
 
-        # ================================================================
-        # 5. DOCUMENTS
-        # ================================================================
-        cursor.execute("""
-            SELECT * FROM loan_documents WHERE loan_id = %s
-        """, (loan_id,))
+        cursor.execute("SELECT * FROM loan_documents WHERE loan_id = %s", (loan_id,))
         documents = cursor.fetchall()
 
-        # ================================================================
-        # 6. STATS (for sidebar badge)
-        # ================================================================
         cursor.execute("""
             SELECT COUNT(*) AS cnt FROM loan_applications
             WHERE status IN ('submitted', 'under_review')
         """)
         stats = {'pending_applications': cursor.fetchone()['cnt']}
 
-        # ================================================================
-        # 7. PENDING APPLICATIONS FOR NOTIFICATION
-        # ================================================================
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested, la.submitted_at,
                    u.full_name AS borrower_name, lt.name AS type_name
@@ -879,9 +819,6 @@ def loan_detail(loan_id):
         """)
         pending_applications_notif = cursor.fetchall()
 
-        # ================================================================
-        # 8. RECENT ACTIVITY LOGS (with fallback)
-        # ================================================================
         try:
             cursor.execute("""
                 SELECT al.id, al.action, al.details, al.created_at,
@@ -919,8 +856,8 @@ def loan_detail(loan_id):
                            penalties=penalties,
                            documents=documents,
                            stats=stats,
-                           pending_applications_notif=pending_applications_notif,  # ← ITO ANG KULANG
-                           activity_logs=activity_logs)                            # ← ITO ANG KULANG
+                           pending_applications_notif=pending_applications_notif,
+                           activity_logs=activity_logs)
 
 
 # ─────────────────────────────────────────────
@@ -1278,7 +1215,6 @@ def penalties_page():
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # ========== PENALTIES DATA ==========
         cursor.execute("""
             SELECT pen.*, l.loan_no, u.full_name AS borrower_name, u.email AS borrower_email,
                    l.outstanding_balance
@@ -1292,7 +1228,6 @@ def penalties_page():
             pen['amount']              = float(pen.get('amount') or 0)
             pen['outstanding_balance'] = float(pen.get('outstanding_balance') or 0)
 
-        # ========== NOTIFICATION DATA ==========
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested, la.submitted_at,
                    u.full_name AS borrower_name, lt.name AS type_name
@@ -1830,8 +1765,9 @@ def SA_profile():
 
     return render_template('SA_profile.html', user=user, stats=stats)
 
+
 # ─────────────────────────────────────────────
-# ADMIN: NOTIFICATIONS API (for All Loans page)
+# NOTIFICATIONS API
 # ─────────────────────────────────────────────
 @super_admin_bp.route('/api/notifications')
 @login_required
@@ -1843,7 +1779,6 @@ def api_notifications():
 
         notifications = []
 
-        # Pending applications
         cursor.execute("""
             SELECT la.id, la.reference_no, la.amount_requested,
                    la.submitted_at,
@@ -1857,22 +1792,18 @@ def api_notifications():
         """)
         for app in cursor.fetchall():
             submitted = app['submitted_at']
-            if isinstance(submitted, datetime.datetime):
-                time_ago = submitted.strftime('%b %d, %Y %I:%M %p')
-            else:
-                time_ago = ''
+            time_ago  = submitted.strftime('%b %d, %Y %I:%M %p') if isinstance(submitted, datetime.datetime) else ''
             notifications.append({
-                'id':      f"app-{app['id']}",
-                'type':    'payment_due',
-                'title':   f"New Application — {app['reference_no']}",
-                'message': f"{app['borrower_name']} · {app['type_name']} · ₱{app['amount_requested']:,.0f}",
+                'id':       f"app-{app['id']}",
+                'type':     'payment_due',
+                'title':    f"New Application — {app['reference_no']}",
+                'message':  f"{app['borrower_name']} · {app['type_name']} · ₱{app['amount_requested']:,.0f}",
                 'time_ago': time_ago,
-                'is_read': False,
-                'link':    f"/admin/applications/{app['id']}",
-                'section': 'Pending Applications'
+                'is_read':  False,
+                'link':     f"/admin/applications/{app['id']}",
+                'section':  'Pending Applications'
             })
 
-        # Recent activity logs
         cursor.execute("""
             SELECT al.*, u.full_name AS actor_name
             FROM audit_logs al
@@ -1881,11 +1812,8 @@ def api_notifications():
             LIMIT 5
         """)
         for log in cursor.fetchall():
-            created = log.get('created_at')
-            if isinstance(created, datetime.datetime):
-                time_ago = created.strftime('%b %d, %Y %I:%M %p')
-            else:
-                time_ago = ''
+            created  = log.get('created_at')
+            time_ago = created.strftime('%b %d, %Y %I:%M %p') if isinstance(created, datetime.datetime) else ''
 
             action = log.get('action', '')
             if any(x in action for x in ['approved', 'verified', 'paid']):
@@ -1900,16 +1828,14 @@ def api_notifications():
             details    = log.get('details', '') or ''
             actor_name = log.get('actor_name', '') or ''
 
-            # Parse JSON details if needed (e.g. {"message": "User logged out"})
-            import json as _json
             try:
-                parsed = _json.loads(details)
+                parsed = json.loads(details)
                 if isinstance(parsed, dict):
                     details = parsed.get('message') or parsed.get('details') or ''
                 elif isinstance(parsed, str):
                     details = parsed
             except Exception:
-                pass  # keep raw string
+                pass
 
             message = details
             if actor_name:
@@ -1964,3 +1890,259 @@ def api_mark_notification_read(notif_id):
 @role_required('admin', 'super_admin', 'loan_officer', 'auditor')
 def api_mark_all_notifications_read():
     return jsonify({'success': True})
+
+
+# ═════════════════════════════════════════════
+# ANALYTICS API ROUTES
+# ═════════════════════════════════════════════
+
+@super_admin_bp.route('/api/analytics/revenue')
+@login_required
+@role_required('admin', 'super_admin', 'auditor')
+def api_revenue_chart():
+    """
+    Returns monthly revenue data (interest income + processing fees).
+    Query param: period = '6m' | '12m' | 'ytd'
+    """
+    period = request.args.get('period', '6m')
+
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        today = datetime.date.today()
+        if period == '6m':
+            start_date = today - datetime.timedelta(days=180)
+        elif period == 'ytd':
+            start_date = datetime.date(today.year, 1, 1)
+        else:  # 12m default
+            start_date = today - datetime.timedelta(days=365)
+
+        # Monthly interest income from approved payments
+        cursor.execute("""
+            SELECT
+                DATE_FORMAT(p.payment_date, '%%Y-%%m') AS ym,
+                DATE_FORMAT(p.payment_date, '%%b %%Y')  AS label,
+                COALESCE(SUM(p.amount_paid), 0)          AS total_collected
+            FROM payments p
+            WHERE p.status = 'approved'
+              AND p.payment_date >= %s
+            GROUP BY ym, label
+            ORDER BY ym ASC
+        """, (start_date,))
+        payment_rows = cursor.fetchall()
+
+        # Monthly processing fees from disbursed loans
+        cursor.execute("""
+            SELECT
+                DATE_FORMAT(l.disbursed_at, '%%Y-%%m') AS ym,
+                COALESCE(SUM(l.processing_fee), 0)      AS total_fees
+            FROM loans l
+            WHERE l.disbursed_at IS NOT NULL
+              AND DATE(l.disbursed_at) >= %s
+            GROUP BY ym
+            ORDER BY ym ASC
+        """, (start_date,))
+        fee_rows = {r['ym']: float(r['total_fees']) for r in cursor.fetchall()}
+
+        # Merge into unified month list
+        labels        = []
+        interest_data = []
+        fees_data     = []
+        totals        = []
+
+        for row in payment_rows:
+            ym       = row['ym']
+            interest = float(row['total_collected'])
+            fee      = fee_rows.get(ym, 0.0)
+            labels.append(row['label'])
+            interest_data.append(round(interest, 2))
+            fees_data.append(round(fee, 2))
+            totals.append(round(interest + fee, 2))
+
+        # Summary metrics
+        grand_total = round(sum(totals), 2)
+        monthly_avg = round(grand_total / len(totals), 2) if totals else 0
+        best_val    = max(interest_data) if interest_data else 0
+        best_idx    = interest_data.index(best_val) if interest_data else 0
+        best_month  = labels[best_idx] if labels else '—'
+
+        # Period-over-period growth
+        half   = max(1, len(totals) // 2)
+        prev   = sum(totals[:half]) or 1
+        curr   = sum(totals[half:])
+        growth = round(((curr - prev) / prev) * 100, 1)
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            'labels':      labels,
+            'interest':    interest_data,
+            'fees':        fees_data,
+            'grand_total': grand_total,
+            'monthly_avg': monthly_avg,
+            'best_month':  best_month,
+            'best_val':    best_val,
+            'growth_pct':  growth,
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@super_admin_bp.route('/api/analytics/defaults')
+@login_required
+@role_required('admin', 'super_admin', 'auditor')
+def api_default_analytics():
+    """
+    Returns loan default rate analytics.
+    Query param: loan_type = 'all' | <loan_type_id>
+    """
+    loan_type = request.args.get('loan_type', 'all')
+
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        type_clause = ""
+        type_params = []
+        if loan_type != 'all':
+            type_clause = "AND l.loan_type_id = %s"
+            type_params = [loan_type]
+
+        # Loan status counts
+        cursor.execute(f"""
+            SELECT status, COUNT(*) AS cnt
+            FROM loans l
+            WHERE 1=1 {type_clause}
+            GROUP BY status
+        """, type_params)
+        status_rows  = cursor.fetchall()
+        status_map   = {r['status']: r['cnt'] for r in status_rows}
+        total_loans  = sum(status_map.values()) or 1
+
+        active_cnt    = status_map.get('active', 0)
+        paid_cnt      = status_map.get('paid', 0)
+        defaulted_cnt = status_map.get('defaulted', 0)
+
+        # Overdue = active loans with next_due_date in the past
+        cursor.execute(f"""
+            SELECT COUNT(*) AS cnt
+            FROM loans l
+            WHERE l.status = 'active'
+              AND l.next_due_date < CURDATE()
+              {type_clause}
+        """, type_params)
+        overdue_cnt = cursor.fetchone()['cnt']
+
+        # Key rates
+        default_rate     = round((defaulted_cnt / total_loans) * 100, 1)
+        delinquency_rate = round((overdue_cnt   / total_loans) * 100, 1)
+
+        # Recovery rate on defaulted loans
+        cursor.execute(f"""
+            SELECT
+                COALESCE(SUM(p.amount_paid), 0)      AS recovered,
+                COALESCE(SUM(l.principal_amount), 0) AS original
+            FROM loans l
+            LEFT JOIN payments p ON p.loan_id = l.id AND p.status = 'approved'
+            WHERE l.status = 'defaulted'
+              {type_clause}
+        """, type_params)
+        rec_row       = cursor.fetchone()
+        recovered     = float(rec_row['recovered'] or 0)
+        original      = float(rec_row['original']  or 1)
+        recovery_rate = round((recovered / original) * 100, 0)
+
+        # Portfolio at risk = outstanding balance of high-risk active loans
+        cursor.execute(f"""
+            SELECT COALESCE(SUM(l.outstanding_balance), 0) AS at_risk
+            FROM loans l
+            JOIN borrower_profiles bp ON l.borrower_id = bp.user_id
+            WHERE l.status = 'active'
+              AND bp.risk_level = 'high'
+              {type_clause}
+        """, type_params)
+        at_risk = float(cursor.fetchone()['at_risk'] or 0)
+
+        # Donut data (percentages) — active (excl. overdue), paid, overdue, defaulted
+        active_clean = max(0, active_cnt - overdue_cnt)
+        donut = [
+            round((active_clean  / total_loans) * 100, 1),
+            round((paid_cnt      / total_loans) * 100, 1),
+            round((overdue_cnt   / total_loans) * 100, 1),
+            round((defaulted_cnt / total_loans) * 100, 1),
+        ]
+
+        # Risk level breakdown
+        cursor.execute("""
+            SELECT
+                COALESCE(bp.risk_level, 'medium') AS risk_level,
+                COUNT(*) AS cnt
+            FROM users u
+            LEFT JOIN borrower_profiles bp ON u.id = bp.user_id
+            WHERE u.role = 'borrower'
+            GROUP BY risk_level
+        """)
+        risk_rows  = cursor.fetchall()
+        risk_total = sum(r['cnt'] for r in risk_rows) or 1
+        risk_order = ['low', 'medium', 'high']
+        risk_data  = [
+            {
+                'label': r['risk_level'].capitalize(),
+                'count': r['cnt'],
+                'pct':   round((r['cnt'] / risk_total) * 100, 0)
+            }
+            for r in sorted(risk_rows, key=lambda x: risk_order.index(x['risk_level'])
+                            if x['risk_level'] in risk_order else 1)
+        ]
+
+        # 12-month default trend
+        cursor.execute(f"""
+            SELECT
+                DATE_FORMAT(l.created_at, '%%Y-%%m') AS ym,
+                DATE_FORMAT(l.created_at, '%%b')     AS month_label,
+                COUNT(*) AS total,
+                SUM(CASE WHEN l.status = 'defaulted' THEN 1 ELSE 0 END) AS defaults
+            FROM loans l
+            WHERE l.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+              {type_clause}
+            GROUP BY ym, month_label
+            ORDER BY ym ASC
+        """, type_params)
+        trend_rows   = cursor.fetchall()
+        trend_labels = [r['month_label'] for r in trend_rows]
+        trend_rates  = [
+            round((r['defaults'] / r['total']) * 100, 1) if r['total'] else 0
+            for r in trend_rows
+        ]
+
+        # Available loan types for filter buttons
+        cursor.execute("SELECT id, name FROM loan_types WHERE is_active = 1")
+        loan_types = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            'default_rate':     default_rate,
+            'delinquency_rate': delinquency_rate,
+            'recovery_rate':    int(recovery_rate),
+            'at_risk':          round(at_risk, 2),
+            'donut':            donut,
+            'risk_data':        risk_data,
+            'trend_labels':     trend_labels,
+            'trend_rates':      trend_rates,
+            'loan_types':       loan_types,
+            'counts': {
+                'total':     total_loans,
+                'active':    active_clean,
+                'paid':      paid_cnt,
+                'overdue':   overdue_cnt,
+                'defaulted': defaulted_cnt,
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

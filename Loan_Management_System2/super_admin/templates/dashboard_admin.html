@@ -236,7 +236,7 @@
         </div>
         {% endif %}
 
-        <!-- STATS GRID -->
+        <!-- ═══════════════ STATS GRID ═══════════════ -->
         <div class="stats-grid">
           <div class="stat-card" data-animate>
             <div class="stat-info">
@@ -278,7 +278,7 @@
               <div class="stat-label">Total System Earnings</div>
               <div class="stat-change positive">From Interest Payments</div>
             </div>
-            <div class="stat-icon" style="font-size:22px; display:flex; align-items:center; justify-content:center; background:#dcfce7; border-radius:10px; width:44px; height:44px;">💰</div>
+            <div class="stat-icon" style="font-size:22px;display:flex;align-items:center;justify-content:center;background:#dcfce7;border-radius:10px;width:44px;height:44px;">💰</div>
           </div>
           <div class="stat-card" data-animate>
             <div class="stat-info">
@@ -286,10 +286,149 @@
               <div class="stat-label">Available Payroll Budget</div>
               <div class="stat-change positive">40% of Total Interest</div>
             </div>
-            <div class="stat-icon" style="font-size:22px; display:flex; align-items:center; justify-content:center; background:#ede9fe; border-radius:10px; width:44px; height:44px;">👥</div>
+            <div class="stat-icon" style="font-size:22px;display:flex;align-items:center;justify-content:center;background:#ede9fe;border-radius:10px;width:44px;height:44px;">👥</div>
           </div>
         </div>
+        <!-- END STATS GRID -->
 
+        <!-- ═══════════════════════════════════════════════
+             ANALYTICS SECTION — Monthly Revenue + Default Rate
+        ════════════════════════════════════════════════ -->
+        <div class="dash-analytics">
+
+          <!-- ── MONTHLY REVENUE CHART ── -->
+          <div class="card" id="revenueCard">
+            <div class="card-header">
+              <div>
+                <h3>Monthly Revenue</h3>
+                <p>Interest income &amp; processing fees collected</p>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button class="an-period-btn active" data-period="6m"  id="revBtn6m"  type="button">6M</button>
+                <button class="an-period-btn"        data-period="12m" id="revBtn12m" type="button">12M</button>
+                <button class="an-period-btn"        data-period="ytd" id="revBtnYtd" type="button">YTD</button>
+              </div>
+            </div>
+
+            <div class="an-metrics-row">
+              <div class="an-metric">
+                <div class="an-metric-val" id="rev-total">—</div>
+                <div class="an-metric-lbl">Total earned</div>
+                <div class="an-metric-chg" id="rev-growth">—</div>
+              </div>
+              <div class="an-metric">
+                <div class="an-metric-val" id="rev-avg">—</div>
+                <div class="an-metric-lbl">Monthly average</div>
+                <div class="an-metric-chg" style="color:var(--text-muted);">vs prior period</div>
+              </div>
+              <div class="an-metric">
+                <div class="an-metric-val" id="rev-best">—</div>
+                <div class="an-metric-lbl">Best month</div>
+                <div class="an-metric-chg" id="rev-best-lbl" style="color:var(--text-muted);">—</div>
+              </div>
+            </div>
+
+            <div class="an-chart-body">
+              <div class="an-legend">
+                <span><span class="an-leg-sq" style="background:var(--primary);"></span>Interest income</span>
+                <span><span class="an-leg-sq" style="background:rgba(58,167,181,0.30);border:1px solid var(--primary);"></span>Processing fees</span>
+              </div>
+              <p class="an-loading" id="revLoading">Loading revenue data…</p>
+              <div class="an-chart-no-data" id="revNoData" style="display:none;">
+                <span style="font-size:32px;">📊</span>
+                <p>No revenue data for this period.</p>
+              </div>
+              <div style="position:relative;width:100%;height:230px;">
+                <canvas id="revenueChart" role="img" aria-label="Bar chart of monthly interest income and processing fees"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── LOAN DEFAULT RATE ANALYTICS ── -->
+          <div class="card" id="defaultCard">
+            <div class="card-header">
+              <div>
+                <h3>Loan Default Rate Analytics</h3>
+                <p>Default, delinquency &amp; risk breakdown</p>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="loanTypeFilters">
+                <button class="an-period-btn active" data-type="all" id="defBtnAll" type="button">All types</button>
+                <!-- Loan type buttons injected dynamically by JS -->
+              </div>
+            </div>
+
+            <div class="an-metrics-row" style="grid-template-columns:repeat(4,1fr);">
+              <div class="an-metric">
+                <div class="an-metric-val" style="color:var(--danger);" id="def-rate">—</div>
+                <div class="an-metric-lbl">Default rate</div>
+                <div class="an-metric-chg" id="def-threshold" style="color:var(--text-muted);">—</div>
+              </div>
+              <div class="an-metric">
+                <div class="an-metric-val" style="color:var(--warning);" id="del-rate">—</div>
+                <div class="an-metric-lbl">Delinquency rate</div>
+                <div class="an-metric-chg" style="color:var(--warning);">30+ days overdue</div>
+              </div>
+              <div class="an-metric">
+                <div class="an-metric-val" style="color:var(--success);" id="rec-rate">—</div>
+                <div class="an-metric-lbl">Recovery rate</div>
+                <div class="an-metric-chg" style="color:var(--success);">Of defaulted loans</div>
+              </div>
+              <div class="an-metric">
+                <div class="an-metric-val" id="at-risk-val">—</div>
+                <div class="an-metric-lbl">Portfolio at risk</div>
+                <div class="an-metric-chg" style="color:var(--danger);">High-risk borrowers</div>
+              </div>
+            </div>
+
+            <div class="an-default-grid">
+
+              <!-- Left: donut -->
+              <div class="an-donut-wrap">
+                <p class="an-loading" id="defLoading">Loading…</p>
+                <div style="position:relative;width:170px;height:170px;margin:0 auto;">
+                  <canvas id="donutChart" role="img" aria-label="Donut chart showing loan portfolio status breakdown"></canvas>
+                  <div class="an-donut-center">
+                    <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;color:var(--danger);" id="donut-center-val">—</div>
+                    <div style="font-size:11px;color:var(--text-muted);">default</div>
+                  </div>
+                </div>
+                <div class="an-donut-legend">
+                  <span><span class="an-leg-sq" style="background:var(--primary);"></span>Active</span>
+                  <span><span class="an-leg-sq" style="background:var(--success);"></span>Paid</span>
+                  <span><span class="an-leg-sq" style="background:var(--warning);"></span>Overdue</span>
+                  <span><span class="an-leg-sq" style="background:var(--danger);"></span>Defaulted</span>
+                </div>
+              </div>
+
+              <!-- Right: risk table + trend -->
+              <div>
+                <p class="an-sub-heading">Risk level breakdown</p>
+                <table class="an-risk-table">
+                  <thead>
+                    <tr>
+                      <th>Risk</th>
+                      <th>Borrowers</th>
+                      <th>Distribution</th>
+                    </tr>
+                  </thead>
+                  <tbody id="riskTableBody">
+                    <tr><td colspan="3" style="color:var(--text-muted);padding:10px 0;font-size:12px;">Loading…</td></tr>
+                  </tbody>
+                </table>
+
+                <p class="an-sub-heading" style="margin-top:16px;">Default trend (12 months)</p>
+                <div style="position:relative;width:100%;height:90px;">
+                  <canvas id="trendChart" role="img" aria-label="Line chart of default rate trend over 12 months"></canvas>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+        <!-- END ANALYTICS SECTION -->
+
+        <!-- ═══════════════ MAIN DASH GRID ═══════════════ -->
         <div class="dash-grid">
 
           <!-- RECENT APPLICATIONS -->
@@ -352,8 +491,6 @@
 
           <!-- RIGHT COLUMN: Recent Activity -->
           <div class="dash-col-right">
-
-            <!-- RECENT ACTIVITY -->
             <div class="card">
               <div class="card-header">
                 <div>
@@ -386,9 +523,10 @@
                 </div>
               </div>
             </div>
-
           </div>
+
         </div>
+        <!-- END MAIN DASH GRID -->
 
       </main>
     </div>
@@ -396,6 +534,499 @@
   </div>
 </div>
 
+<!-- Existing dashboard JS -->
 <script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
+
+<!-- Chart.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<!-- ═══════════════════════════════════════════════
+     ANALYTICS JAVASCRIPT
+════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ─── Helpers ─── */
+  function anPeso(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    var num = Number(n);
+    if (num >= 1000000) return '₱' + (num / 1000000).toFixed(2) + 'M';
+    if (num >= 1000)    return '₱' + (num / 1000).toFixed(1) + 'K';
+    return '₱' + num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function anPct(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return Number(n).toFixed(1) + '%';
+  }
+
+  /* ─── Theme detection ─── */
+  var isDark    = document.documentElement.classList.contains('dark') ||
+                  window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+  var tickColor = isDark ? '#94a3b8' : '#6b7280';
+
+  /* ─── Chart instances ─── */
+  var revenueChart = null;
+  var donutChart   = null;
+  var trendChart   = null;
+
+  /* ═══════════════════════════════════════
+     REVENUE CHART
+  ════════════════════════════════════════ */
+  function anLoadRevenue(period) {
+    /* Update active button */
+    document.querySelectorAll('#revenueCard .an-period-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.period === period);
+    });
+
+    var loadEl  = document.getElementById('revLoading');
+    var noData  = document.getElementById('revNoData');
+    var canvas  = document.getElementById('revenueChart');
+
+    if (loadEl)  { loadEl.style.display  = 'block'; loadEl.textContent = 'Loading revenue data…'; }
+    if (noData)  noData.style.display  = 'none';
+    if (canvas)  canvas.style.display  = 'block';
+
+    fetch('/admin/api/analytics/revenue?period=' + encodeURIComponent(period))
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (data.error) throw new Error(data.error);
+        if (loadEl) loadEl.style.display = 'none';
+
+        /* ── Metrics ── */
+        var el;
+        el = document.getElementById('rev-total');  if (el) el.textContent = anPeso(data.grand_total);
+        el = document.getElementById('rev-avg');    if (el) el.textContent = anPeso(data.monthly_avg);
+        el = document.getElementById('rev-best');   if (el) el.textContent = anPeso(data.best_val);
+        el = document.getElementById('rev-best-lbl'); if (el) el.textContent = data.best_month || '—';
+
+        var growEl = document.getElementById('rev-growth');
+        if (growEl) {
+          var g = parseFloat(data.growth_pct) || 0;
+          growEl.textContent = (g >= 0 ? '+' : '') + g.toFixed(1) + '% vs prior period';
+          growEl.style.color = g >= 0 ? 'var(--success)' : 'var(--danger)';
+        }
+
+        /* ── Empty state ── */
+        if (!data.labels || data.labels.length === 0) {
+          if (canvas)  canvas.style.display = 'none';
+          if (noData)  noData.style.display = 'flex';
+          return;
+        }
+
+        /* ── Build / update chart ── */
+        var ctx = canvas ? canvas.getContext('2d') : null;
+        if (!ctx) return;
+
+        if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
+
+        revenueChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: 'Interest income',
+                data: data.interest,
+                backgroundColor: '#3aa7b5',
+                borderRadius: 4,
+                borderSkipped: false,
+                order: 1
+              },
+              {
+                label: 'Processing fees',
+                data: data.fees,
+                backgroundColor: 'rgba(58,167,181,0.28)',
+                borderColor: 'rgba(58,167,181,0.70)',
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+                order: 2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (c) {
+                    return ' ' + c.dataset.label + ': ' + anPeso(c.parsed.y);
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                stacked: false,
+                grid: { color: gridColor },
+                ticks: { color: tickColor, font: { size: 11 }, autoSkip: false, maxRotation: 45 }
+              },
+              y: {
+                stacked: false,
+                beginAtZero: true,
+                grid: { color: gridColor },
+                ticks: {
+                  color: tickColor,
+                  font: { size: 11 },
+                  callback: function (v) {
+                    if (v >= 1000000) return '₱' + (v / 1000000).toFixed(1) + 'M';
+                    if (v >= 1000)    return '₱' + (v / 1000).toFixed(0) + 'K';
+                    return '₱' + v;
+                  }
+                }
+              }
+            }
+          }
+        });
+      })
+      .catch(function (err) {
+        if (loadEl) { loadEl.style.display = 'block'; loadEl.textContent = 'Failed to load revenue data. Please refresh.'; }
+        console.error('[Revenue chart]', err);
+      });
+  }
+
+  /* ═══════════════════════════════════════
+     DEFAULT ANALYTICS
+  ════════════════════════════════════════ */
+  var loanTypesInjected = false;
+
+  function anLoadDefaults(loanType) {
+    /* Update active button */
+    document.querySelectorAll('#loanTypeFilters .an-period-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.type === String(loanType));
+    });
+
+    var loadEl = document.getElementById('defLoading');
+    if (loadEl) { loadEl.style.display = 'block'; loadEl.textContent = 'Loading…'; }
+
+    fetch('/admin/api/analytics/defaults?loan_type=' + encodeURIComponent(loanType))
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (data.error) throw new Error(data.error);
+        if (loadEl) loadEl.style.display = 'none';
+
+        /* ── Metrics ── */
+        var el;
+        el = document.getElementById('def-rate');    if (el) el.textContent = anPct(data.default_rate);
+        el = document.getElementById('del-rate');    if (el) el.textContent = anPct(data.delinquency_rate);
+        el = document.getElementById('rec-rate');    if (el) el.textContent = (data.recovery_rate !== undefined ? data.recovery_rate + '%' : '—');
+        el = document.getElementById('at-risk-val'); if (el) el.textContent = anPeso(data.at_risk);
+        el = document.getElementById('donut-center-val'); if (el) el.textContent = anPct(data.default_rate);
+
+        var thrEl = document.getElementById('def-threshold');
+        if (thrEl) {
+          var dr = parseFloat(data.default_rate) || 0;
+          thrEl.textContent = dr > 3 ? 'Above 3% threshold ⚠' : 'Within safe range ✓';
+          thrEl.style.color = dr > 3 ? 'var(--danger)' : 'var(--success)';
+        }
+
+        /* ── Inject loan type filter buttons (first load only) ── */
+        if (!loanTypesInjected && data.loan_types && data.loan_types.length) {
+          var container = document.getElementById('loanTypeFilters');
+          if (container) {
+            data.loan_types.forEach(function (lt) {
+              var b = document.createElement('button');
+              b.className      = 'an-period-btn';
+              b.dataset.type   = String(lt.id);
+              b.textContent    = lt.name;
+              b.type           = 'button';
+              b.addEventListener('click', function () { anLoadDefaults(lt.id); });
+              container.appendChild(b);
+            });
+          }
+          loanTypesInjected = true;
+        }
+
+        /* ── Risk table ── */
+        var tbody    = document.getElementById('riskTableBody');
+        var colorMap = { low: '#16a34a', medium: '#d97706', high: '#dc2626' };
+        var badgeMap = { low: 'badge-low', medium: 'badge-med', high: 'badge-high' };
+        if (tbody) {
+          tbody.innerHTML = '';
+          if (!data.risk_data || data.risk_data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);padding:10px 0;font-size:12px;">No data available.</td></tr>';
+          } else {
+            data.risk_data.forEach(function (r) {
+              var key = (r.label || '').toLowerCase();
+              var tr  = document.createElement('tr');
+              tr.innerHTML =
+                '<td><span class="badge-risk ' + (badgeMap[key] || 'badge-med') + '">' + (r.label || '—') + '</span></td>' +
+                '<td>' + (r.count || 0) + '</td>' +
+                '<td>' +
+                  '<div class="an-risk-bar-wrap">' +
+                    '<div class="an-risk-bar-bg">' +
+                      '<div class="an-risk-bar-fill" style="width:' + (r.pct || 0) + '%;background:' + (colorMap[key] || '#d97706') + ';"></div>' +
+                    '</div>' +
+                    '<span style="font-size:11px;color:var(--text-muted);min-width:34px;text-align:right;">' + (r.pct || 0) + '%</span>' +
+                  '</div>' +
+                '</td>';
+              tbody.appendChild(tr);
+            });
+          }
+        }
+
+        /* ── Donut chart ── */
+        var donutCanvas = document.getElementById('donutChart');
+        if (donutCanvas) {
+          if (donutChart) { donutChart.destroy(); donutChart = null; }
+          var donutData = data.donut && data.donut.length === 4 ? data.donut : [0, 0, 0, 0];
+          donutChart = new Chart(donutCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+              labels: ['Active', 'Paid', 'Overdue', 'Defaulted'],
+              datasets: [{
+                data: donutData,
+                backgroundColor: ['#3aa7b5', '#16a34a', '#d97706', '#dc2626'],
+                borderWidth: 2,
+                borderColor: isDark ? '#1a3f4a' : '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '68%',
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: function (c) { return ' ' + c.label + ': ' + c.parsed + '%'; }
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        /* ── Trend line chart ── */
+        var trendCanvas = document.getElementById('trendChart');
+        if (trendCanvas) {
+          if (trendChart) { trendChart.destroy(); trendChart = null; }
+          trendChart = new Chart(trendCanvas.getContext('2d'), {
+            type: 'line',
+            data: {
+              labels: data.trend_labels || [],
+              datasets: [{
+                label: 'Default rate %',
+                data: data.trend_rates || [],
+                borderColor: '#dc2626',
+                backgroundColor: 'rgba(220,38,38,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: '#dc2626',
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: { label: function (c) { return ' ' + c.parsed.y.toFixed(1) + '%'; } }
+                }
+              },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  ticks: { color: tickColor, font: { size: 10 }, maxTicksLimit: 6 }
+                },
+                y: {
+                  beginAtZero: true,
+                  grid: { color: gridColor },
+                  ticks: {
+                    color: tickColor,
+                    font: { size: 10 },
+                    callback: function (v) { return v + '%'; }
+                  }
+                }
+              }
+            }
+          });
+        }
+      })
+      .catch(function (err) {
+        if (loadEl) { loadEl.style.display = 'block'; loadEl.textContent = 'Failed to load default data. Please refresh.'; }
+        console.error('[Defaults chart]', err);
+      });
+  }
+
+  /* ─── Wire up revenue period buttons ─── */
+  ['6m', '12m', 'ytd'].forEach(function (p) {
+    var btn = document.querySelector('#revenueCard .an-period-btn[data-period="' + p + '"]');
+    if (btn) btn.addEventListener('click', function () { anLoadRevenue(p); });
+  });
+
+  /* ─── Wire up default "All types" button ─── */
+  var defBtnAll = document.getElementById('defBtnAll');
+  if (defBtnAll) defBtnAll.addEventListener('click', function () { anLoadDefaults('all'); });
+
+  /* ─── Auto-load on DOM ready ─── */
+  document.addEventListener('DOMContentLoaded', function () {
+    anLoadRevenue('6m');
+    anLoadDefaults('all');
+  });
+
+  /* Safety net: if DOMContentLoaded already fired (script deferred) */
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(function () {
+      if (!revenueChart) anLoadRevenue('6m');
+      if (!donutChart)   anLoadDefaults('all');
+    }, 100);
+  }
+
+}());
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     ANALYTICS CSS
+════════════════════════════════════════════════ -->
+<style>
+/* ── Layout ── */
+.dash-analytics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+@media (max-width: 1100px) { .dash-analytics { grid-template-columns: 1fr; } }
+
+/* ── Period / type buttons ── */
+.an-period-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.30);
+  border-radius: 6px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75);
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.an-period-btn:hover,
+.an-period-btn.active {
+  background: rgba(255,255,255,0.22);
+  color: #fff;
+  border-color: rgba(255,255,255,0.60);
+}
+
+/* ── Metric row ── */
+.an-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1px solid var(--gray-200, rgba(0,0,0,0.08));
+}
+.an-metric {
+  padding: 14px 16px;
+  text-align: center;
+  border-right: 1px solid var(--gray-200, rgba(0,0,0,0.08));
+}
+.an-metric:last-child { border-right: none; }
+.an-metric-val {
+  font-family: 'Sora', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-h, #1e293b);
+  line-height: 1.1;
+  margin-bottom: 3px;
+}
+.an-metric-lbl { font-size: 11px; color: var(--text-muted, #94a3b8); margin-bottom: 3px; }
+.an-metric-chg { font-size: 11px; color: var(--text-muted, #94a3b8); }
+
+/* ── Chart body ── */
+.an-chart-body { padding: 14px 18px 18px; }
+.an-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+}
+.an-legend span { display: flex; align-items: center; gap: 5px; }
+.an-leg-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+.an-loading {
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+  text-align: center;
+  padding: 4px 0 8px;
+  display: none;
+}
+.an-chart-no-data {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 0;
+  color: var(--text-muted, #94a3b8);
+  font-size: 13px;
+}
+
+/* ── Default card grid ── */
+.an-default-grid {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 16px;
+  padding: 16px 18px 18px;
+}
+@media (max-width: 600px) { .an-default-grid { grid-template-columns: 1fr; } }
+
+/* ── Donut ── */
+.an-donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.an-donut-center {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; pointer-events: none;
+}
+.an-donut-legend {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 12px; color: var(--text-muted, #94a3b8);
+}
+.an-donut-legend span { display: flex; align-items: center; gap: 6px; }
+
+/* ── Risk table ── */
+.an-sub-heading {
+  font-size: 10px; font-weight: 600; color: var(--text-muted, #94a3b8);
+  margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.an-risk-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.an-risk-table th {
+  font-size: 10px; font-weight: 600; color: var(--text-muted, #94a3b8);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 5px 0; border-bottom: 1px solid var(--gray-200, rgba(0,0,0,0.08)); text-align: left;
+}
+.an-risk-table td {
+  padding: 7px 0; border-bottom: 1px solid var(--gray-200, rgba(0,0,0,0.08));
+  color: var(--text-body, #334155);
+}
+.an-risk-table tr:last-child td { border-bottom: none; }
+.an-risk-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.an-risk-bar-bg { flex: 1; height: 6px; background: var(--gray-200, rgba(0,0,0,0.08)); border-radius: 3px; overflow: hidden; }
+.an-risk-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+/* ── Risk badges ── */
+.badge-risk {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 99px; display: inline-block;
+}
+.badge-low  { background: var(--success-bg, #dcfce7); color: var(--success, #16a34a); }
+.badge-med  { background: var(--warning-bg, #fef9c3); color: var(--warning, #d97706); }
+.badge-high { background: var(--danger-bg,  #fee2e2); color: var(--danger,  #dc2626); }
+</style>
+
 </body>
 </html>
