@@ -105,6 +105,8 @@
 
   /* ================================================================
      REPORT NAVIGATION FUNCTIONS
+     Uses window.REPORT_URLS injected by the HTML template
+     so that Jinja2 url_for() is resolved correctly.
      ================================================================ */
   window.goAmort = function () {
     const val = document.getElementById('loanIdInput').value.trim();
@@ -112,8 +114,9 @@
       showInputError('loanIdInput', 'Please enter a Loan ID.');
       return;
     }
-    let url = "{{ url_for('super_admin.report_amortization', loan_id=0) }}";
-    window.location.href = url.replace('/0', '/' + encodeURIComponent(val));
+    const base = window.REPORT_URLS && window.REPORT_URLS.amortization;
+    if (!base) { console.error('REPORT_URLS.amortization not set'); return; }
+    window.location.href = base.replace('/0', '/' + encodeURIComponent(val));
   };
 
   window.goBorrowerHistory = function () {
@@ -122,8 +125,9 @@
       showInputError('borrowerIdInput', 'Please enter a Borrower ID.');
       return;
     }
-    let url = "{{ url_for('super_admin.report_borrower_history', borrower_id=0) }}";
-    window.location.href = url.replace('/0', '/' + encodeURIComponent(val));
+    const base = window.REPORT_URLS && window.REPORT_URLS.borrowerHistory;
+    if (!base) { console.error('REPORT_URLS.borrowerHistory not set'); return; }
+    window.location.href = base.replace('/0', '/' + encodeURIComponent(val));
   };
 
   /* Allow Enter key on ID inputs */
@@ -145,11 +149,42 @@
     input.style.boxShadow   = '0 0 0 3px rgba(220,38,38,0.12)';
     input.focus();
 
-    // Remove error style on next input
     input.addEventListener('input', () => {
       input.style.borderColor = '';
       input.style.boxShadow   = '';
     }, { once: true });
   }
+
+  /* ================================================================
+     NOTIFICATION BELL TOGGLE (static — data rendered by Jinja)
+     ================================================================ */
+  const notifBtn      = document.getElementById('notifBtn');
+  const notifDropdown = document.getElementById('notifDropdown');
+  const notifDot      = document.getElementById('notifDot');
+  const notifMarkAll  = document.getElementById('notifMarkAll');
+  const notifWrap     = document.getElementById('notifWrap');
+
+  function refreshNotifDot() {
+    const unread = document.querySelectorAll('.notif-item.unread').length;
+    unread > 0 ? notifDot?.classList.remove('hidden') : notifDot?.classList.add('hidden');
+  }
+  refreshNotifDot();
+
+  notifBtn?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    notifDropdown?.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!notifWrap?.contains(e.target)) notifDropdown?.classList.remove('open');
+  });
+
+  notifMarkAll?.addEventListener('click', () => {
+    document.querySelectorAll('.notif-item.unread').forEach(el => {
+      el.classList.remove('unread');
+      el.querySelector('.notif-unread-dot')?.remove();
+    });
+    notifDot?.classList.add('hidden');
+  });
 
 })();

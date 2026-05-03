@@ -1,6 +1,6 @@
 /* ================================================================
-   loan_detail.js — Sidebar, Notifications, Dropdown, Tabs, Pagination
-   NOTIFICATIONS: Now uses localStorage (matches admin_applications)
+   activity_logs.js — Sidebar, Notifications, Pagination
+   Pagination: 20 rows per page, client-side
    ================================================================ */
 
 (function () {
@@ -39,12 +39,10 @@
   burgerBtn?.addEventListener('click', toggleSidebar);
   sidebarOverlay?.addEventListener('click', closeSidebar);
 
-  /* Close on nav click (mobile) */
   sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
     link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
-  /* Re-evaluate on resize */
   window.addEventListener('resize', () => {
     if (!isMobile()) {
       sidebarOverlay.classList.remove('active');
@@ -74,7 +72,7 @@
   });
 
   /* ================================================================
-     NOTIFICATIONS — localStorage (MATCHES admin_applications)
+     NOTIFICATIONS — localStorage persistence
      ================================================================ */
   const NOTIF_READ_KEY = 'hiraya_admin_read_notifs';
   const notifBtn       = document.getElementById('notifBtn');
@@ -107,7 +105,7 @@
       : notifDot?.classList.add('hidden');
   }
 
-  /* Apply persisted read state to server-rendered items */
+  /* Apply persisted read state on load */
   const readSet = getReadSet();
   notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
     if (readSet.has(item.dataset.notifId)) markNotifItemRead(item);
@@ -120,11 +118,12 @@
     notifDropdown?.classList.toggle('open');
   });
 
+  /* Close when clicking outside */
   document.addEventListener('click', (e) => {
     if (!notifWrap?.contains(e.target)) notifDropdown?.classList.remove('open');
   });
 
-  /* Mark individual notif as read on click */
+  /* Mark individual as read on click */
   notifList?.addEventListener('click', function (e) {
     const item = e.target.closest('.notif-item[data-notif-id]');
     if (!item || !item.classList.contains('unread')) return;
@@ -145,124 +144,120 @@
   });
 
   /* ================================================================
-     CLIENT-SIDE PAGINATION (10 rows per page)
+     ACTIVE NAV HIGHLIGHT
      ================================================================ */
-  const ROWS_PER_PAGE = 10;
-  const state = {};
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-item[href]').forEach(el => {
+    const href = el.getAttribute('href');
+    if (href && href !== '#' && currentPath.startsWith(href) && href !== '/') {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      el.classList.add('active');
+    }
+  });
 
-  function initPagination(key) {
-    const tbody = document.getElementById('tbody-' + key);
-    if (!tbody) return;
+  /* ================================================================
+     PAGINATION — 20 rows per page
+     ================================================================ */
+  const ROWS_PER_PAGE = 20;
 
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    if (rows.length === 0) return;
+  const tableBody      = document.getElementById('logsTableBody');
+  const paginationWrap = document.getElementById('logsPaginationWrap');
+  const paginationInfo = document.getElementById('logsPaginationInfo');
+  const pageNumbers    = document.getElementById('logsPageNumbers');
+  const pagePrev       = document.getElementById('logsPrev');
+  const pageNext       = document.getElementById('logsNext');
 
-    state[key] = { rows, current: 1 };
-    renderPage(key, 1);
+  let currentPage = 1;
+  let allRows     = [];
+
+  function initPagination() {
+    if (!tableBody) return;
+    allRows = Array.from(tableBody.querySelectorAll('tr'));
+    if (allRows.length === 0) return;
+    renderPage(1);
   }
 
-  function renderPage(key, page) {
-    if (!state[key]) return;
-
-    const { rows } = state[key];
-    state[key].current = page;
-
-    const total      = rows.length;
-    const totalPages = Math.ceil(total / ROWS_PER_PAGE);
+  function renderPage(page) {
+    currentPage = page;
+    const total      = allRows.length;
+    const totalPages = Math.ceil(total / ROWS_PER_PAGE) || 1;
     const start      = (page - 1) * ROWS_PER_PAGE;
-    const end        = start + ROWS_PER_PAGE;
+    const end        = Math.min(start + ROWS_PER_PAGE, total);
 
-    rows.forEach((row, i) => {
-      row.style.display = (i >= start && i < end) ? '' : 'none';
+    /* Show/hide rows */
+    allRows.forEach((row, idx) => {
+      row.style.display = (idx >= start && idx < end) ? '' : 'none';
     });
 
-    const wrapEl = document.getElementById('pag-wrap-' + key);
-    const infoEl = document.getElementById('pag-info-' + key);
-    const btnsEl = document.getElementById('pag-btns-' + key);
-    if (!wrapEl || !infoEl || !btnsEl) return;
-
-    /* Show/hide wrap */
-    wrapEl.style.display = total > ROWS_PER_PAGE ? 'flex' : 'none';
+    /* Show/hide pagination wrap */
+    if (!paginationWrap) return;
+    paginationWrap.style.display = total > ROWS_PER_PAGE ? 'flex' : 'none';
     if (total <= ROWS_PER_PAGE) return;
 
-    const from = total === 0 ? 0 : start + 1;
-    const to   = Math.min(end, total);
-    infoEl.textContent = 'Showing ' + from + '–' + to + ' of ' + total + ' results';
-
-    btnsEl.innerHTML = '';
-
-    /* Prev */
-    const prev = makeBtn('‹', page === 1, false, () => renderPage(key, page - 1));
-    prev.classList.add('page-btn--wide');
-    prev.title = 'Previous';
-    btnsEl.appendChild(prev);
-
-    /* Page numbers */
-    const delta = 2;
-    let pages = [];
-    for (let p = 1; p <= totalPages; p++) {
-      if (p === 1 || p === totalPages || (p >= page - delta && p <= page + delta)) {
-        pages.push(p);
-      }
+    /* Info text */
+    if (paginationInfo) {
+      paginationInfo.textContent = `Showing ${start + 1}–${end} of ${total} records`;
     }
 
-    let last = 0;
-    pages.forEach(p => {
-      if (last && p - last > 1) {
-        const dots = document.createElement('button');
-        dots.className = 'page-btn';
-        dots.textContent = '…';
-        dots.disabled = true;
-        btnsEl.appendChild(dots);
-      }
-      btnsEl.appendChild(makeBtn(p, false, p === page, () => renderPage(key, p)));
-      last = p;
-    });
+    /* Prev / Next state */
+    if (pagePrev) pagePrev.disabled = page <= 1;
+    if (pageNext) pageNext.disabled = page >= totalPages;
 
-    /* Next */
-    const next = makeBtn('›', page === totalPages, false, () => renderPage(key, page + 1));
-    next.classList.add('page-btn--wide');
-    next.title = 'Next';
-    btnsEl.appendChild(next);
+    /* Page number buttons — max 5 visible */
+    if (pageNumbers) {
+      pageNumbers.innerHTML = '';
+      const maxVisible = 5;
+      let startPage = Math.max(1, page - Math.floor(maxVisible / 2));
+      let endPage   = Math.min(totalPages, startPage + maxVisible - 1);
+      if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+      }
+
+      /* Leading ellipsis */
+      if (startPage > 1) {
+        pageNumbers.appendChild(makePageBtn(1, page));
+        if (startPage > 2) pageNumbers.appendChild(makeEllipsis());
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        pageNumbers.appendChild(makePageBtn(p, page));
+      }
+
+      /* Trailing ellipsis */
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) pageNumbers.appendChild(makeEllipsis());
+        pageNumbers.appendChild(makePageBtn(totalPages, page));
+      }
+    }
   }
 
-  function makeBtn(label, disabled, active, onClick) {
+  function makePageBtn(p, currentPage) {
     const btn = document.createElement('button');
-    btn.className = 'page-btn' + (active ? ' active' : '');
-    btn.textContent = label;
-    btn.disabled    = disabled;
-    btn.addEventListener('click', onClick);
+    btn.className = 'page-num' + (p === currentPage ? ' active' : '');
+    btn.textContent = p;
+    btn.type = 'button';
+    btn.addEventListener('click', () => renderPage(p));
     return btn;
   }
 
-  /* ================================================================
-     TAB SWITCHING
-     ================================================================ */
-  window.showTab = function (tabId, clickedEl) {
-    ['amort', 'payments', 'penalties', 'docs'].forEach(id => {
-      const el = document.getElementById('tab-' + id);
-      if (el) el.style.display = 'none';
-    });
+  function makeEllipsis() {
+    const span = document.createElement('button');
+    span.className = 'page-num';
+    span.textContent = '…';
+    span.disabled = true;
+    return span;
+  }
 
-    const target = document.getElementById('tab-' + tabId);
-    if (target) target.style.display = '';
+  pagePrev?.addEventListener('click', () => {
+    if (currentPage > 1) renderPage(currentPage - 1);
+  });
 
-    document.querySelectorAll('#detail-tabs .status-tab').forEach(tab => {
-      tab.classList.remove('active');
-    });
-    if (clickedEl) clickedEl.classList.add('active');
+  pageNext?.addEventListener('click', () => {
+    const totalPages = Math.ceil(allRows.length / ROWS_PER_PAGE) || 1;
+    if (currentPage < totalPages) renderPage(currentPage + 1);
+  });
 
-    /* Re-render pagination for newly shown tab */
-    renderPage(tabId, state[tabId]?.current || 1);
-
-    return false;
-  };
-
-  /* ================================================================
-     INIT — pagination must init AFTER DOM is ready
-     ================================================================ */
-  initPagination('amort');
-  initPagination('payments');
-  initPagination('penalties');
+  /* Kick off */
+  initPagination();
 
 })();

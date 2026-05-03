@@ -1542,7 +1542,52 @@ def notifications_mark_all_read():
 @login_required
 @role_required('admin', 'super_admin', 'auditor')
 def reports_page():
-    return render_template('reports.html')
+    pending_applications_notif = []
+    activity_logs_notif        = []
+    stats                      = {'pending_applications': 0}
+
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT la.id, la.reference_no, la.amount_requested,
+                   la.status, la.submitted_at,
+                   u.full_name AS borrower_name, lt.name AS type_name
+            FROM loan_applications la
+            JOIN users u       ON u.id  = la.borrower_id
+            JOIN loan_types lt ON lt.id = la.loan_type_id
+            WHERE la.status IN ('submitted', 'under_review')
+            ORDER BY la.submitted_at DESC
+            LIMIT 10
+        """)
+        pending_applications_notif = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM loan_applications
+            WHERE status IN ('submitted', 'under_review')
+        """)
+        stats['pending_applications'] = cursor.fetchone()['cnt']
+
+        cursor.execute("""
+            SELECT al.id, al.action, al.details, al.created_at,
+                   u.full_name AS actor_name
+            FROM audit_logs al
+            LEFT JOIN users u ON al.user_id = u.id
+            ORDER BY al.created_at DESC
+            LIMIT 5
+        """)
+        activity_logs_notif = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        pass
+
+    return render_template('reports.html',
+                           pending_applications_notif=pending_applications_notif,
+                           activity_logs=activity_logs_notif,
+                           stats=stats)
 
 
 @super_admin_bp.route('/reports/amortization/<int:loan_id>')
@@ -1813,14 +1858,7 @@ def api_notifications():
         for app in cursor.fetchall():
             submitted = app['submitted_at']
             if isinstance(submitted, datetime.datetime):
-                delta = datetime.datetime.now() - submitted
-                days  = delta.days
-                if days == 0:
-                    time_ago = 'Today'
-                elif days == 1:
-                    time_ago = 'Yesterday'
-                else:
-                    time_ago = f'{days} days ago'
+                time_ago = submitted.strftime('%b %d, %Y %I:%M %p')
             else:
                 time_ago = ''
             notifications.append({
@@ -1830,7 +1868,8 @@ def api_notifications():
                 'message': f"{app['borrower_name']} · {app['type_name']} · ₱{app['amount_requested']:,.0f}",
                 'time_ago': time_ago,
                 'is_read': False,
-                'link':    f"/admin/applications/{app['id']}"
+                'link':    f"/admin/applications/{app['id']}",
+                'section': 'Pending Applications'
             })
 
         # Recent activity logs
@@ -1844,14 +1883,7 @@ def api_notifications():
         for log in cursor.fetchall():
             created = log.get('created_at')
             if isinstance(created, datetime.datetime):
-                delta = datetime.datetime.now() - created
-                mins  = int(delta.total_seconds() / 60)
-                if mins < 60:
-                    time_ago = f'{mins}m ago'
-                elif mins < 1440:
-                    time_ago = f'{mins // 60}h ago'
-                else:
-                    time_ago = created.strftime('%b %d, %Y %I:%M %p')
+                time_ago = created.strftime('%b %d, %Y %I:%M %p')
             else:
                 time_ago = ''
 
@@ -1867,7 +1899,19 @@ def api_notifications():
 
             details    = log.get('details', '') or ''
             actor_name = log.get('actor_name', '') or ''
-            message    = details
+
+            # Parse JSON details if needed (e.g. {"message": "User logged out"})
+            import json as _json
+            try:
+                parsed = _json.loads(details)
+                if isinstance(parsed, dict):
+                    details = parsed.get('message') or parsed.get('details') or ''
+                elif isinstance(parsed, str):
+                    details = parsed
+            except Exception:
+                pass  # keep raw string
+
+            message = details
             if actor_name:
                 message += f' · by {actor_name}'
 
@@ -1878,7 +1922,8 @@ def api_notifications():
                 'message':  message,
                 'time_ago': time_ago,
                 'is_read':  True,
-                'link':     '/admin/activity-logs'
+                'link':     '/admin/activity-logs',
+                'section':  'Recent Activity'
             })
 
         cursor.close()

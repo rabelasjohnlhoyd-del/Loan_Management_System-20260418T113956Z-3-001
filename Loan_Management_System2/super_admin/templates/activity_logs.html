@@ -7,18 +7,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
-  <!-- Link both CSS files -->
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='activity_logs.css') }}"/>
 </head>
 <body>
 
-<!-- OVERLAY (kailangan para sa mobile sidebar) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- TOPBAR: Parehas na parehas sa Dashboard para hindi "nasira" ang tingin -->
+  <!-- ═══════════════════ TOPBAR ═══════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -39,6 +37,97 @@
     </div>
 
     <div class="topbar-right">
+      <!-- Notification Bell -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+
+          <ul class="notif-list" id="notifList">
+
+            {% set has_apps = pending_applications_notif or (stats is defined and stats.get('pending_applications', 0) > 0) %}
+            {% if has_apps %}
+              <li class="notif-group-label"><span>Pending Applications</span></li>
+            {% endif %}
+
+            {% if pending_applications_notif %}
+              {% for app in pending_applications_notif %}
+              <li class="notif-item unread" data-notif-id="app-{{ app.id }}">
+                <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">New Application — {{ app.reference_no }}</div>
+                    <div class="notif-item-msg">{{ app.borrower_name }} · {{ app.type_name }} · ₱{{ "{:,.0f}".format(app.amount_requested) }}</div>
+                    <div class="notif-item-time">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '' }}</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+              {% endfor %}
+            {% elif stats is defined and stats.get('pending_applications', 0) > 0 %}
+              <li class="notif-item unread" data-notif-id="pending-apps-summary">
+                <a href="{{ url_for('super_admin.admin_applications') }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">Pending Applications</div>
+                    <div class="notif-item-msg">{{ stats.pending_applications }} application(s) awaiting your review.</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+            {% endif %}
+
+            {% if activity_logs %}
+              <li class="notif-group-label"><span>Recent Activity</span></li>
+              {% for log in activity_logs[:5] %}
+              <li class="notif-item" data-notif-id="log-{{ log.id if log.id else loop.index }}">
+                <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-item-link">
+                  <div class="notif-item-icon
+                    {% if 'approved' in log.action or 'verified' in log.action or 'paid' in log.action %}notif-icon--green
+                    {% elif 'rejected' in log.action or 'overdue' in log.action %}notif-icon--red
+                    {% elif 'disbursed' in log.action %}notif-icon--teal
+                    {% else %}notif-icon--activity{% endif %}">
+                    <span></span>
+                  </div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">{{ log.action | replace('_',' ') | title }}</div>
+                    <div class="notif-item-msg">
+                      {% if log.details %}{{ log.details }}{% endif %}
+                      {% if log.actor_name %} · by {{ log.actor_name }}{% endif %}
+                    </div>
+                    <div class="notif-item-time">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '' }}</div>
+                  </div>
+                </a>
+              </li>
+              {% endfor %}
+            {% endif %}
+
+            {% if not has_apps and not activity_logs %}
+              <li class="notif-empty-item">
+                <span class="notif-empty-icon-img"></span>
+                <p>You're all caught up!</p>
+                <small>No new notifications</small>
+              </li>
+            {% endif %}
+
+          </ul>
+
+          <div class="notif-footer">
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avatar -->
       <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Admin' }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
       </a>
@@ -46,7 +135,8 @@
   </header>
 
   <div class="body-row">
-    <!-- SIDEBAR: Copy-paste mula sa Dashboard layout -->
+
+    <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
@@ -79,8 +169,8 @@
         <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
           <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
         </a>
-        <a href="{{ url_for('super_admin.activity_logs') }}" class="nav-item active">
-          <span class="nav-icon nav-icon--clock"></span><span class="nav-label">Activity Logs</span>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+          <span class="nav-icon nav-icon--warning"></span><span class="nav-label">Penalties &amp; Overdue</span>
         </a>
       </nav>
 
@@ -93,11 +183,11 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
     <div class="main-content" id="mainContent">
       <main class="page-body">
-        
-        <!-- Filter Bar inside Page Body -->
+
+        <!-- Filter Bar -->
         <form method="GET" action="{{ url_for('super_admin.activity_logs') }}" class="filter-bar">
           <div class="search-wrap">
             <input type="text" class="search-input-alt" name="search" placeholder="Search action or user..." value="{{ search if search else '' }}"/>
@@ -119,7 +209,7 @@
           </div>
           <div class="table-wrap">
             {% if logs %}
-            <table class="data-table">
+            <table class="data-table" id="logsTable">
               <thead>
                 <tr>
                   <th>Timestamp</th>
@@ -130,23 +220,23 @@
                   <th>IP Address</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="logsTableBody">
                 {% for log in logs %}
                 <tr>
-                  <td style="white-space:nowrap; font-size:12px;">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
-                  <td class="borrower-name">{{ log.actor_name or 'System' }}</td>
-                  <td>
+                  <td data-label="Timestamp" style="white-space:nowrap; font-size:12px;">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                  <td data-label="User" class="borrower-name">{{ log.actor_name or 'System' }}</td>
+                  <td data-label="Role">
                     {% if log.actor_role %}
                     <span class="badge badge--pending" style="font-size:10px;">{{ log.actor_role | replace('_',' ') | title }}</span>
                     {% else %}—{% endif %}
                   </td>
-                  <td>
+                  <td data-label="Action">
                     <span class="action-tag action-tag--{{ log.action.split('_')[0].lower() if log.action else 'default' }}">
                       {{ log.action | replace('_',' ') | title }}
                     </span>
                   </td>
-                  <td style="font-size:12px; color:var(--text-body); max-width:250px;">{{ log.details or '—' }}</td>
-                  <td style="font-size:11px; font-family:monospace; color:var(--text-muted);">{{ log.ip_address or '127.0.0.1' }}</td>
+                  <td data-label="Details" style="font-size:12px; color:var(--text-body); max-width:250px;">{{ log.details or '—' }}</td>
+                  <td data-label="IP Address" style="font-size:11px; font-family:monospace; color:var(--text-muted);">{{ log.ip_address or '127.0.0.1' }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -155,13 +245,24 @@
             <div style="padding: 40px; text-align: center; color: var(--text-muted);">No activity logs found.</div>
             {% endif %}
           </div>
+
+          <!-- PAGINATION -->
+          <div class="pagination-wrap" id="logsPaginationWrap" style="display:none;">
+            <div class="pagination-info" id="logsPaginationInfo"></div>
+            <div class="pagination-controls">
+              <button class="page-btn" id="logsPrev" type="button">&#8592; Prev</button>
+              <div class="page-numbers" id="logsPageNumbers"></div>
+              <button class="page-btn" id="logsNext" type="button">Next &#8594;</button>
+            </div>
+          </div>
         </div>
+
       </main>
     </div>
+
   </div>
 </div>
 
-<!-- Gamitin ang dashboard_admin.js para sa toggle functionality -->
-<script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
+<script src="{{ url_for('super_admin.static', filename='activity_logs.js') }}"></script>
 </body>
 </html>

@@ -30,6 +30,7 @@
 .reports-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr;
   gap: 20px;
   margin-bottom: 20px;
 }
@@ -46,15 +47,14 @@
   opacity: 0;
   transform: translateY(14px);
   transition: opacity .35s ease, transform .35s ease, box-shadow .2s, border-color .2s;
+  display: flex;
+  flex-direction: column;
 }
 .report-card.visible {
   opacity: 1;
   transform: translateY(0);
 }
-.report-card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--primary-mid);
-}
+
 
 /* Card header — same dark teal gradient as dashboard cards */
 .report-card .card-header {
@@ -88,6 +88,10 @@
 
 .report-card .card-body {
   padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* ================================================================

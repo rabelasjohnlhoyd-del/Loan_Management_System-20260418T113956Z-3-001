@@ -20,9 +20,6 @@
   <!-- ═══════════════════════════════════════════════
        TOPBAR
   ════════════════════════════════════════════════ -->
-
-
-  
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -43,6 +40,99 @@
     </div>
 
     <div class="topbar-right">
+      <!-- NOTIFICATION BELL -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+
+          <ul class="notif-list" id="notifList">
+
+            {# ══ Pending Applications ══ #}
+            {% set has_apps = pending_applications_notif or (stats is defined and stats.get('pending_applications', 0) > 0) %}
+            {% if has_apps %}
+              <li class="notif-group-label"><span>Pending Applications</span></li>
+            {% endif %}
+
+            {% if pending_applications_notif %}
+              {% for app in pending_applications_notif %}
+              <li class="notif-item unread" data-notif-id="app-{{ app.id }}">
+                <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">New Application — {{ app.reference_no }}</div>
+                    <div class="notif-item-msg">{{ app.borrower_name }} · {{ app.type_name }} · ₱{{ "{:,.0f}".format(app.amount_requested) }}</div>
+                    <div class="notif-item-time">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '' }}</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+              {% endfor %}
+            {% elif stats is defined and stats.get('pending_applications', 0) > 0 %}
+              <li class="notif-item unread" data-notif-id="pending-apps-summary">
+                <a href="{{ url_for('super_admin.admin_applications') }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">Pending Applications</div>
+                    <div class="notif-item-msg">{{ stats.pending_applications }} application(s) awaiting your review.</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+            {% endif %}
+
+            {# ══ Recent Activity ══ #}
+            {% if activity_logs %}
+              <li class="notif-group-label"><span>Recent Activity</span></li>
+              {% for log in activity_logs[:5] %}
+              <li class="notif-item" data-notif-id="log-{{ log.id if log.id else loop.index }}">
+                <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-item-link">
+                  <div class="notif-item-icon
+                    {% if 'approved' in log.action or 'verified' in log.action or 'paid' in log.action %}notif-icon--green
+                    {% elif 'rejected' in log.action or 'overdue' in log.action %}notif-icon--red
+                    {% elif 'disbursed' in log.action %}notif-icon--teal
+                    {% else %}notif-icon--activity{% endif %}">
+                    <span></span>
+                  </div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">{{ log.action | replace('_',' ') | title }}</div>
+                    <div class="notif-item-msg">
+                      {% if log.details %}{{ log.details }}{% endif %}
+                      {% if log.actor_name %} · by {{ log.actor_name }}{% endif %}
+                    </div>
+                    <div class="notif-item-time">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '' }}</div>
+                  </div>
+                </a>
+              </li>
+              {% endfor %}
+            {% endif %}
+
+            {# ══ Empty state ══ #}
+            {% if not has_apps and not activity_logs %}
+              <li class="notif-empty-item">
+                <span class="notif-empty-icon-img"></span>
+                <p>You're all caught up!</p>
+                <small>No new notifications</small>
+              </li>
+            {% endif %}
+
+          </ul>
+
+          <div class="notif-footer">
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
+          </div>
+        </div>
+      </div><!-- /.notif-wrap -->
+
       <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Admin' }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
       </a>
@@ -153,18 +243,8 @@
                 </div>
               </div>
             </div>
-            <div class="card-body">
-              <form method="GET" action="{{ url_for('super_admin.report_loan_performance') }}" class="report-form">
-                <div class="report-form-row">
-                  <div class="form-group-sm">
-                    <label class="form-label-sm">From</label>
-                    <input type="date" name="date_from" class="form-input-sm"/>
-                  </div>
-                  <div class="form-group-sm">
-                    <label class="form-label-sm">To</label>
-                    <input type="date" name="date_to" class="form-input-sm"/>
-                  </div>
-                </div>
+            <div class="card-body" style="display:flex; align-items:center; justify-content:center; padding: 28px 20px;">
+              <form method="GET" action="{{ url_for('super_admin.report_loan_performance') }}">
                 <button type="submit" class="btn btn-primary btn-sm">
                   <span class="btn-icon btn-icon--generate"></span>
                   Generate Report
@@ -234,18 +314,8 @@
                 </div>
               </div>
             </div>
-            <div class="card-body">
-              <form method="GET" action="{{ url_for('super_admin.report_paid_loans') }}" class="report-form">
-                <div class="report-form-row">
-                  <div class="form-group-sm">
-                    <label class="form-label-sm">From</label>
-                    <input type="date" name="date_from" class="form-input-sm"/>
-                  </div>
-                  <div class="form-group-sm">
-                    <label class="form-label-sm">To</label>
-                    <input type="date" name="date_to" class="form-input-sm"/>
-                  </div>
-                </div>
+            <div class="card-body" style="display:flex; align-items:center; justify-content:center; padding: 28px 20px;">
+              <form method="GET" action="{{ url_for('super_admin.report_paid_loans') }}">
                 <button type="submit" class="btn btn-primary btn-sm">
                   <span class="btn-icon btn-icon--generate"></span>
                   Generate Report
@@ -256,52 +326,23 @@
 
         </div>
 
-        <!-- QUICK ACCESS CARD -->
-        <div class="card" style="margin-top: 4px;">
-          <div class="card-header">
-            <div>
-              <h3>Quick Access — Recent Loans</h3>
-              <p>Jump directly to a loan for detailed reporting</p>
-            </div>
-            <a href="{{ url_for('super_admin.all_loans') }}" class="btn btn-ghost btn-sm">View All</a>
-          </div>
-          <div class="card-body">
-            <p style="font-size:13px; color:var(--text-muted);">
-              Select a loan from the <a href="{{ url_for('super_admin.all_loans') }}" style="color:var(--primary); font-weight:600;">All Loans</a> page for more details.
-            </p>
-          </div>
-        </div>
-
       </main>
     </div>
 
   </div>
 </div>
 
-<script src="{{ url_for('super_admin.static', filename='reports.js') }}"></script>
-
-<!-- ADDED SCRIPT FOR FUNCTIONALITY -->
+<!-- ================================================================
+     INJECT FLASK URLs FOR USE IN reports.js
+     Jinja2 only renders .html files, NOT static .js files.
+     So we pass the generated URLs here as a JS global object.
+     ================================================================ -->
 <script>
-function goAmort() {
-    const loanId = document.getElementById('loanIdInput').value.trim();
-    if (loanId) {
-        // Redirects to /admin/reports/amortization/<loanId>
-        window.location.href = "/admin/reports/amortization/" + loanId;
-    } else {
-        alert("Please enter a valid Loan ID");
-    }
-}
-
-function goBorrowerHistory() {
-    const borrowerId = document.getElementById('borrowerIdInput').value.trim();
-    if (borrowerId) {
-        // Redirects to /admin/reports/borrower-history/<borrowerId>
-        window.location.href = "/admin/reports/borrower-history/" + borrowerId;
-    } else {
-        alert("Please enter a valid Borrower ID");
-    }
-}
+  window.REPORT_URLS = {
+    amortization:   "{{ url_for('super_admin.report_amortization',    loan_id=0)     }}",
+    borrowerHistory:"{{ url_for('super_admin.report_borrower_history', borrower_id=0) }}"
+  };
 </script>
-
+<script src="{{ url_for('super_admin.static', filename='reports.js') }}"></script>
 </body>
 </html>

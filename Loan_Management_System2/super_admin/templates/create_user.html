@@ -7,18 +7,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
-  <!-- Link both CSS files -->
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='create_user.css') }}"/>
 </head>
 <body>
 
-<!-- OVERLAY for mobile -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- TOPBAR: Consistent with Dashboard -->
+  <!-- ═══════════════════ TOPBAR ═══════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -39,14 +37,41 @@
     </div>
 
     <div class="topbar-right">
-      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
+
+      <!-- Notification Bell -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-loading">Loading...</div>
+          </div>
+          <div class="notif-footer">
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
+              See all notifications →
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avatar -->
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar"
+         title="{{ session.user_name if session.user_name else 'Admin' }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
       </a>
     </div>
   </header>
 
   <div class="body-row">
-    <!-- SIDEBAR: Same as Dashboard -->
+
+    <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
@@ -58,172 +83,169 @@
       </div>
 
       <div class="user-dropdown" id="userDropdown">
-        <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('super_admin.SA_profile') }}">
+          <span class="dd-icon dd-icon--profile"></span>My Profile
+        </a>
         {% if session.role == 'super_admin' %}
-        <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
+        <a href="{{ url_for('super_admin.manage_users') }}">
+          <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+        </a>
         {% endif %}
-        <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
-        <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
+        <a href="{{ url_for('super_admin.reports_page') }}">
+          <span class="dd-icon dd-icon--reports"></span>Reports
+        </a>
+        <a href="{{ url_for('super_admin.activity_logs') }}">
+          <span class="dd-icon dd-icon--activity"></span>Activity Logs
+        </a>
       </div>
 
       <nav class="sidebar-nav">
         <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
         </a>
         <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-          <span class="nav-icon nav-icon--clock"></span><span class="nav-label">Applications</span>
+          <span class="nav-icon nav-icon--clock"></span>
+          <span class="nav-label">Applications</span>
         </a>
         <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
-          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">All Loans</span>
+          <span class="nav-icon nav-icon--applications"></span>
+          <span class="nav-label">All Loans</span>
         </a>
         <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
-          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+          <span class="nav-icon nav-icon--borrowers"></span>
+          <span class="nav-label">Borrowers</span>
         </a>
-        <a href="{{ url_for('super_admin.manage_users') }}" class="nav-item active">
-          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Manage Users</span>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+          <span class="nav-icon nav-icon--warning"></span>
+          <span class="nav-label">Penalties &amp; Overdue</span>
         </a>
       </nav>
 
       <div class="sidebar-footer">
         <form method="POST" action="{{ url_for('auth.logout') }}">
           <button type="submit" class="nav-item sidebar-logout-btn">
-            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
           </button>
         </form>
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
     <div class="main-content" id="mainContent">
-  <main class="page-body">
-    
-    <!-- Updated Header Layout to match Manage Users -->
-    <div class="page-header-actions">
-  <div class="header-left-side">
-    <!-- Eto yung Back Button na Dashboard ang text -->
-    <a href="{{ url_for('auth.dashboard') }}" class="back-btn">
-      <span class="back-icon"></span>
-      Dashboard
-    </a>
-    <div class="title-wrap">
-      <h2 class="page-title-main">Create Staff Account</h2>
-      <p class="page-sub">Add a new admin, loan officer, or auditor</p>
+      <main class="page-body">
+
+        <!-- Page Header -->
+        <div class="page-header-actions">
+          <div class="header-left-side">
+            <a href="{{ url_for('super_admin.manage_users') }}" class="back-btn">
+              <span class="back-icon"></span>
+              Manage Users
+            </a>
+            <div class="title-wrap">
+              <h2 class="page-title-main">Create Staff Account</h2>
+              <p class="page-sub">Add a new admin, loan officer, or auditor</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- Form Card -->
+        <div class="form-container-centered">
+          <div class="card card--form">
+            <div class="card-header-styled">
+              <h3>Account Information</h3>
+              <p>Fields marked with * are required</p>
+            </div>
+            <div class="card-body">
+              <form method="POST" action="{{ url_for('super_admin.create_user') }}" class="staff-create-form">
+                <div class="form-grid">
+
+                  <div class="form-group">
+                    <label class="form-label">Full Name <span class="req">*</span></label>
+                    <input type="text" name="full_name" class="form-input"
+                           placeholder="e.g. Juan dela Cruz" required/>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Email Address <span class="req">*</span></label>
+                    <input type="email" name="email" class="form-input"
+                           placeholder="e.g. juan@example.com" required/>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Contact Number</label>
+                    <input type="text" name="contact_number" class="form-input"
+                           placeholder="e.g. 09XX-XXX-XXXX"/>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Role <span class="req">*</span></label>
+                    <select name="role" class="form-input" required>
+                      <option value="">-- Select Role --</option>
+                      <option value="admin">Admin</option>
+                      <option value="loan_officer">Loan Officer</option>
+                      <option value="auditor">Auditor</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Password <span class="req">*</span></label>
+                    <div class="pw-field-wrap">
+                      <input type="password" name="password" id="pw" class="form-input"
+                             placeholder="Min. 8 characters" required minlength="8"/>
+                      <button type="button" class="pw-show-toggle"
+                              onclick="togglePw('pw', this)">Show</button>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Confirm Password <span class="req">*</span></label>
+                    <div class="pw-field-wrap">
+                      <input type="password" id="pw2" class="form-input"
+                             placeholder="Re-enter password" required/>
+                      <button type="button" class="pw-show-toggle"
+                              onclick="togglePw('pw2', this)">Show</button>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="role-helper-box" id="roleInfo" style="display:none;">
+                  <span class="info-icon">ℹ</span>
+                  <div id="roleInfoText" style="font-size:13px;"></div>
+                </div>
+
+                <div class="form-footer">
+                  <a href="{{ url_for('super_admin.manage_users') }}" class="btn-cancel">Cancel</a>
+                  <button type="submit" class="btn-primary-action">Create Account</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </main>
     </div>
+
   </div>
 </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-stack">
-          {% for category, message in messages %}
-            <div class="flash-msg {{ category }}">
-              <span>{{ message }}</span>
-              <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-
-    <div class="form-container-centered">
-      <div class="card card--form">
-        <div class="card-header-styled">
-          <h3>Account Information</h3>
-          <p>Fields marked with * are required</p>
-        </div>
-        <div class="card-body">
-          <form method="POST" action="{{ url_for('super_admin.create_user') }}" class="staff-create-form">
-            <div class="form-grid">
-              <!-- Full Name -->
-              <div class="form-group">
-                <label class="form-label">Full Name <span class="req">*</span></label>
-                <input type="text" name="full_name" class="form-input" placeholder="e.g. Juan dela Cruz" required/>
-              </div>
-              <!-- Email -->
-              <div class="form-group">
-                <label class="form-label">Email Address <span class="req">*</span></label>
-                <input type="email" name="email" class="form-input" placeholder="e.g. juan@example.com" required/>
-              </div>
-              <!-- Contact -->
-              <div class="form-group">
-                <label class="form-label">Contact Number</label>
-                <input type="text" name="contact_number" class="form-input" placeholder="e.g. 09XX-XXX-XXXX"/>
-              </div>
-              <!-- Role -->
-              <div class="form-group">
-                <label class="form-label">Role <span class="req">*</span></label>
-                <select name="role" class="form-input" required>
-                  <option value="">-- Select Role --</option>
-                  <option value="admin">Admin</option>
-                  <option value="loan_officer">Loan Officer</option>
-                  <option value="auditor">Auditor</option>
-                  <option value="super_admin">Super Admin</option>
-                </select>
-              </div>
-              <!-- Pw -->
-              <div class="form-group">
-                <label class="form-label">Password <span class="req">*</span></label>
-                <div class="pw-field-wrap">
-                  <input type="password" name="password" id="pw" class="form-input" placeholder="Min. 8 characters" required minlength="8"/>
-                  <button type="button" class="pw-show-toggle" onclick="togglePw('pw', this)">Show</button>
-                </div>
-              </div>
-              <!-- Confirm Pw -->
-              <div class="form-group">
-                <label class="form-label">Confirm Password <span class="req">*</span></label>
-                <div class="pw-field-wrap">
-                  <input type="password" id="pw2" class="form-input" placeholder="Re-enter password" required/>
-                  <button type="button" class="pw-show-toggle" onclick="togglePw('pw2', this)">Show</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="role-helper-box" id="roleInfo" style="display:none;">
-              <span class="info-icon">ℹ</span>
-              <div id="roleInfoText" style="font-size: 13px;"></div>
-            </div>
-
-            <div class="form-footer">
-              <a href="{{ url_for('super_admin.manage_users') }}" class="btn-cancel">Cancel</a>
-              <button type="submit" class="btn-primary-action">Create Account</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </main>
-</div>
-<!-- Scripts -->
-<script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
-<script>
-  function togglePw(id, btn) {
-    const input = document.getElementById(id);
-    if (input.type === 'password') {
-      input.type = 'text';
-      btn.textContent = 'Hide';
-    } else {
-      input.type = 'password';
-      btn.textContent = 'Show';
-    }
-  }
-
-  const roleDesc = {
-    admin: 'Full administrative access: manage loans, payments, and borrowers.',
-    loan_officer: 'Operations access: process applications and communicate with borrowers.',
-    auditor: 'Read-only access: view reports, loans, and activity logs only.',
-    super_admin: 'Owner access: all features plus system settings and user management.'
-  };
-
-  document.querySelector('select[name="role"]').addEventListener('change', function() {
-    const box = document.getElementById('roleInfo');
-    const text = document.getElementById('roleInfoText');
-    if (this.value && roleDesc[this.value]) {
-      text.textContent = roleDesc[this.value];
-      box.style.display = 'flex';
-    } else {
-      box.style.display = 'none';
-    }
-  });
-</script>
+<script src="{{ url_for('super_admin.static', filename='create_user.js') }}"></script>
 </body>
 </html>

@@ -73,13 +73,7 @@
   /* ================================================================
      NOTIFICATIONS
      ================================================================ */
-  const NOTIF_ICONS = {
-    loan_approved:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
-    loan_rejected:    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E\")",
-    payment_due:      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E\")",
-    payment_received: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\")",
-    general:          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E\")",
-  };
+
 
   const notifBtn      = document.getElementById('notifBtn');
   const notifDropdown = document.getElementById('notifDropdown');
@@ -98,6 +92,65 @@
   fetchUnreadCount();
   setInterval(fetchUnreadCount, 60000);
 
+  /* Inline SVG icons — stroke-based so they render correctly in all browsers */
+  const ICON_SVG = {
+    activity: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#4A7A82" stroke-width="2" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+    warning:  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#d97706" width="16" height="16"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',
+    check:    '<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>',
+    cross:    '<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>',
+  };
+
+  function getIconSvg(type) {
+    if (type === 'payment_due')   return ICON_SVG.warning;
+    if (type === 'loan_approved') return ICON_SVG.check;
+    if (type === 'loan_rejected') return ICON_SVG.cross;
+    return ICON_SVG.activity;
+  }
+
+  function renderNotifItem(n) {
+    const unread = !n.is_read;
+
+    let iconBg = '#d9eef1';
+    if (n.type === 'payment_due')   iconBg = '#fef3c7';
+    if (n.type === 'loan_approved') iconBg = '#dcfce7';
+    if (n.type === 'loan_rejected') iconBg = '#fee2e2';
+
+    return `
+      <div class="notif-item${unread ? ' unread' : ''}" data-id="${n.id}" data-link="${n.link || ''}"
+           style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;
+                  border-bottom:1px solid var(--gray-200);cursor:pointer;position:relative;
+                  background:${unread ? 'var(--primary-light)' : 'var(--white)'};">
+        <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;
+                    display:flex;align-items:center;justify-content:center;
+                    background:${iconBg};">
+          ${getIconSvg(n.type)}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--gray-800);margin-bottom:2px;
+                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(n.title)}</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.4;
+                      display:-webkit-box;-webkit-line-clamp:2;
+                      -webkit-box-orient:vertical;overflow:hidden;">${escHtml(n.message || '')}</div>
+          <div style="font-size:11px;color:var(--gray-400);margin-top:3px;">${escHtml(n.time_ago)}</div>
+        </div>
+        ${unread ? `<span style="position:absolute;top:50%;right:14px;transform:translateY(-50%);
+                                 width:7px;height:7px;border-radius:50%;
+                                 background:var(--primary-dark);flex-shrink:0;"></span>` : ''}
+      </div>`;
+  }
+
+  function groupLabel(text, borderTop) {
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 16px 4px;
+                  font-size:10px;font-weight:700;text-transform:uppercase;
+                  letter-spacing:0.8px;color:var(--gray-400);
+                  background:var(--gray-100);
+                  ${borderTop ? 'border-top:1px solid var(--gray-200);' : ''}
+                  border-bottom:1px solid var(--gray-200);">
+        <span>${text}</span>
+      </div>`;
+  }
+
   function fetchNotifications() {
     if (!notifList) return;
     notifList.innerHTML = `<div class="notif-loading"><span>Loading notifications...</span></div>`;
@@ -106,33 +159,36 @@
       .then(data => {
         const items = data.notifications || [];
         if (items.length === 0) {
-          notifList.innerHTML = `<div style="padding:32px 16px;text-align:center;color:var(--gray-400);font-size:13px;">You're all caught up!</div>`;
+          notifList.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;
+                        padding:36px 16px;text-align:center;">
+              <div style="width:36px;height:36px;background:#cbd5e1;opacity:0.5;margin-bottom:8px;
+                   mask-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E\");
+                   -webkit-mask-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/%3E%3C/svg%3E\");
+                   mask-size:contain;mask-repeat:no-repeat;
+                   -webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;"></div>
+              <p style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 4px;">You're all caught up!</p>
+              <small style="font-size:12px;color:#94a3b8;">No new notifications</small>
+            </div>`;
           return;
         }
-        notifList.innerHTML = items.map(n => {
-          const iconPath = NOTIF_ICONS[n.type] || NOTIF_ICONS['general'];
-          const unread = !n.is_read;
-          return `
-            <div class="notif-item${unread ? ' unread' : ''}" data-id="${n.id}" data-link="${n.link || ''}"
-                 style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;
-                        border-bottom:1px solid var(--gray-200);cursor:pointer;
-                        background:${unread ? 'var(--primary-light)' : 'var(--white)'};">
-              <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;
-                          display:flex;align-items:center;justify-content:center;
-                          background:var(--primary-light);">
-                <span style="display:block;width:16px;height:16px;background:var(--accent);
-                             -webkit-mask-image:${iconPath};mask-image:${iconPath};
-                             mask-size:contain;mask-repeat:no-repeat;
-                             -webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;"></span>
-              </div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:13px;font-weight:600;color:var(--gray-800);margin-bottom:2px;
-                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(n.title)}</div>
-                <div style="font-size:12px;color:var(--gray-600);">${escHtml(n.message || '')}</div>
-                <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">${escHtml(n.time_ago)}</div>
-              </div>
-            </div>`;
-        }).join('');
+
+        const pendingApps  = items.filter(n => n.type === 'payment_due');
+        const activityLogs = items.filter(n => n.type !== 'payment_due');
+
+        let html = '';
+
+        if (pendingApps.length > 0) {
+          html += groupLabel('Pending Applications', false);
+          html += pendingApps.map(n => renderNotifItem(n)).join('');
+        }
+
+        if (activityLogs.length > 0) {
+          html += groupLabel('Recent Activity', pendingApps.length > 0);
+          html += activityLogs.map(n => renderNotifItem(n)).join('');
+        }
+
+        notifList.innerHTML = html;
 
         notifList.querySelectorAll('[data-id]').forEach(el => {
           el.addEventListener('click', function () {

@@ -1,18 +1,18 @@
 /**
- * make_payment.js
- * FINAL CONSOLIDATED VERSION
- * Includes: Sidebar, Notifications, Download QR Token, QR Scanner Auth, and Enhanced Receipt
+ * payment_history.js
+ * Features: filter (status + date range), search, sort by column,
+ *           pagination, print, export CSV, amount tooltip, rejected reason tooltip.
+ *           NOTIFICATIONS DROPDOWN + PAYMENT RECEIPT VIEWING
  */
 
 (function () {
   'use strict';
 
   /* ================================================================
-     1. SIDEBAR TOGGLE & USER DROPDOWN (Existing Logic)
+     SIDEBAR TOGGLE
   ================================================================ */
   const burgerBtn      = document.getElementById('burgerBtn');
   const sidebar        = document.getElementById('sidebar');
-  const mainContent    = document.getElementById('mainContent');
   const sidebarOverlay = document.getElementById('sidebarOverlay');
   const SIDEBAR_KEY    = 'hiraya_sidebar_open';
   const isMobile       = () => window.innerWidth <= 768;
@@ -38,378 +38,439 @@
   burgerBtn?.addEventListener('click', toggleSidebar);
   sidebarOverlay?.addEventListener('click', closeSidebar);
 
-  const userToggle   = document.getElementById('userDropdownToggle');
-  const userDropdown = document.getElementById('userDropdown');
-
-  userToggle?.addEventListener('click', function (e) {
-    e.stopPropagation();
-    userDropdown.classList.toggle('open');
+  sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
+    link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
-  document.addEventListener('click', (e) => {
-    if (!userToggle?.contains(e.target) && !userDropdown?.contains(e.target)) {
-      userDropdown?.classList.remove('open');
+  window.addEventListener('resize', () => {
+    if (!isMobile()) {
+      sidebarOverlay.classList.remove('active');
+      if (localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
+    } else {
+      closeSidebar();
     }
   });
 
   /* ================================================================
-     2. NOTIFICATIONS LOGIC (Existing Logic)
+     USER DROPDOWN
+  ================================================================ */
+  const userToggle   = document.getElementById('userDropdownToggle');
+  const userDropdown = document.getElementById('userDropdown');
+
+  if (userToggle && userDropdown) {
+    userToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      userDropdown.classList.toggle('open');
+      userToggle.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!userToggle.contains(e.target) && !userDropdown.contains(e.target)) {
+        userDropdown.classList.remove('open');
+        userToggle.classList.remove('open');
+      }
+    });
+  }
+
+  /* ================================================================
+     NOTIFICATIONS DROPDOWN
   ================================================================ */
   const notifBtn      = document.getElementById('notifBtn');
   const notifDropdown = document.getElementById('notifDropdown');
   const notifDot      = document.getElementById('notifDot');
   const notifList     = document.getElementById('notifList');
+  const notifMarkAll  = document.getElementById('notifMarkAll');
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 
   function fetchUnreadCount() {
-    fetch('/loans/api/notifications/count').then(r => r.json()).then(data => {
-      if (data.count > 0) notifDot?.classList.remove('hidden');
-      else notifDot?.classList.add('hidden');
-    }).catch(() => {});
+    fetch('/loans/api/notifications/count')
+      .then(r => r.json())
+      .then(data => {
+        if (data.count > 0) notifDot?.classList.remove('hidden');
+        else                notifDot?.classList.add('hidden');
+      }).catch(() => {});
   }
+
   fetchUnreadCount();
   setInterval(fetchUnreadCount, 60000);
 
   function fetchNotifications() {
     if (!notifList) return;
-    notifList.innerHTML = '<div class="notif-loading"><span>Loading...</span></div>';
-    fetch('/loans/api/notifications').then(r => r.json()).then(data => {
-      const items = data.notifications || [];
-      if (items.length === 0) {
-        notifList.innerHTML = '<div class="notif-empty"><p>No new notifications</p></div>';
-        return;
-      }
-      notifList.innerHTML = items.map(n => {
-        const unread = !n.is_read;
-        return `<div class="notif-item${unread ? ' unread' : ''}" data-id="${n.id}">
-          <div class="notif-item-body">
-            <div class="notif-item-title">${escHtml(n.title)}</div>
-            <div class="notif-item-msg">${escHtml(n.message || '')}</div>
-          </div>
-        </div>`;
-      }).join('');
-    }).catch(() => { notifList.innerHTML = '<div class="notif-empty"><p>Error loading.</p></div>'; });
-  }
-
-  notifBtn?.addEventListener('click', function (e) {
-    e.stopPropagation();
-    notifDropdown.classList.toggle('open');
-    if (notifDropdown.classList.contains('open')) fetchNotifications();
-  });
-
-  /* ================================================================
-     3. DOWNLOAD OFFICIAL QR LOGIC (Existing Logic)
-  ================================================================ */
-  window.downloadOfficialQR = function(loanRef, event) {
-    if (event) event.stopPropagation();
-    const canvas = document.createElement('canvas');
-    const qrData = `HIRAYA-AUTH-${loanRef}`; 
-
-    if (typeof QRious !== 'undefined') {
-      const qr = new QRious({
-        element: canvas,
-        value: qrData,
-        size: 300,
-        level: 'H',
-        foreground: '#1a3330'
-      });
-      const link = document.createElement('a');
-      link.download = `Official_QR_${loanRef}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } else {
-      alert("QR Library (QRious) not loaded.");
-    }
-  };
-
-  /* ================================================================
-     4. PAYMENT FLOW STATE & GLOBAL VARIABLES
-  ================================================================ */
-  let selectedLoanData = null;
-  let selectedMethod   = null;
-  let _confirmedPayNo  = null;
-
-  const methodDetails = {
-    gcash:    { name: 'GCash',          icon: '💙' },
-    maya:     { name: 'Maya',           icon: '💚' },
-    bdo:      { name: 'BDO Unibank',    icon: '🏦' },
-    bpi:      { name: 'BPI',            icon: '🏛️' },
-    landbank: { name: 'Landbank',       icon: '🌾' },
-    visa:     { name: 'Visa/Card',      icon: '💳' }
-  };
-
-  /* ================================================================
-     5. QR SCANNER & AUTHORIZATION (Existing Logic Improved)
-  ================================================================ */
-  const qrDropZone      = document.getElementById('qrDropZone');
-  const qrFileInput     = document.getElementById('qrFileInput');
-  const btnConfirm      = document.getElementById('btnConfirmPayment');
-  const qrValidationMsg = document.getElementById('qrValidationMsg');
-
-  if (qrDropZone) {
-      qrDropZone.addEventListener('click', () => {
-          if (document.getElementById('qrPreviewContainer').classList.contains('hidden')) qrFileInput?.click();
-      });
-      qrDropZone.addEventListener('dragover', (e) => { e.preventDefault(); qrDropZone.classList.add('dragging'); });
-      qrDropZone.addEventListener('dragleave', () => { qrDropZone.classList.remove('dragging'); });
-      qrDropZone.addEventListener('drop', (e) => {
-          e.preventDefault();
-          qrDropZone.classList.remove('dragging');
-          if (e.dataTransfer.files[0]) handleQRFile(e.dataTransfer.files[0]);
-      });
-  }
-
-  qrFileInput?.addEventListener('change', (e) => { if (e.target.files[0]) handleQRFile(e.target.files[0]); });
-
-  function handleQRFile(file) {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-          const img = new Image();
-          img.onload = function() {
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              canvas.width = img.width; canvas.height = img.height;
-              ctx.drawImage(img, 0, 0, img.width, img.height);
-              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              const code = window.jsQR ? jsQR(imageData.data, imageData.width, imageData.height) : null;
-
-              if (code && code.data === `HIRAYA-AUTH-${selectedLoanData.ref}`) {
-                  processValidQR(e.target.result);
-              } else {
-                  qrValidationMsg.innerHTML = "❌ Authentication Failed! Invalid QR.";
-                  qrValidationMsg.style.color = "#d9534f";
-              }
-          };
-          img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-  }
-
-  function processValidQR(imageSrc) {
-      document.getElementById('qrPreviewImg').src = imageSrc;
-      document.getElementById('qrPreviewContainer').classList.remove('hidden');
-      document.getElementById('scannerContent').classList.add('hidden');
-      qrValidationMsg.innerHTML = "✅ QR Verified! You can now proceed.";
-      qrValidationMsg.style.color = "#2a9080";
-      btnConfirm.disabled = false;
-      document.getElementById('btnResetQR').classList.remove('hidden');
-  }
-
-  window.resetScanner = function() {
-      document.getElementById('qrPreviewContainer').classList.add('hidden');
-      document.getElementById('scannerContent').classList.remove('hidden');
-      if (qrFileInput) qrFileInput.value = "";
-      btnConfirm.disabled = true;
-      document.getElementById('btnResetQR').classList.add('hidden');
-      qrValidationMsg.innerHTML = "Waiting for QR verification...";
-      qrValidationMsg.style.color = "#666";
-  };
-
-  /* ================================================================
-     6. NAVIGATION & BUTTON HANDLERS
-  ================================================================ */
-// ─── 1. SELECT LOAN ───
-  window.selectLoan = function (el, id, ref, amount, type, due) {
-    // I-save ang base monthly amount
-    selectedLoanData = { id, ref, amount, type, due };
-    
-    // I-set ang initial value ng input box sa 1 monthly payment
-    const amtInput = document.getElementById('inputAmountToPay');
-    if(amtInput) amtInput.value = amount;
-    
-    // Ipakita ang minimum amount hint
-    const hint = document.getElementById('minAmountHint');
-    if(hint) hint.textContent = `Minimum Monthly Due: ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
-
-    document.querySelectorAll('.loan-select-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    
-    setTimeout(() => { 
-      hideSection('sectionSelectLoan'); 
-      showSection('sectionStep2'); 
-      setStep(2); 
-    }, 300);
-  };
-
-  // ─── 2. QUICK AMOUNT HELPER ───
-  window.setQuickAmount = function(months) {
-    if(!selectedLoanData) return;
-    const total = selectedLoanData.amount * months;
-    const amtInput = document.getElementById('inputAmountToPay');
-    if(amtInput) {
-        amtInput.value = total.toFixed(2);
-        // I-shake or pulse effect para mapansin na nagbago
-        amtInput.style.backgroundColor = '#eaf8f5';
-        setTimeout(() => amtInput.style.backgroundColor = '', 300);
-    }
-  };
-
-  // ─── 3. SELECT METHOD ───
-  window.selectMethod = function (method, el) {
-    selectedMethod = method;
-    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    
-    const btnContinue = document.getElementById('btnContinueToQR');
-    if (btnContinue) {
-        btnContinue.disabled = false;
-        btnContinue.classList.add('ready'); 
-    }
-  };
-
-  // ─── 4. PROCEED TO AUTHORIZE ───
-  window.proceedToStep3 = function () {
-    const finalAmount = document.getElementById('inputAmountToPay').value;
-    
-    // Validation para hindi malugi ang system (Minimum check)
-    if(!finalAmount || parseFloat(finalAmount) < selectedLoanData.amount) {
-        alert("Wait! The amount cannot be lower than your current monthly due (₱" + selectedLoanData.amount.toLocaleString() + ")");
-        return;
-    }
-
-    // I-save ang final amount na babayaran
-    selectedLoanData.userSelectedAmount = finalAmount;
-    
-    hideSection('sectionStep2'); 
-    showSection('sectionStep3'); 
-    setStep(3); 
-    buildQRScreen();
-  };
-
-  // ─── 5. BUILD QR SUMMARY ───
-  function buildQRScreen() {
-    const d = methodDetails[selectedMethod]; 
-    
-    setText('sumLoanRef', selectedLoanData.ref);
-    setText('sumMethod',  d.icon + ' ' + d.name);
-    
-    // Ipakita yung piniling amount (pwedeng advanced) sa Summary
-    setText('sumAmount',  '₱' + parseFloat(selectedLoanData.userSelectedAmount).toLocaleString('en-PH', { minimumFractionDigits: 2 }));
-
-    const form = document.getElementById('paymentForm');
-    if (form) form.action = '/borrower/payments/make/' + selectedLoanData.id;
-
-    setHidden('hiddenLoanId', selectedLoanData.id);
-    setHidden('hiddenMethod', selectedMethod); 
-    setHidden('hiddenRef', 'TXN-' + Math.random().toString(36).toUpperCase().slice(-8));
-    
-    // Pasa ang tamang amount sa hidden input para sa Python
-    setHidden('hiddenAmount', selectedLoanData.userSelectedAmount);
-    
-    setHidden('hiddenDate', new Date().toISOString().split('T')[0]);
-    resetScanner();
-  }
-
-  // ─── 6. FINAL SUBMIT ───
-  window.submitPayment = function () {
-    const btn = document.getElementById('btnConfirmPayment');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="notif-spinner"></span> Processing...';
-    document.getElementById('paymentForm').submit();
-  };
-
-  // ─── 7. BACK BUTTONS ───
-  window.backToStep1 = function () { hideSection('sectionStep2'); showSection('sectionSelectLoan'); setStep(1); };
-  window.backToStep2 = function () { hideSection('sectionStep3'); showSection('sectionStep2'); setStep(2); };
-
-  /* ================================================================
-     7. SUCCESS REDIRECT & RECEIPT DATA
-  ================================================================ */
-  (function () {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('success') === '1') {
-      window.addEventListener('load', function () {
-        const payNo   = params.get('ref');
-        const loanRef = params.get('loan_ref') || '—';
-        if (payNo) {
-          hideSection('sectionSelectLoan'); hideSection('sectionStep2'); hideSection('sectionStep3');
-          setStep(5); showSection('sectionStep5');
-          _confirmedPayNo = payNo;
-          _loadReceiptData(payNo);
-          setTimeout(() => {
-              setText('erPayNo', payNo);
-              setText('erLoanRef', loanRef);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-          }, 800);
+    notifList.innerHTML = '<div class="notif-loading"><div class="notif-spinner"></div><span>Loading...</span></div>';
+    fetch('/loans/api/notifications')
+      .then(r => r.json())
+      .then(data => {
+        const items = data.notifications || [];
+        if (items.length === 0) {
+          notifList.innerHTML = '<div class="notif-empty"><p>You\'re all caught up!</p><small>No new notifications</small></div>';
+          return;
         }
+        notifList.innerHTML = items.map(n => {
+          const unread = !n.is_read;
+          return `<div class="notif-item${unread ? ' unread' : ''}" data-id="${n.id}" data-link="${n.link || ''}">
+            <div class="notif-item-body">
+              <div class="notif-item-title">${escapeHtml(n.title)}</div>
+              <div class="notif-item-msg">${escapeHtml(n.message || '')}</div>
+              <div class="notif-item-time">${escapeHtml(n.time_ago)}</div>
+            </div>
+            ${unread ? '<span class="notif-unread-dot"></span>' : ''}
+          </div>`;
+        }).join('');
+        notifList.querySelectorAll('.notif-item').forEach(el => {
+          el.addEventListener('click', function () {
+            const id   = this.dataset.id;
+            const link = this.dataset.link;
+            if (this.classList.contains('unread')) {
+              fetch(`/loans/api/notifications/${id}/read`, { method: 'POST' }).catch(() => {});
+              this.classList.remove('unread');
+              this.querySelector('.notif-unread-dot')?.remove();
+              fetchUnreadCount();
+            }
+            if (link && link !== 'null' && link !== '') {
+              notifDropdown.classList.remove('open');
+              window.location.href = link;
+            }
+          });
+        });
+      }).catch(() => {
+        notifList.innerHTML = '<div class="notif-empty"><p>Could not load notifications.</p></div>';
       });
-    }
-  })();
+  }
 
-  function _loadReceiptData(payNo) {
-    const loadingEl = document.getElementById('receiptLoading');
-    const cardEl    = document.getElementById('erCard');
-    if (loadingEl) loadingEl.style.display = 'flex';
-
-    fetch('/borrower/payments/receipt-data/' + payNo).then(r => r.json()).then(data => {
-      setText('erPayNo', data.payment_no);
-      setText('erAmountVal', '₱' + parseFloat(data.amount_paid).toLocaleString('en-PH', { minimumFractionDigits: 2 }));
-      setText('erLoanRef', data.loan_ref);
-      setText('erLoanType', data.type_name);
-      setText('erBorrowerName', data.borrower_name);
-      setText('erDateVerified', data.date_verified);
-      setText('erTxnRef', data.reference_number);
-
-      // METHOD BADGE FIX
-      const methodBadgeEl = document.getElementById('erMethodBadge');
-      if (methodBadgeEl) {
-        const icons = { gcash: '💙 GCash', maya: '💚 Maya', bdo: '🏦 BDO', bpi: '🏛️ BPI', landbank: '🌾 Landbank', visa: '💳 Visa/Card' };
-        methodBadgeEl.innerHTML = icons[data.payment_method] || data.payment_method;
+  if (notifBtn && notifDropdown) {
+    notifBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const opening = !notifDropdown.classList.contains('open');
+      notifDropdown.classList.toggle('open');
+      if (opening) fetchNotifications();
+    });
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('notifWrap')?.contains(e.target)) {
+        notifDropdown?.classList.remove('open');
       }
+    });
+  }
 
-      if (loadingEl) loadingEl.style.display = 'none';
-      if (cardEl) cardEl.style.display = 'block';
-    }).catch(() => { if (loadingEl) loadingEl.style.display = 'none'; });
+  if (notifMarkAll) {
+    notifMarkAll.addEventListener('click', () => {
+      fetch('/loans/api/notifications/read-all', { method: 'POST' })
+        .then(() => {
+          notifList.querySelectorAll('.notif-item.unread').forEach(el => {
+            el.classList.remove('unread');
+            el.querySelector('.notif-unread-dot')?.remove();
+          });
+          notifDot?.classList.add('hidden');
+        }).catch(() => {});
+    });
   }
 
   /* ================================================================
-     8. HELPERS & UTILITIES
+     NOTIFICATION STYLES (injected once)
   ================================================================ */
-  function showSection(id) { const el = document.getElementById(id); if (el) { el.classList.remove('hidden'); el.style.display = 'block'; } }
-  function hideSection(id) { const el = document.getElementById(id); if (el) { el.classList.add('hidden'); el.style.display = 'none'; } }
-  function setHidden(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
-  function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-  function setStep(n) {
-  const steps = document.querySelectorAll('.step');
-  const lines = document.querySelectorAll('.step-line');
+  if (!document.querySelector('#notif-styles')) {
+    const notifStyles = document.createElement('style');
+    notifStyles.id = 'notif-styles';
+    notifStyles.textContent = `
+      .notif-spinner { width:16px;height:16px;border:2px solid #deecea;border-top-color:#3ab5a0;border-radius:50%;animation:notifSpin 0.7s linear infinite;flex-shrink:0; }
+      @keyframes notifSpin { to { transform: rotate(360deg); } }
+      .notif-empty { padding:32px 16px;text-align:center;color:#8aaeaa; }
+      .notif-empty p { font-size:13px;font-weight:600;color:#4a6b67;margin:0 0 4px; }
+      .notif-empty small { font-size:12px; }
+    `;
+    document.head.appendChild(notifStyles);
+  }
 
-  steps.forEach((s, i) => {
-    const currentStepIndex = i + 1;
-    
-    
-    s.classList.remove('active', 'done', 'todo');
+  /* ================================================================
+     PAYMENT RECEIPT / PROOF VIEWING
+  ================================================================ */
+  window.viewPaymentReceipt = function (paymentId, paymentNo) {
+    const ref = paymentNo || paymentId;
+    if (!ref) { alert('No payment reference found.'); return; }
+    window.open('/borrower/payments/receipt/' + ref, '_blank');
+  };
 
-    if (currentStepIndex < n) {
-      s.classList.add('done'); 
-    } else if (currentStepIndex === n) {
-      s.classList.add('active'); 
-    } else {
-      s.classList.add('todo'); 
+  window.viewPaymentProof = function (paymentId) {
+    if (!paymentId) { alert('No payment ID found.'); return; }
+    window.open('/loans/payment-proof/' + paymentId, '_blank');
+  };
+
+  /* ================================================================
+     TABLE: FILTER, SORT, PAGINATION
+  ================================================================ */
+  let currentPage  = 1;
+  let pageSize     = 10;
+  let sortCol      = -1;
+  let sortDir      = 'asc';
+
+  // FIX: Initialize filteredRows immediately (DOM is ready — script is at bottom of body)
+  let filteredRows = Array.from(document.querySelectorAll('.ph-row'));
+
+  function getCleanCellText(cell) {
+    if (!cell) return '';
+    const clone = cell.cloneNode(true);
+    clone.querySelector('.td-amount-info')?.remove();
+    return clone.textContent.trim();
+  }
+
+  // FIX: Get readable method text from method cell (has emoji/spans)
+  function getMethodText(cell) {
+    if (!cell) return '';
+    const pill = cell.querySelector('.method-pill');
+    if (pill) {
+      // Remove emoji span, get just text
+      const clone = pill.cloneNode(true);
+      clone.querySelector('.m-icon')?.remove();
+      return clone.textContent.trim();
     }
-  });
+    return cell.textContent.trim();
+  }
 
- 
-  lines.forEach((line, i) => {
-    if (i + 1 < n) {
-      line.classList.add('done'); 
-    } else {
-      line.classList.remove('done'); 
-    }
-  });
-}
-  function escHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  window.printReceipt = function () { window.print(); };
+  window.applyFilters = function () {
+    const status   = document.getElementById('filterStatus').value.toLowerCase();
+    const query    = document.getElementById('searchInput').value.toLowerCase().trim();
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo   = document.getElementById('dateTo').value;
 
-  setTimeout(() => {
-    document.querySelectorAll('.flash-msg').forEach(el => {
-      el.style.transition = 'opacity 0.4s'; el.style.opacity = '0';
-      setTimeout(() => el.remove(), 400);
+    const allRows = Array.from(document.querySelectorAll('.ph-row'));
+
+    filteredRows = allRows.filter(row => {
+      const rowStatus = (row.dataset.status || '').toLowerCase();
+      const rowSearch = (row.dataset.search || '').toLowerCase();
+      const rowDate   = (row.dataset.date || '');
+
+      const matchStatus = !status || rowStatus === status;
+      const matchSearch = !query  || rowSearch.includes(query);
+      const matchFrom   = !dateFrom || rowDate >= dateFrom;
+      const matchTo     = !dateTo   || rowDate <= dateTo;
+
+      return matchStatus && matchSearch && matchFrom && matchTo;
     });
-  }, 4000);
 
-  document.addEventListener('DOMContentLoaded', function () {
-    hideSection('sectionStep2'); hideSection('sectionStep3'); hideSection('sectionStep5');
-    setStep(1);
-  });
+    if (sortCol >= 0) sortRows();
+    currentPage = 1;
+    renderPage();
+  };
+
+  window.clearDateFilter = function () {
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    applyFilters();
+  };
+
+  function initSortHeaders() {
+    document.querySelectorAll('.th-sort').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col, 10);
+        if (sortCol === col) {
+          sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortCol = col;
+          sortDir = 'asc';
+        }
+        document.querySelectorAll('.th-sort').forEach(h => h.classList.remove('asc', 'desc'));
+        th.classList.add(sortDir);
+        sortRows();
+        renderPage();
+      });
+    });
+  }
+
+  function sortRows() {
+    if (sortCol < 0 || filteredRows.length === 0) return;
+    filteredRows.sort((a, b) => {
+      const cellsA = a.querySelectorAll('td');
+      const cellsB = b.querySelectorAll('td');
+      if (!cellsA[sortCol] || !cellsB[sortCol]) return 0;
+
+      // Amount column (col 3) — numeric sort
+      if (sortCol === 3) {
+        const valA = parseFloat(getCleanCellText(cellsA[3]).replace(/[₱P,]/g, '')) || 0;
+        const valB = parseFloat(getCleanCellText(cellsB[3]).replace(/[₱P,]/g, '')) || 0;
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      }
+
+      // Date column (col 5) — use data-raw-date
+      if (sortCol === 5) {
+        const valA = cellsA[5].dataset.rawDate || '';
+        const valB = cellsB[5].dataset.rawDate || '';
+        return sortDir === 'asc'
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+      }
+
+      // Method column (col 4) — strip emoji
+      if (sortCol === 4) {
+        const valA = getMethodText(cellsA[4]);
+        const valB = getMethodText(cellsB[4]);
+        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+
+      // Default: text sort
+      const valA = getCleanCellText(cellsA[sortCol]);
+      const valB = getCleanCellText(cellsB[sortCol]);
+      return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    });
+  }
+
+  function renderPage() {
+    const tbody  = document.getElementById('historyBody');
+    const noRes  = document.getElementById('noResults');
+    const count  = document.getElementById('recordCount');
+    const allRows = Array.from(document.querySelectorAll('.ph-row'));
+
+    allRows.forEach(r => r.style.display = 'none');
+
+    if (filteredRows.length === 0) {
+      if (noRes) noRes.classList.remove('hidden');
+      if (count) count.textContent = '0 record(s)';
+      renderPagination(0);
+      return;
+    }
+
+    if (noRes) noRes.classList.add('hidden');
+
+    const start    = (currentPage - 1) * pageSize;
+    const pageRows = filteredRows.slice(start, start + pageSize);
+
+    // Re-append in sorted order, then show only current page
+    filteredRows.forEach(row => tbody.appendChild(row));
+    pageRows.forEach(r => r.style.display = '');
+
+    if (count) count.textContent = filteredRows.length + ' record(s)';
+    renderPagination(filteredRows.length);
+  }
+
+  function renderPagination(total) {
+    const totalPages   = Math.ceil(total / pageSize) || 1;
+    const info         = document.getElementById('paginationInfo');
+    const pageNums     = document.getElementById('pageNums');
+    const btnPrev      = document.getElementById('btnPrev');
+    const btnNext      = document.getElementById('btnNext');
+    const wrap         = document.getElementById('paginationControls');
+
+    if (!wrap) return;
+    wrap.style.display = total <= pageSize ? 'none' : 'flex';
+
+    if (info) {
+      const start = Math.min((currentPage - 1) * pageSize + 1, total);
+      const end   = Math.min(currentPage * pageSize, total);
+      info.textContent = `Showing ${start}–${end} of ${total} records`;
+    }
+
+    if (btnPrev) btnPrev.disabled = currentPage <= 1;
+    if (btnNext) btnNext.disabled = currentPage >= totalPages;
+
+    if (pageNums) {
+      pageNums.innerHTML = '';
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage   = Math.min(totalPages, startPage + 4);
+      if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+      for (let p = startPage; p <= endPage; p++) {
+        const btn = document.createElement('button');
+        btn.className = 'ph-page-num' + (p === currentPage ? ' active' : '');
+        btn.textContent = p;
+        btn.addEventListener('click', (function (page) {
+          return function () { currentPage = page; renderPage(); };
+        })(p));
+        pageNums.appendChild(btn);
+      }
+    }
+  }
+
+  window.changePage = function (delta) {
+    const totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
+    currentPage = Math.max(1, Math.min(currentPage + delta, totalPages));
+    renderPage();
+  };
+
+  window.changePageSize = function () {
+    pageSize    = parseInt(document.getElementById('pageSize').value, 10);
+    currentPage = 1;
+    renderPage();
+  };
+
+  /* ================================================================
+     PRINT
+  ================================================================ */
+  window.printHistory = function () {
+    const meta = document.getElementById('printMeta');
+    if (meta) {
+      const borrower = document.querySelector('.s-user-info h4')?.textContent?.trim() || '';
+      const now = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+      meta.textContent = (borrower ? borrower + '  •  ' : '') + 'Printed on: ' + now;
+    }
+    window.print();
+  };
+
+  /* ================================================================
+     EXPORT CSV (FIX: clean method text, remove emoji)
+  ================================================================ */
+  window.exportCSV = function () {
+    const headers  = ['Payment No.', 'Loan Reference', 'Loan Type', 'Amount (PHP)', 'Payment Method', 'Payment Date', 'Status'];
+    const now      = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const clean    = v => '"' + (v || '—').replace(/"/g, '""').replace(/[\r\n]+/g, ' ').trim() + '"';
+
+    const lines = [
+      ['"Hiraya Management System — Payment History"'].join(','),
+      ['"Exported on: ' + now + '"'].join(','),
+      [''].join(','),
+      headers.map(clean).join(',')
+    ];
+
+    filteredRows.forEach(row => {
+      const cells  = row.querySelectorAll('td');
+      const amount = getCleanCellText(cells[3]).replace(/[₱P,\s]/g, '');
+      const method = getMethodText(cells[4]);
+      const status = cells[6]?.querySelector('.pay-status')?.textContent.trim()
+                   || cells[6]?.textContent.trim() || '';
+      const rowData = [
+        cells[0]?.textContent.trim(),
+        cells[1]?.textContent.trim(),
+        cells[2]?.textContent.trim(),
+        amount,
+        method,
+        cells[5]?.textContent.trim(),
+        status,
+      ].map(clean);
+      lines.push(rowData.join(','));
+    });
+
+    const BOM  = '\uFEFF';
+    const blob = new Blob([BOM + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'Hiraya_PaymentHistory_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /* ================================================================
+     INIT
+  ================================================================ */
+  // FIX: Run immediately — script is at end of body so DOM is ready.
+  // DOMContentLoaded as fallback only.
+  function init() {
+    filteredRows = Array.from(document.querySelectorAll('.ph-row'));
+    initSortHeaders();
+    renderPage();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Auto-dismiss flash messages
+  setTimeout(() => {
+    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
+  }, 4000);
 
 })();

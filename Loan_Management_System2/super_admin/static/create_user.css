@@ -30,9 +30,9 @@
     border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
-    color: var(--accent);
-    background: var(--primary-light);
-    border: 1px solid var(--primary-mid);
+    color: #1e6e7a;
+    background: #e6f6f8;
+    border: 1px solid #a8dde3;
     text-decoration: none;
     transition: background 0.15s;
     white-space: nowrap;
@@ -289,4 +289,98 @@
         border-left: none;
         border-right: none;
     }
+}
+/* ================================================================
+   NOTIFICATION DROPDOWN
+   (dashboard_admin.css handles the bell button/dot styles;
+    these are the dropdown-specific overrides for this page)
+   ================================================================ */
+.notif-wrap { position: relative; }
+
+.notif-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px); right: 0;
+  width: 340px;
+  background: #ffffff;
+  border: 1px solid #e5e9ed;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(30,110,122,0.14);
+  z-index: 300;
+  overflow: hidden;
+}
+.notif-dropdown.open { display: flex; flex-direction: column; }
+
+.notif-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #e5e9ed;
+  background: #f4f6f8;
+}
+.notif-header-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 13px; font-weight: 700; color: #1a2332;
+}
+.notif-mark-all {
+  font-size: 11px; font-weight: 600; color: #1e6e7a;
+  background: none; border: none; cursor: pointer;
+  padding: 4px 8px; border-radius: 8px; transition: background 0.15s;
+}
+.notif-mark-all:hover { background: #e6f6f8; }
+
+.notif-list {
+  flex: 1; overflow-y: auto; max-height: 360px;
+}
+.notif-loading {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 16px; font-size: 13px; color: #94a3b8;
+}
+
+.notif-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #e5e9ed;
+  background: #f4f6f8;
+  text-align: center;
+}
+.notif-see-all {
+  font-size: 12px; font-weight: 600; color: #1e6e7a;
+  text-decoration: none; transition: color 0.15s;
+}
+.notif-see-all:hover { color: #155660; }
+
+/* ================================================================
+   SIDEBAR USER DROPDOWN (needed for this standalone page)
+   ================================================================ */
+.sidebar-user {
+  cursor: pointer; user-select: none; transition: background .15s;
+}
+.sidebar-user:hover { background: rgba(255,255,255,0.12); }
+.sidebar-user.open {
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px 10px 0 0;
+}
+.sidebar-user.open .s-chevron {
+  transform: rotate(180deg);
+  background: rgba(255,255,255,0.9);
+}
+.user-dropdown {
+  display: none; flex-direction: column;
+  background: rgba(0,0,0,0.20); margin: 0 10px;
+  border-radius: 0 0 10px 10px; overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.user-dropdown.open { display: flex; }
+.user-dropdown a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,0.78); text-decoration: none;
+  transition: background .15s, color .15s;
+}
+.user-dropdown a:hover { background: rgba(255,255,255,0.10); color: #fff; }
+
+@media (max-width: 768px) {
+  .notif-dropdown { width: calc(100vw - 32px); right: -50px; }
+}
+@media (max-width: 480px) {
+  .notif-dropdown { width: calc(100vw - 16px); right: -60px; }
 }

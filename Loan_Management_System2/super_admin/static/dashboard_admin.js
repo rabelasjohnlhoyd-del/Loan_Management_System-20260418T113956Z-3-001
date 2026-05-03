@@ -209,12 +209,11 @@
   const appSearch      = document.getElementById('appSearch');
 
   let currentPage  = 1;
-  let allRows      = []; // all <tr> elements (may be filtered)
+  let allRows      = [];
   let filteredRows = [];
 
   function initPagination() {
     if (!tableBody) return;
-    // Collect all data rows (skip empty-state row)
     allRows = Array.from(tableBody.querySelectorAll('tr')).filter(
       r => !r.id || r.id !== 'emptyRow'
     );
@@ -224,10 +223,10 @@
 
   function renderPage(page) {
     currentPage = page;
-    const total     = filteredRows.length;
+    const total      = filteredRows.length;
     const totalPages = Math.ceil(total / ROWS_PER_PAGE) || 1;
-    const start     = (page - 1) * ROWS_PER_PAGE;
-    const end       = Math.min(start + ROWS_PER_PAGE, total);
+    const start      = (page - 1) * ROWS_PER_PAGE;
+    const end        = Math.min(start + ROWS_PER_PAGE, total);
 
     // Show/hide rows
     allRows.forEach(r => r.style.display = 'none');

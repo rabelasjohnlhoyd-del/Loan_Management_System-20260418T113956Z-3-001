@@ -270,26 +270,23 @@
             </div>
             <div class="stat-icon stat-icon--purple"></div>
           </div>
-
-          <!-- Bagong Stat Card para sa Treasury -->
           <div class="stat-card" data-animate>
             <div class="stat-info">
               <div class="stat-value" style="color: var(--success);">
-                  {{ "{:,.2f}".format(stats.total_interest_earned) }}
+                &#8369;{{ "{:,.2f}".format(stats.total_interest_earned) if stats is defined else '0.00' }}
               </div>
               <div class="stat-label">Total System Earnings</div>
               <div class="stat-change positive">From Interest Payments</div>
             </div>
-            <div class="stat-icon green">💰</div>
+            <div class="stat-icon" style="font-size:22px; display:flex; align-items:center; justify-content:center; background:#dcfce7; border-radius:10px; width:44px; height:44px;">💰</div>
           </div>
-
-          <div class="stat-card">
+          <div class="stat-card" data-animate>
             <div class="stat-info">
-              <div class="stat-value">₱{{ "{:,.2f}".format(stats.staff_salary_budget) }}</div>
-                <div class="stat-label">Available Payroll Budget</div>
+              <div class="stat-value">&#8369;{{ "{:,.2f}".format(stats.staff_salary_budget) if stats is defined else '0.00' }}</div>
+              <div class="stat-label">Available Payroll Budget</div>
               <div class="stat-change positive">40% of Total Interest</div>
             </div>
-            <div class="stat-icon purple">👥</div>
+            <div class="stat-icon" style="font-size:22px; display:flex; align-items:center; justify-content:center; background:#ede9fe; border-radius:10px; width:44px; height:44px;">👥</div>
           </div>
         </div>
 
@@ -323,13 +320,13 @@
                 <tbody id="appTableBody">
                   {% for app in recent_applications %}
                   <tr>
-                    <td>{{ app.reference_no }}</td>
-                    <td class="borrower-name">{{ app.borrower_name }}</td>
-                    <td>{{ app.type_name }}</td>
-                    <td>&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</td>
-                    <td><span class="badge badge--{{ app.status }}">{{ app.status | replace('_',' ') | title }}</span></td>
-                    <td>{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '—' }}</td>
-                    <td>
+                    <td data-label="Reference No.">{{ app.reference_no }}</td>
+                    <td data-label="Applicant" class="borrower-name">{{ app.borrower_name }}</td>
+                    <td data-label="Loan Type">{{ app.type_name }}</td>
+                    <td data-label="Amount">&#8369;{{ "{:,.2f}".format(app.amount_requested) }}</td>
+                    <td data-label="Status"><span class="badge badge--{{ app.status }}">{{ app.status | replace('_',' ') | title }}</span></td>
+                    <td data-label="Submitted">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '—' }}</td>
+                    <td data-label="Actions">
                       <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="tbl-btn tbl-btn--view">View</a>
                     </td>
                   </tr>
@@ -353,7 +350,7 @@
             </div>
           </div>
 
-          <!-- RIGHT COLUMN: only Recent Activity remains -->
+          <!-- RIGHT COLUMN: Recent Activity -->
           <div class="dash-col-right">
 
             <!-- RECENT ACTIVITY -->
