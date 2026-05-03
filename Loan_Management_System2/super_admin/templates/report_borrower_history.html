@@ -1,209 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Borrower History — {{ borrower.full_name }}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='reports.css') }}"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  
+  <!-- CSS FILES -->
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='borrower_history.css') }}"/>
 </head>
-<body>
+<body class="sidebar-open">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
-
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button"><span></span><span></span><span></span></button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
     </div>
-    <div class="sidebar-user">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else '' }}</div>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="nav-section-label">Overview</div>
-      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+    <div class="topbar-right">
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
+        {{ session.user_name[0]|upper if session.user_name else 'A' }}
       </a>
-      <div class="nav-section-label nav-section--spaced">Reports</div>
-      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active">
-        <span class="nav-icon nav-icon--reports"></span>Reports
-      </a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
-        </button>
-      </form>
     </div>
-  </aside>
+  </header>
 
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <a href="{{ url_for('super_admin.reports_page') }}" class="back-link">← Reports</a>
-        <div>
-          <h1>Borrower Payment History</h1>
-          <p>{{ borrower.full_name }}</p>
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name }}</h4>
+          <div class="s-role-badge">SUPER ADMIN</div>
         </div>
+        <span class="s-chevron"></span>
       </div>
-      <div class="topbar-right">
-        <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Print</button>
-        <a href="{{ url_for('super_admin.borrower_detail', borrower_id=borrower.id) }}"
-           class="btn btn-ghost btn-sm">View Profile</a>
-        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'A' }}
-        </a>
+
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        {% if session.role == 'super_admin' %}
+        <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
+        {% endif %}
+        <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
+        <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
       </div>
-    </header>
 
-    <main class="page-body">
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item"><span class="nav-icon nav-icon--clock"></span>Applications</a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>All Loans</a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item"><span class="nav-icon nav-icon--warning"></span>Penalties & Overdue</a>
+        <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active"><span class="nav-icon nav-icon--reports"></span>Reports</a>
+      </nav>
+    </aside>
 
-      <!-- Borrower header -->
-      <div class="report-header-card">
-        <div class="report-meta-grid">
-          <div class="report-meta-item">
-            <div class="report-meta-label">Full Name</div>
-            <div class="report-meta-value">{{ borrower.full_name }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Email</div>
-            <div class="report-meta-value">{{ borrower.email }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Contact</div>
-            <div class="report-meta-value">{{ borrower.contact_number or '—' }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Credit Score</div>
-            <div class="report-meta-value {% if borrower.credit_score >= 700 %}text-success{% elif borrower.credit_score >= 500 %}text-warning{% else %}text-danger{% endif %}">
-              {{ borrower.credit_score }}
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
+        
+        <div class="report-hero">
+          <div class="hero-top">
+            <div class="borrower-info">
+              <p style="font-weight:700; text-transform:uppercase; font-size:10px; letter-spacing:1px; color:#94a3b8;">Borrower Statement</p>
+              <h2>{{ borrower.full_name }}</h2>
+              <p>{{ borrower.email }} | {{ borrower.contact_number or 'No contact' }}</p>
+            </div>
+            <div class="loan-ref">
+              <label>Credit Rating</label>
+              <span>{{ borrower.credit_score }}</span>
             </div>
           </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Risk Level</div>
-            <div class="report-meta-value">
-              <span class="risk-badge {{ borrower.risk_level }}">{{ borrower.risk_level | title }}</span>
+          <div class="meta-grid-modern">
+            <div class="meta-box"><label>Total Borrowed</label><span>₱{{ "{:,.2f}".format(borrower.total_borrowed) }}</span></div>
+            <div class="meta-box highlight"><label>Total Paid Amount</label><span>₱{{ "{:,.2f}".format(borrower.total_paid) }}</span></div>
+            <div class="meta-box"><label>Risk Assessment</label><span style="text-transform:uppercase; font-size:13px; color:var(--primary);">{{ borrower.risk_level }} RISK</span></div>
+          </div>
+        </div>
+
+        <div class="card card--wide" style="border-radius:16px; overflow:hidden; border:1px solid #e2e8f0;">
+          <div class="card-header">
+            <div>
+              <h3>Payment Transaction History</h3>
+              <p>Detailed list of lahat ng approved payments</p>
             </div>
+            <button class="btn-print-header" onclick="window.print()">Print Statement</button>
           </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Total Borrowed</div>
-            <div class="report-meta-value">&#8369;{{ "{:,.2f}".format(borrower.total_borrowed) }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Total Paid</div>
-            <div class="report-meta-value text-success">&#8369;{{ "{:,.2f}".format(borrower.total_paid) }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Member Since</div>
-            <div class="report-meta-value">{{ borrower.created_at.strftime('%B %Y') if borrower.created_at else '—' }}</div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Loan No.</th><th>Type</th><th>Amount Paid</th><th>Reference No.</th></tr></thead>
+              <tbody>
+                {% for p in payments %}
+                <tr>
+                  <td>{{ p.payment_date.strftime('%b %d, %Y') }}</td>
+                  <td style="font-weight:600; color:var(--primary-dark);">{{ p.loan_no }}</td>
+                  <td>{{ p.type_name }}</td>
+                  <td style="font-weight:700; color:var(--success);">₱{{ "{:,.2f}".format(p.amount_paid) }}</td>
+                  <td><small style="color:var(--text-muted);">{{ p.reference_no or '—' }}</small></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
 
-      <!-- Payment history -->
-      <div class="card" style="margin-bottom:18px;">
-        <div class="card-header">
-          <h3>Payment History</h3>
-          <span style="font-size:12px; color:var(--gray-400);">{{ payments|length }} payment(s)</span>
+        <!-- PRINT FOOTER -->
+        <div class="print-footer">
+          <div class="sig-box"><p>Verified By:</p><p><strong>{{ session.user_name }}</strong></p></div>
+          <div class="sig-box"><p>Borrower Acknowledgment:</p><br></div>
         </div>
-        <div class="card-body" style="padding:0; overflow-x:auto;">
-          {% if payments %}
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Loan No.</th>
-                <th>Type</th>
-                <th>Amount Paid</th>
-                <th>Reference</th>
-                <th>Method</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for p in payments %}
-              <tr>
-                <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
-                <td><span class="td-name">{{ p.loan_no }}</span></td>
-                <td>{{ p.type_name }}</td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(p.amount) }}</strong></td>
-                <td style="font-size:12px;">{{ p.reference_no or '—' }}</td>
-                <td>{{ p.payment_method | replace('_',' ') | title if p.payment_method else '—' }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-            <tfoot>
-              <tr class="tfoot-total">
-                <td colspan="3"><strong>Total Paid</strong></td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(payments | sum(attribute='amount')) }}</strong></td>
-                <td colspan="2"></td>
-              </tr>
-            </tfoot>
-          </table>
-          {% else %}
-          <div class="table-empty"><p>No approved payments recorded.</p></div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Loan history -->
-      <div class="card">
-        <div class="card-header">
-          <h3>Loan History</h3>
-          <span style="font-size:12px; color:var(--gray-400);">{{ loans|length }} loan(s)</span>
-        </div>
-        <div class="card-body" style="padding:0; overflow-x:auto;">
-          {% if loans %}
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Loan No.</th>
-                <th>Type / Plan</th>
-                <th>Principal</th>
-                <th>Rate</th>
-                <th>Balance</th>
-                <th>Status</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for loan in loans %}
-              <tr>
-                <td>
-                  <a href="{{ url_for('super_admin.loan_detail', loan_id=loan.id) }}"
-                     class="td-name link">{{ loan.loan_no }}</a>
-                </td>
-                <td>
-                  <div>{{ loan.type_name }}</div>
-                  <div class="td-sub">{{ loan.plan_name }}</div>
-                </td>
-                <td>&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</td>
-                <td>{{ loan.interest_rate }}%</td>
-                <td>&#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
-                <td><span class="loan-status {{ loan.status }}">{{ loan.status | title }}</span></td>
-                <td style="font-size:12px;">{{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="table-empty"><p>No loans found.</p></div>
-          {% endif %}
-        </div>
-      </div>
-
-    </main>
+      </main>
+    </div>
   </div>
 </div>
+
+<script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
 </body>
 </html>

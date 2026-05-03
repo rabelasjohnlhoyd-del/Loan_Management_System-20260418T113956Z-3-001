@@ -1,0 +1,107 @@
+/* ================================================================
+   REPORTS_PERFORMANCE.CSS — Final Fixed Version
+   ================================================================ */
+
+:root {
+  --hiraya-teal: #0d9488;
+  --hiraya-teal-hover: #0f766e;
+  --hiraya-teal-light: #f0fdfa;
+}
+
+/* FIX PARA SA REPORTS ICON (Para hindi maging white box) */
+.nav-icon--reports {
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Sidebar Active Indicator */
+.nav-item.active { 
+  background: rgba(255, 255, 255, 0.16) !important; 
+  color: #fff !important; 
+  position: relative; 
+  border-left: none !important; 
+}
+.nav-item.active::before { 
+  content: ""; 
+  position: absolute; 
+  left: 0; top: 0; bottom: 0; 
+  width: 4px; 
+  background: #ffffff; 
+  border-radius: 0 4px 4px 0; 
+}
+
+/* Hero & Filter Section */
+.report-hero { 
+  background: white; 
+  padding: 24px 32px; 
+  border-radius: 16px; 
+  border: 1px solid #e2e8f0; 
+  margin-bottom: 20px; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+}
+
+.hero-top { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 15px; 
+  border-bottom: 1px dashed #e2e8f0; 
+  padding-bottom: 15px; 
+}
+
+.hero-info h2 { font-family: 'Sora', sans-serif; font-size: 24px; color: #1a2332; margin: 0; }
+.hero-info p { color: #94a3b8; margin: 4px 0 0; font-size: 14px; }
+
+/* Filter Alignment */
+.filter-row-wrap { display: flex; gap: 12px; align-items: flex-end; }
+.form-group-compact { display: flex; flex-direction: column; gap: 6px; }
+.form-group-compact label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+.input-compact, .select-compact { height: 40px; padding: 0 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none; background: #f8fafc; }
+
+/* BUTTON COLORS (Based on your screenshot) */
+.btn-generate { 
+  height: 40px; 
+  background: var(--hiraya-teal) !important; 
+  color: white !important; 
+  border: none; 
+  padding: 0 22px; 
+  border-radius: 8px; 
+  font-weight: 700; 
+  cursor: pointer; 
+  transition: 0.2s;
+}
+.btn-generate:hover { background: var(--hiraya-teal-hover) !important; }
+
+.btn-print-report { 
+  height: 40px; 
+  background: white !important; 
+  color: var(--hiraya-teal) !important; 
+  border: 1px solid var(--hiraya-teal) !important; 
+  padding: 0 22px; 
+  border-radius: 8px; 
+  font-weight: 700; 
+  cursor: pointer; 
+  transition: 0.2s;
+}
+.btn-print-report:hover { background: var(--hiraya-teal-light) !important; }
+
+/* Status Badges */
+.badge-status { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; min-width: 80px; text-align: center; }
+.badge-active { background: #dbeafe !important; color: #2563eb !important; }
+.badge-paid { background: #dcfce7 !important; color: #16a34a !important; }
+.badge-default { background: #fee2e2 !important; color: #dc2626 !important; }
+
+/* Table Header */
+.card-header { background-color: var(--hiraya-teal) !important; color: white !important; padding: 16px 20px !important; }
+.card-header h3 { color: white !important; margin: 0; }
+.card-header p { color: rgba(255,255,255,0.7) !important; }
+
+@media print {
+  .sidebar, .topbar, .filter-row-wrap, .pagination-wrap, .search-input { display: none !important; }
+  .main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+}

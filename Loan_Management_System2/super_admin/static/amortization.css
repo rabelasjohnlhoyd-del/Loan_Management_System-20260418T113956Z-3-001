@@ -1,0 +1,163 @@
+/* ================================================================
+   AMORTIZATION.CSS — Loan Schedule Styling
+   ================================================================ */
+
+/* 1. SIDEBAR & NAV INDICATORS */
+.nav-icon--reports {
+  background-color: currentColor !important;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E") !important;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E") !important;
+  mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
+}
+
+.nav-item.active { 
+  background: rgba(255, 255, 255, 0.16) !important; 
+  color: #fff !important; 
+  font-weight: 600 !important; 
+  position: relative; 
+  border-left: none !important; 
+}
+
+.nav-item.active::before { 
+  content: ""; 
+  position: absolute; 
+  left: 0; top: 6px; bottom: 6px; 
+  width: 4px; 
+  background: #ffffff; 
+  border-radius: 0 4px 4px 0; 
+}
+
+/* 2. HERO HEADER STYLING */
+.report-hero { 
+  background: white; 
+  padding: 32px; 
+  border-radius: 16px; 
+  border: 1px solid #e2e8f0; 
+  margin-bottom: 24px; 
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+}
+
+.hero-top { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-start; 
+  margin-bottom: 24px; 
+  border-bottom: 1px dashed #e2e8f0; 
+  padding-bottom: 20px; 
+}
+
+.borrower-info h2 { 
+  font-family: 'Sora', sans-serif; 
+  font-size: 24px; 
+  color: #1a2332; 
+  margin: 0; 
+}
+
+.borrower-info p { 
+  color: #4a5568; 
+  margin: 4px 0 0; 
+  font-size: 14px; 
+}
+
+.loan-ref { text-align: right; }
+.loan-ref label { 
+  display: block; 
+  font-size: 11px; 
+  font-weight: 700; 
+  color: #94a3b8; 
+  text-transform: uppercase; 
+  letter-spacing: 1px; 
+}
+
+.loan-ref span { 
+  font-family: 'Sora', sans-serif; 
+  font-size: 20px; 
+  color: #0d9488; 
+  font-weight: 700; 
+}
+
+.meta-grid-modern { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+  gap: 24px; 
+}
+
+.meta-box label { 
+  display: block; 
+  font-size: 10px; 
+  font-weight: 700; 
+  color: #94a3b8; 
+  text-transform: uppercase; 
+  margin-bottom: 6px; 
+}
+
+.meta-box span { 
+  display: block; 
+  font-size: 15px; 
+  font-weight: 600; 
+  color: #1a2332; 
+}
+
+.meta-box.highlight span { 
+  color: #0d9488; 
+  font-size: 18px; 
+  font-weight: 700; 
+}
+
+/* 3. CARD HEADER & BADGES */
+.card-header {
+  background-color: #0d9488 !important; /* Hiraya Teal */
+  color: white !important;
+  padding: 20px 25px !important;
+  border-radius: 16px 16px 0 0 !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 { color: white !important; margin: 0 !important; }
+.card-header p { color: rgba(255,255,255,0.8) !important; margin: 4px 0 0 !important; }
+
+.badge-paid { 
+  background: #dcfce7 !important; 
+  color: #15803d !important; 
+  padding: 4px 12px; 
+  border-radius: 20px; 
+  font-size: 11px; 
+  font-weight: 700; 
+  display: inline-block; 
+}
+
+.badge-pending { 
+  background: #fef3c7 !important; 
+  color: #b45309 !important; 
+  padding: 4px 12px; 
+  border-radius: 20px; 
+  font-size: 11px; 
+  font-weight: 700; 
+  display: inline-block; 
+}
+
+/* Print Button in Header */
+.card-header-btn-wrap { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+
+.btn-print-header { 
+    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); 
+    color: white; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;
+}
+
+.btn-print-header:hover { background: rgba(255,255,255,0.4); }
+
+/* 4. PRINTING FIX */
+@media print {
+  @page { size: portrait; margin: 15mm; }
+  .sidebar, .topbar, .sidebar-overlay, .burger-btn, .btn, .user-dropdown, .btn-print-header { display: none !important; }
+  .main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; position: absolute; left: 0; top: 0; }
+  body { background: white !important; }
+  .report-hero, .card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
+  .data-table th { background: #f1f5f9 !important; color: black !important; border-bottom: 2px solid #cbd5e1 !important; }
+  .print-footer { display: flex !important; justify-content: space-between; margin-top: 50px; }
+  .sig-box { border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px; font-size: 12px; }
+}
+
+.print-footer { display: none; }

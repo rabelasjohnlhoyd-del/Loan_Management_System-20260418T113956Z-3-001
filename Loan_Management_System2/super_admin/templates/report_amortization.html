@@ -1,180 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Amortization Report — {{ loan.loan_no }}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='reports.css') }}"/>
+  <title>Amortization Schedule — {{ loan.loan_no }}</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  
+  <!-- CSS FILES -->
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='amortization.css') }}"/>
 </head>
-<body>
+<body class="sidebar-open">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
-
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div>
-          <h2>Hiraya</h2>
-          <span>Management System</span>
-        </div>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button"><span></span><span></span><span></span></button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text"><span class="topbar-brand-name">Hiraya</span><span class="topbar-brand-sub">Management System</span></div>
       </div>
     </div>
-    <div class="sidebar-user">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'U' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else '' }}</div>
-      </div>
+    <div class="topbar-right">
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</a>
     </div>
-    <nav class="sidebar-nav">
-      <div class="nav-section-label">Overview</div>
-      <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <div class="nav-section-label nav-section--spaced">Reports</div>
-      <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active">
-        <span class="nav-icon nav-icon--reports"></span>Reports
-      </a>
-      <a href="{{ url_for('super_admin.activity_logs') }}" class="nav-item">
-        <span class="nav-icon nav-icon--clock"></span>Activity Logs
-      </a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
-        </button>
-      </form>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
+        <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">SUPER ADMIN</div></div>
+        <span class="s-chevron"></span>
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        {% if session.role == 'super_admin' %}<a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>{% endif %}
+        <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
+        <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item"><span class="nav-icon nav-icon--clock"></span>Applications</a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>All Loans</a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item"><span class="nav-icon nav-icon--warning"></span>Penalties & Overdue</a>
+        <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active"><span class="nav-icon nav-icon--reports"></span>Reports</a>
+      </nav>
+    </aside>
+
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
+        
+        <div class="report-hero">
+          <div class="hero-top">
+            <div class="borrower-info">
+              <p style="font-weight:700; text-transform:uppercase; font-size:10px; letter-spacing:1px; color:#94a3b8;">Amortization Schedule</p>
+              <h2>{{ loan.borrower_name }}</h2>
+              <p>{{ loan.borrower_email }}</p>
+            </div>
+            <div class="loan-ref">
+              <label>Reference Number</label>
+              <span>{{ loan.loan_no }}</span>
+            </div>
+          </div>
+          <div class="meta-grid-modern">
+            <div class="meta-box"><label>Principal Amount</label><span>₱{{ "{:,.2f}".format(loan.principal_amount) }}</span></div>
+            <div class="meta-box"><label>Interest Rate</label><span>{{ loan.interest_rate }}%</span></div>
+            <div class="meta-box"><label>Loan Term</label><span>{{ loan.term_months }} Months</span></div>
+            <div class="meta-box highlight"><label>Monthly Due</label><span>₱{{ "{:,.2f}".format(loan.monthly_payment) }}</span></div>
+            <div class="meta-box"><label>Maturity Date</label><span>{{ loan.maturity_date.strftime('%b %d, %Y') }}</span></div>
+          </div>
+        </div>
+
+        <div class="card card--wide" style="border-radius:16px; overflow:hidden; border:1px solid #e2e8f0;">
+          <div class="card-header">
+              <div class="card-header-btn-wrap">
+                  <div>
+                    <h3>Payment Schedule</h3>
+                    <p>Complete list of scheduled installments</p>
+                  </div>
+                  <button class="btn-print-header" onclick="window.print()">Print Report</button>
+              </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Due Date</th><th>Principal</th><th>Interest</th><th>Total Due</th><th style="text-align:center">Status</th></tr></thead>
+              <tbody>
+                {% for row in schedule %}
+                <tr>
+                  <td><strong>{{ row.period_no }}</strong></td>
+                  <td style="color:var(--text-muted);">{{ row.due_date.strftime('%b %d, %Y') }}</td>
+                  <td>₱{{ "{:,.2f}".format(row.principal_due) }}</td>
+                  <td>₱{{ "{:,.2f}".format(row.interest_due) }}</td>
+                  <td style="font-weight:700; color:var(--text-h);">₱{{ "{:,.2f}".format(row.total_due) }}</td>
+                  <td style="text-align:center">
+                    <span class="{% if row.status == 'paid' %}badge-paid{% else %}badge-pending{% endif %}">
+                      {{ row.status | title }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="print-footer">
+          <div class="sig-box"><p>Prepared By:</p><p><strong>{{ session.user_name }}</strong></p></div>
+          <div class="sig-box"><p>Borrower Acknowledgment:</p><br></div>
+        </div>
+      </main>
     </div>
-  </aside>
-
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <a href="{{ url_for('super_admin.reports_page') }}" class="back-link">← Reports</a>
-        <div>
-          <h1>Amortization Schedule</h1>
-          <p>{{ loan.loan_no }} · {{ loan.borrower_name }}</p>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Print</button>
-        <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
-          {{ session.user_name[0]|upper if session.user_name else 'A' }}
-        </a>
-      </div>
-    </header>
-
-    <main class="page-body">
-
-      <!-- Loan summary header -->
-      <div class="report-header-card">
-        <div class="report-meta-grid">
-          <div class="report-meta-item">
-            <div class="report-meta-label">Loan No.</div>
-            <div class="report-meta-value">{{ loan.loan_no }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Borrower</div>
-            <div class="report-meta-value">{{ loan.borrower_name }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Loan Type</div>
-            <div class="report-meta-value">{{ loan.type_name }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Plan</div>
-            <div class="report-meta-value">{{ loan.plan_name }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Principal</div>
-            <div class="report-meta-value">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Interest Rate</div>
-            <div class="report-meta-value">{{ loan.interest_rate }}% ({{ loan.interest_type }})</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Term</div>
-            <div class="report-meta-value">{{ loan.term_months }} months</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Monthly Payment</div>
-            <div class="report-meta-value primary">&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Disbursed</div>
-            <div class="report-meta-value">{{ loan.disbursed_at.strftime('%b %d, %Y') if loan.disbursed_at else '—' }}</div>
-          </div>
-          <div class="report-meta-item">
-            <div class="report-meta-label">Maturity</div>
-            <div class="report-meta-value">{{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date else '—' }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3>Payment Schedule</h3>
-          <span style="font-size:12px; color:var(--gray-400);">{{ schedule|length }} periods</span>
-        </div>
-        <div class="card-body" style="padding:0; overflow-x:auto;">
-          {% if schedule %}
-          <table class="data-table amort-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Due Date</th>
-                <th>Beginning Balance</th>
-                <th>Principal</th>
-                <th>Interest</th>
-                <th>Total Due</th>
-                <th>Ending Balance</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% set ns = namespace(running=loan.principal_amount) %}
-              {% for row in schedule %}
-              <tr class="{{ 'row-paid' if row.status == 'paid' else '' }}">
-                <td>{{ row.period_no }}</td>
-                <td>{{ row.due_date.strftime('%b %d, %Y') if row.due_date else '—' }}</td>
-                <td>&#8369;{{ "{:,.2f}".format(row.balance_after + row.principal_due) }}</td>
-                <td>&#8369;{{ "{:,.2f}".format(row.principal_due) }}</td>
-                <td>&#8369;{{ "{:,.2f}".format(row.interest_due) }}</td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(row.total_due) }}</strong></td>
-                <td>&#8369;{{ "{:,.2f}".format(row.balance_after) }}</td>
-                <td>
-                  {% if row.status == 'paid' %}
-                  <span class="badge badge-success">Paid</span>
-                  {% else %}
-                  <span class="badge badge-warning">Pending</span>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-            <tfoot>
-              <tr class="tfoot-total">
-                <td colspan="3"><strong>Totals</strong></td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(schedule | sum(attribute='principal_due')) }}</strong></td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(schedule | sum(attribute='interest_due')) }}</strong></td>
-                <td><strong>&#8369;{{ "{:,.2f}".format(schedule | sum(attribute='total_due')) }}</strong></td>
-                <td colspan="2"></td>
-              </tr>
-            </tfoot>
-          </table>
-          {% else %}
-          <div class="table-empty"><p>No amortization schedule found.</p></div>
-          {% endif %}
-        </div>
-      </div>
-
-    </main>
   </div>
 </div>
+
+<script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
 </body>
 </html>

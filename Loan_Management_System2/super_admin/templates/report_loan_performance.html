@@ -4,61 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Loan Performance Report — Hiraya</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   
+  <!-- CSS FILES -->
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
-  
-  <style>
-    /* ═══════════════════════════════════════════════
-       STATUS PILLS COLOR FIX (Active=Blue, Paid=Green)
-       ════════════════════════════════════════════════ */
-    .badge-status { 
-      padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; 
-      display: inline-block; min-width: 75px; text-align: center; text-transform: capitalize;
-    }
-    .badge-active { background: #dbeafe !important; color: #2563eb !important; }
-    .badge-paid { background: #dcfce7 !important; color: #16a34a !important; }
-    .badge-default { background: #fee2e2 !important; color: #dc2626 !important; }
-
-    /* Reports Icon Fix */
-    .nav-icon--reports {
-      background-color: currentColor !important;
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E") !important;
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E") !important;
-      mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
-    }
-
-    /* Active Sidebar Highlight (White Bar on Left) */
-    .nav-item.active {
-      background: rgba(255, 255, 255, 0.16) !important; color: #fff !important; font-weight: 600 !important; position: relative; border-left: none !important;
-    }
-    .nav-item.active::before {
-      content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 4px; background: #ffffff; border-radius: 0 4px 4px 0;
-    }
-
-    /* Filter Bar Styling */
-    .filter-card {
-      background: #fff; padding: 16px 20px; border-radius: 12px; border: 1px solid #d9eef1;
-      margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; box-shadow: 0 1px 3px rgba(26,63,74,0.05);
-    }
-    .filter-group { display: flex; align-items: center; gap: 8px; }
-    .filter-text { font-size: 11px; font-weight: 700; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.5px; }
-
-    .filter-card select, .filter-card input { height: 40px; padding: 0 12px; border: 1px solid #d9eef1; border-radius: 8px; outline: none; font-size: 13px; color: var(--text-h); background: #fcfdfe; transition: 0.2s; }
-    .filter-card select:focus, .filter-card input:focus { border-color: var(--primary); background: #fff; }
-
-    .btn-generate { height: 40px; background: var(--primary); color: #fff; border: none; padding: 0 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; }
-    .btn-generate:hover { background: var(--primary-dark); }
-
-    .btn-clear {
-      height: 40px; display: flex; align-items: center; justify-content: center;
-      padding: 0 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
-      color: var(--text-muted); border: 1px solid #d9eef1; text-decoration: none; transition: 0.2s;
-    }
-    .btn-clear:hover { background: #f1f8f9; color: var(--text-h); border-color: var(--gray-300); }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='reports_performance.css') }}"/>
 </head>
 <body class="sidebar-open">
 
@@ -70,39 +23,30 @@
       <button class="burger-btn" id="burgerBtn" type="button"><span></span><span></span><span></span></button>
       <div class="topbar-brand">
         <div class="topbar-logo">$</div>
-        <div class="topbar-brand-text">
-          <span class="topbar-brand-name">Hiraya</span>
-          <span class="topbar-brand-sub">Management System</span>
-        </div>
+        <div class="topbar-brand-text"><span class="topbar-brand-name">Hiraya</span><span class="topbar-brand-sub">Management System</span></div>
       </div>
     </div>
-    <div class="topbar-center"></div> <!-- CLEAN HEADER -->
     <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" style="border:1px solid rgba(255,255,255,0.3);" onclick="window.print()">Print Report</button>
       <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</a>
     </div>
   </header>
 
   <div class="body-row">
     <aside class="sidebar" id="sidebar">
-      
-      <!-- DROPDOWN FIX: Added the necessary IDs and structure -->
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
         <div class="s-user-info">
-          <h4>{{ session.user_name if session.user_name else 'System Administrator' }}</h4>
+          <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
           <div class="s-role-badge">SUPER ADMIN</div>
         </div>
         <span class="s-chevron"></span>
       </div>
-
       <div class="user-dropdown" id="userDropdown">
         <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
         <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
         <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
         <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
       </div>
-
       <nav class="sidebar-nav">
         <a href="{{ url_for('auth.dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
         <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item"><span class="nav-icon nav-icon--clock"></span>Applications</a>
@@ -111,44 +55,42 @@
         <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item"><span class="nav-icon nav-icon--warning"></span>Penalties & Overdue</a>
         <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active"><span class="nav-icon nav-icon--reports"></span>Reports</a>
       </nav>
-
-      <div class="sidebar-footer">
-        <form method="POST" action="{{ url_for('auth.logout') }}">
-          <button type="submit" class="nav-item sidebar-logout-btn">
-            <span class="nav-icon nav-icon--logout"></span>Sign Out
-          </button>
-        </form>
-      </div>
     </aside>
 
     <div class="main-content" id="mainContent">
-      <main class="page-body">
+      <main class="page-body" style="padding: 24px 32px;">
         
-        <!-- Filter Card -->
-        <form method="GET" action="{{ url_for('super_admin.report_loan_performance') }}" class="filter-card">
-          <div class="filter-group">
-            <span class="filter-text">Type:</span>
-            <select name="type">
-              <option value="all">All Loan Types</option>
-              {% for t in types %}<option value="{{ t.id }}" {{ 'selected' if type_filter|string == t.id|string }}>{{ t.name }}</option>{% endfor %}
-            </select>
+        <div class="report-hero">
+          <div class="hero-top">
+            <div class="hero-info">
+              <h2>Loan Performance Report</h2>
+              <p>Summary of loan disbursements and collections</p>
+            </div>
+            
+            <div class="filter-row-wrap">
+                <form method="GET" action="{{ url_for('super_admin.report_loan_performance') }}" style="display:flex; gap:12px; align-items:flex-end;">
+                  <div class="form-group-compact">
+                    <label>Type</label>
+                    <select name="type" class="select-compact">
+                      <option value="all">All Loan Types</option>
+                      {% for t in types %}<option value="{{ t.id }}" {{ 'selected' if type_filter|string == t.id|string }}>{{ t.name }}</option>{% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-group-compact">
+                    <label>From</label>
+                    <input type="date" name="date_from" class="input-compact" value="{{ date_from }}">
+                  </div>
+                  <div class="form-group-compact">
+                    <label>To</label>
+                    <input type="date" name="date_to" class="input-compact" value="{{ date_to }}">
+                  </div>
+                  <button type="submit" class="btn-generate">Generate Report</button>
+                </form>
+                <button onclick="window.print()" class="btn-print-report">Print Report</button>
+            </div>
           </div>
-          <div class="filter-group">
-            <span class="filter-text">From:</span>
-            <input type="date" name="date_from" value="{{ date_from }}">
-          </div>
-          <div class="filter-group">
-            <span class="filter-text">To:</span>
-            <input type="date" name="date_to" value="{{ date_to }}">
-          </div>
-          <button type="submit" class="btn-generate">Generate Report</button>
-          
-          {% if date_from or date_to or type_filter != 'all' %}
-            <a href="{{ url_for('super_admin.report_loan_performance') }}" class="btn-clear">Clear Filters</a>
-          {% endif %}
-        </form>
+        </div>
 
-        <!-- Stats Grid -->
         <div class="stats-grid">
           <div class="stat-card visible"><div class="stat-info"><div class="stat-value">₱{{ "{:,.0f}".format(total_disbursed) }}</div><div class="stat-label">Total Disbursed</div></div><div class="stat-icon stat-icon--blue"></div></div>
           <div class="stat-card visible"><div class="stat-info"><div class="stat-value">₱{{ "{:,.0f}".format(total_balance) }}</div><div class="stat-label">Outstanding Balance</div></div><div class="stat-icon stat-icon--yellow"></div></div>
@@ -156,7 +98,7 @@
           <div class="stat-card visible"><div class="stat-info"><div class="stat-value">{{ defaulted_count }}</div><div class="stat-label">Defaulted</div></div><div class="stat-icon stat-icon--red"></div></div>
         </div>
 
-        <div class="card card--wide" style="margin-top: 24px;">
+        <div class="card card--wide" style="margin-top: 24px; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
           <div class="card-header">
             <div><h3>Loan Records</h3><p>Performance summary details</p></div>
             <div class="card-header-actions">
@@ -171,7 +113,7 @@
               <tbody id="appTableBody">
                 {% for loan in loans %}
                 <tr>
-                  <td style="font-weight:600; color:var(--primary-dark);">{{ loan.loan_no }}</td>
+                  <td style="font-weight:600; color:var(--hiraya-teal);">{{ loan.loan_no }}</td>
                   <td class="borrower-name">{{ loan.borrower_name }}</td>
                   <td>₱{{ "{:,.2f}".format(loan.principal_amount) }}</td>
                   <td>₱{{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
@@ -183,21 +125,8 @@
                   <td>{{ loan.created_at.strftime('%b %d, %Y') }}</td>
                 </tr>
                 {% endfor %}
-                <tr id="emptyRow" style="display: none;">
-                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No records found.</td>
-                </tr>
               </tbody>
             </table>
-          </div>
-
-          <!-- Pagination -->
-          <div class="pagination-wrap" id="paginationWrap">
-            <div class="pagination-info" id="paginationInfo"></div>
-            <div class="pagination-controls" id="paginationControls">
-              <button class="page-btn" id="pagePrev" type="button">&#8592; Prev</button>
-              <div class="page-numbers" id="pageNumbers"></div>
-              <button class="page-btn" id="pageNext" type="button">Next &#8594;</button>
-            </div>
           </div>
         </div>
       </main>

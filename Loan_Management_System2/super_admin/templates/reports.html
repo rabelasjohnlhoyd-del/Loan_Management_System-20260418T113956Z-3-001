@@ -20,6 +20,9 @@
   <!-- ═══════════════════════════════════════════════
        TOPBAR
   ════════════════════════════════════════════════ -->
+
+
+  
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -276,5 +279,29 @@
 </div>
 
 <script src="{{ url_for('super_admin.static', filename='reports.js') }}"></script>
+
+<!-- ADDED SCRIPT FOR FUNCTIONALITY -->
+<script>
+function goAmort() {
+    const loanId = document.getElementById('loanIdInput').value.trim();
+    if (loanId) {
+        // Redirects to /admin/reports/amortization/<loanId>
+        window.location.href = "/admin/reports/amortization/" + loanId;
+    } else {
+        alert("Please enter a valid Loan ID");
+    }
+}
+
+function goBorrowerHistory() {
+    const borrowerId = document.getElementById('borrowerIdInput').value.trim();
+    if (borrowerId) {
+        // Redirects to /admin/reports/borrower-history/<borrowerId>
+        window.location.href = "/admin/reports/borrower-history/" + borrowerId;
+    } else {
+        alert("Please enter a valid Borrower ID");
+    }
+}
+</script>
+
 </body>
 </html>
