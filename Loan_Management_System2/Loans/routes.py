@@ -80,26 +80,42 @@ def calculate_monthly_payment(principal, annual_rate, months):
     payment = principal * (r * (1 + r) ** months) / ((1 + r) ** months - 1)
     return round(payment, 2)
 
-def build_amortization(principal, annual_rate, months, start_date):
+def build_amortization(principal, annual_rate, months, start_date, starting_period=1):
+    from decimal import Decimal
+    import datetime
     schedule = []
-    r        = (annual_rate / 100) / 12
-    monthly  = calculate_monthly_payment(principal, annual_rate, months)
-    balance  = principal
+    r = (Decimal(str(annual_rate)) / 100) / 12
+    principal_dec = Decimal(str(principal))
+    
+    if r > 0:
+        monthly = principal_dec * (r * (1 + r)**months) / ((1 + r)**months - 1)
+        monthly = round(monthly, 2)
+    else:
+        monthly = round(principal_dec / months, 2)
+        
+    balance = principal_dec
 
+    # FIX: Simulan sa 1 para ang unang due date ay +30 days agad
     for i in range(1, months + 1):
-        interest          = round(balance * r, 2)
-        principal_portion = round(monthly - interest, 2)
-        if i == months:
-            principal_portion = balance
-        balance  = round(balance - principal_portion, 2)
+        interest = round(float(balance) * float(r), 2)
+        
+        if i == months: # Last month
+            principal_portion = round(float(balance), 2)
+        else:
+            principal_portion = round(float(monthly) - interest, 2)
+            
+        balance = balance - Decimal(str(principal_portion))
+        
+        # ETO YUNG FIX: i=1 means +30 days, i=2 means +60 days
         due_date = start_date + datetime.timedelta(days=30 * i)
+        
         schedule.append({
-            'period_no':     i,
+            'period_no':     starting_period + (i - 1),
             'due_date':      due_date,
             'principal_due': principal_portion,
             'interest_due':  interest,
             'total_due':     round(principal_portion + interest, 2),
-            'balance_after': max(balance, 0)
+            'balance_after': max(float(balance), 0)
         })
     return schedule
 

@@ -334,31 +334,42 @@
           <div class="card-body p0 overflow-x">
             {% if schedule %}
             <table class="data-table">
-              <thead>
-                <tr>
-                  <th>#</th><th>Due Date</th><th>Principal</th><th>Interest</th>
-                  <th>Total Due</th><th>Balance After</th><th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-amort">
-                {% for row in schedule %}
-                <tr class="{{ 'is-paid' if row.status == 'paid' else '' }}">
-                  <td data-label="#">{{ row.period_no }}</td>
-                  <td data-label="Due Date">{{ row.due_date.strftime('%b %d, %Y') if row.due_date else '—' }}</td>
-                  <td data-label="Principal">&#8369;{{ "{:,.2f}".format(row.principal_due) }}</td>
-                  <td data-label="Interest">&#8369;{{ "{:,.2f}".format(row.interest_due) }}</td>
-                  <td data-label="Total Due">&#8369;{{ "{:,.2f}".format(row.total_due) }}</td>
-                  <td data-label="Balance After">&#8369;{{ "{:,.2f}".format(row.balance_after) }}</td>
-                  <td data-label="Status">
-                    {% if row.status == 'paid' %}
-                    <span class="badge badge-success">Paid</span>
-                    {% else %}
-                    <span class="badge badge-warning">Pending</span>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
+<!-- PALITAN MO LANG ANG LOOB NG TABLE SA TAB-AMORT -->
+<thead>
+  <tr>
+    <th>#</th>
+    <th>Due Date</th>
+    <th>Principal</th>
+    <th>Interest</th>
+    <th>Total Due</th>
+    <th>Balance After</th>
+    <th>Status</th>
+  </tr>
+</thead>
+<tbody>
+  {% for row in schedule %}
+  <tr class="{{ 'is-paid' if row.is_paid == 1 else '' }}">
+    <td>{{ row.period_no }}</td>
+    <td>{{ row.due_date.strftime('%b %d, %Y') if row.due_date else '—' }}</td>
+    <td>&#8369;{{ "{:,.2f}".format(row.principal_due) }}</td>
+    <td>&#8369;{{ "{:,.2f}".format(row.interest_due) }}</td>
+    <td>&#8369;{{ "{:,.2f}".format(row.total_due) }}</td>
+    
+    {# Eto yung Panel Fix para mag-match ang math #}
+    <td class="{% if row.is_paid == 1 and (loop.last or schedule[loop.index].is_paid == 0) %}fw-bold text-success{% endif %}">
+      &#8369;{{ "{:,.2f}".format(row.balance_after) }}
+    </td>
+    
+    <td>
+      {% if row.is_paid == 1 %}
+        <span class="badge badge-success">Paid</span>
+      {% else %}
+        <span class="badge badge-warning">Pending</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
             </table>
             {% else %}
             <div class="table-empty"><p>No schedule generated.</p></div>
@@ -379,28 +390,35 @@
           <div class="card-body p0">
             {% if payment_history %}
             <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th><th>Amount</th><th>Reference No.</th>
-                  <th>Method</th><th>Verified By</th><th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-payments">
-                {% for p in payment_history %}
-                <tr>
-                  <td data-label="Date">{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
-                  <td data-label="Amount"><strong>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</strong></td>
-                  <td data-label="Reference" class="td-sm">{{ p.reference_number or '—' }}</td>
-                  <td data-label="Method">{{ p.payment_method | replace('_',' ') | title if p.payment_method else '—' }}</td>
-                  <td data-label="Verified By" class="td-sm">{{ p.verified_by_name or '—' }}</td>
-                  <td data-label="Status">
-                    <span class="badge {% if p.status == 'approved' %}badge-success{% elif p.status == 'rejected' %}badge-danger{% else %}badge-warning{% endif %}">
-                      {{ p.status | title }}
-                    </span>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
+<!-- PALITAN MO LANG ANG LOOB NG TABLE SA TAB-PAYMENTS -->
+<thead>
+  <tr>
+    <th>Date</th>
+    <th>Amount</th>
+    <th>Reference No.</th>
+    <th>Method</th>
+    <th>Status</th> <!-- TINANGGAL ANG VERIFIED BY DITO -->
+  </tr>
+</thead>
+<tbody>
+  {% for p in payment_history %}
+  <tr>
+    <td>{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
+    <td><strong>&#8369;{{ "{:,.2f}".format(p.amount_paid) }}</strong></td>
+    <td class="td-sm">{{ p.reference_number or '—' }}</td>
+    <td>{{ p.payment_method | replace('_',' ') | title }}</td>
+    <td>
+      {% if p.status in ['approved', 'verified'] %}
+        <span class="badge badge-success">Paid</span> <!-- GINAWANG 'PAID' ANG LABEL -->
+      {% elif p.status == 'rejected' %}
+        <span class="badge badge-danger">Rejected</span>
+      {% else %}
+        <span class="badge badge-warning">{{ p.status | title }}</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
             </table>
             {% else %}
             <div class="table-empty"><p>No payments recorded yet.</p></div>

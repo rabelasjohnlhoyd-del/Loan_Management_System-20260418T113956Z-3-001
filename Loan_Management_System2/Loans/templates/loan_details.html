@@ -117,7 +117,6 @@
     <div class="main-content">
       <main class="page-body">
 
-        <!-- PAGE HEADER — same style as my_loans -->
         <div class="page-header">
           <div class="page-header-left">
             <a href="{{ url_for('loans.my_loans') }}" class="btn-back">
@@ -140,14 +139,14 @@
             <div class="sc-sub">of &#8369;{{ "{:,.2f}".format(loan.principal_amount) }} principal</div>
           </div>
           <div class="summary-card">
-            <div class="sc-label">Monthly Payment</div>
+            <div class="sc-label">Current Monthly</div>
             <div class="sc-value">&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</div>
-            <div class="sc-sub">due every month</div>
+            <div class="sc-sub">adjusted after advance</div>
           </div>
           <div class="summary-card">
             <div class="sc-label">Next Due Date</div>
             <div class="sc-value sc-value--date">
-              {{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else '—' }}
+              {{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else 'Loan Paid' }}
             </div>
             <div class="sc-sub">
               {% if loan.next_due_date %}
@@ -159,7 +158,7 @@
                 {% else %}
                   {{ days_left }} day(s) remaining
                 {% endif %}
-              {% else %}&mdash;{% endif %}
+              {% else %}Settled{% endif %}
             </div>
           </div>
           <div class="summary-card">
@@ -173,7 +172,7 @@
             <div class="progress-bar-wrap">
               {% set pct_val = ((loan.principal_amount - loan.outstanding_balance) / loan.principal_amount * 100) if loan.principal_amount > 0 else 0 %}
               <div class="progress-bar">
-                <div class="progress-fill" data-width="{{ [pct_val, 100]|min }}"></div>
+                <div class="progress-fill" style="width: {{ [pct_val, 100]|min }}%"></div>
               </div>
             </div>
             <div class="sc-sub">paid off</div>
@@ -208,27 +207,17 @@
                   <span class="info-value">{{ loan.interest_rate }}% / yr</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Principal Amount</span>
+                  <span class="info-label">Original Principal</span>
                   <span class="info-value">&#8369;{{ "{:,.2f}".format(loan.principal_amount) }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Loan Term</span>
+                  <span class="info-label">Total Term</span>
                   <span class="info-value">{{ loan.term_months }} months</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Status</span>
-                  <span class="info-value">
-                    <span class="loan-status loan-status--{{ loan.status }}">{{ loan.status | title }}</span>
-                  </span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Date Released</span>
-                  <span class="info-value">{{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Maturity Date</span>
-                  <span class="info-value">{{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date else '—' }}</span>
-                </div>
+                    <span class="info-label">Release Date</span>
+                    <span class="info-value">{{ loan.created_at.strftime('%b %d, %Y') if loan.created_at else '—' }}</span>
+                  </div>
               </div>
             </div>
           </div>
@@ -237,41 +226,32 @@
           <div class="card">
             <div class="card-header">
               <span class="card-icon card-icon--payment"></span>
-              <h2>Payment Summary</h2>
+              <h2>Math Breakdown (Real-World)</h2>
             </div>
             <div class="card-body">
               <div class="info-list">
                 <div class="info-row">
-                  <span class="info-label">Monthly Payment</span>
-                  <span class="info-value fw-bold">&#8369;{{ "{:,.2f}".format(loan.monthly_payment) }}</span>
+                  <span class="info-label">Amount Deducted</span>
+                  {% set total_bawas = loan.principal_amount - loan.outstanding_balance %}
+                  <span class="info-value info-value--success fw-bold">&#8369;{{ "{:,.2f}".format(total_bawas) }}</span>
                 </div>
+                <p style="font-size: 0.75rem; color: #666; margin-bottom: 10px;">(Includes Principal Paid + Interest Rebates)</p>
+                
                 <div class="info-row">
-                  <span class="info-label">Total Payable</span>
-                  <span class="info-value">&#8369;{{ "{:,.2f}".format(loan.monthly_payment * loan.term_months) }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Total Interest</span>
-                  <span class="info-value">&#8369;{{ "{:,.2f}".format((loan.monthly_payment * loan.term_months) - loan.principal_amount) }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Amount Paid</span>
-                  <span class="info-value info-value--success">&#8369;{{ "{:,.2f}".format(loan.principal_amount - loan.outstanding_balance) }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Outstanding Balance</span>
+                  <span class="info-label">Remaining Debt</span>
                   <span class="info-value fw-bold">&#8369;{{ "{:,.2f}".format(loan.outstanding_balance) }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Next Due Date</span>
-                  <span class="info-value">{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date else '—' }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Periods Remaining</span>
+                  <span class="info-label">Periods Left</span>
                   <span class="info-value">
                     {% if schedule %}
-                      {{ schedule | selectattr('status', 'ne', 'paid') | list | length }} of {{ schedule | length }}
+                      {{ schedule | selectattr('status', 'ne', 'paid') | list | length }} months
                     {% else %}—{% endif %}
                   </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Maturity Date</span>
+                    <span class="info-value">{{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date else '—' }}</span>
                 </div>
               </div>
             </div>
@@ -316,7 +296,22 @@
                     <td>&#8369;{{ "{:,.2f}".format(row.principal_due) }}</td>
                     <td>&#8369;{{ "{:,.2f}".format(row.interest_due) }}</td>
                     <td class="fw-bold">&#8369;{{ "{:,.2f}".format(row.total_due) }}</td>
-                    <td>&#8369;{{ "{:,.2f}".format(row.balance_after) }}</td>
+                    
+                    {# CHECK DISCREPANCY: If this is the last paid row, it should match the Dashboard OB #}
+                    {% set is_last_paid = false %}
+                    {% if row.status == 'paid' %}
+                        {# Ang loop.nextitem ay para malaman kung ang susunod na row ay unpaid na #}
+                        {% if loop.last or (loop.nextitem and loop.nextitem.status != 'paid') %}
+                            {% set is_last_paid = true %}
+                        {% endif %}
+                    {% endif %}
+
+                    <td class="{% if is_last_paid %}fw-bold text-success{% endif %}">
+                        &#8369;{{ "{:,.2f}".format(row.balance_after) }}
+                        {% if is_last_paid %}
+                            <br><small style="font-size: 0.65rem; color: #1a6b5e;">(Sync with Dashboard)</small>
+                        {% endif %}
+                    </td>
                     <td>
                       <span class="sched-status sched-status--{{ row.status if row.status else 'upcoming' }}">
                         {{ (row.status if row.status else 'upcoming') | title }}
