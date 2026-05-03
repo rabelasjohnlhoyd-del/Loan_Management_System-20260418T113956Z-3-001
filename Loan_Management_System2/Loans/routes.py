@@ -1377,12 +1377,18 @@ def payment_history_pdf(loan_id):
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
+        
         cursor.execute("""
-            SELECT l.*, u.full_name
-            FROM loans l JOIN users u ON l.borrower_id = u.id
+            SELECT l.*, u.full_name, lt.name as type_name
+            FROM loans l 
+            JOIN users u ON l.borrower_id = u.id
+            LEFT JOIN loan_types lt ON l.loan_type_id = lt.id
             WHERE l.id = %s
         """, (loan_id,))
         loan = cursor.fetchone()
+
+        if not loan:
+            return "Loan record not found.", 404
 
         cursor.execute("""
             SELECT * FROM payments
@@ -1393,70 +1399,105 @@ def payment_history_pdf(loan_id):
         cursor.close()
         conn.close()
 
-        # Calculate total paid
+        # Calculate summary stats
         total_paid = sum(float(p['amount_paid']) for p in payments) if payments else 0
+        remaining_balance = float(loan['principal_amount']) - total_paid
         
-        # Calculate remaining balance
-        remaining_balance = float(loan['principal_amount']) - total_paid if loan else 0
+       
+        rows = ""
+        for i, p in enumerate(payments):
+            bg_color = "#e8f5f2" if i % 2 == 0 else "#ffffff"
+            status_bg = "#22c55e20" if p['status']=='approved' or p['status']=='verified' else "#f59e0b20" if p['status']=='pending' else "#ef444420"
+            status_color = "#16a34a" if p['status']=='approved' or p['status']=='verified' else "#d97706" if p['status']=='pending' else "#dc2626"
+            status_label = p['status'].capitalize()
 
-        rows = ''.join([
-            f"<tr style='{'background:#e8f5f2' if loop.index % 2 == 0 else ''}'>"
-            f"<td>{p['payment_no']}</td>"
-            f"<td>{p['payment_date'].strftime('%b %d, %Y') if p['payment_date'] else '—'}</td>"
-            f"<td>₱{float(p['amount_paid']):,.2f}</td>"
-            f"<td>{p['payment_method'] or '—'}</td>"
-            f"<td><span style='padding:2px 8px;border-radius:20px;font-size:10px;"
-            f"background:{'#22c55e20' if p['status']=='approved' else '#f59e0b20' if p['status']=='pending' else '#ef444420'};"
-            f"color:{'#16a34a' if p['status']=='approved' else '#d97706' if p['status']=='pending' else '#dc2626'}'>"
-            f"{'Approved' if p['status']=='approved' else 'Pending' if p['status']=='pending' else 'Rejected'}</span></td></tr>"
-            for p in payments
-        ])
+            rows += f"""
+            <tr style="background:{bg_color};">
+                <td>{p['payment_no']}</td>
+                <td>{p['payment_date'].strftime('%b %d, %Y') if p['payment_date'] else '—'}</td>
+                <td>₱{float(p['amount_paid']):,.2f}</td>
+                <td>{p['payment_method'] or '—'}</td>
+                <td><span style="padding:2px 8px; border-radius:20px; font-size:10px; background:{status_bg}; color:{status_color};">
+                    {status_label}
+                </span></td>
+            </tr>
+            """
 
         html = f"""
         <html>
-          <head><meta charset="UTF-8"/></head>
-          <body style="font-family:Helvetica;padding:20px;">
-            <h2>Payment History Statement — {loan['loan_no']}</h2>
-            <p>Borrower: {loan['full_name']}</p>
-            <p>Loan Type: {loan['type_name'] if loan.get('type_name') else '—'}</p>
-            <hr/>
-            <table border="1" cellpadding="4" cellspacing="0" width="100%" style="border-collapse:collapse;">
-              <thead style="background:#1a6b5e;color:white;">
-                <tr><th>Reference No.</th><th>Payment Date</th><th>Amount</th>
-                    <th>Method</th><th>Status</th></tr>
-              </thead>
-              <tbody>{rows if rows else '<tr><td colspan="5" style="text-align:center;">No payments recorded yet.</td></tr>'}</tbody>
-            </table>
-            <hr/>
-            <div style="margin-top:20px;padding:10px;background:#f0f8f6;border-radius:8px;">
-              <p><strong>Summary:</strong></p>
-              <p>Total Principal: ₱{float(loan['principal_amount']):,.2f}</p>
-              <p>Total Payments: ₱{total_paid:,.2f}</p>
-              <p>Remaining Balance: ₱{max(remaining_balance, 0):,.2f}</p>
+          <head>
+            <meta charset="UTF-8"/>
+            <style>
+                body {{ font-family: Helvetica; padding: 20px; color: #333; }}
+                table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+                th {{ background: #1a6b5e; color: white; padding: 10px; text-align: left; }}
+                td {{ padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; }}
+                .summary {{ margin-top: 20px; padding: 15px; background: #f0f8f6; border-radius: 8px; }}
+                .header {{ border-bottom: 2px solid #1a6b5e; padding-bottom: 10px; }}
+            </style>
+          </head>
+          <body>
+            <div class="header">
+                <h2 style="color:#1a6b5e; margin:0;">Payment History Statement</h2>
+                <p style="font-size:12px; margin:5px 0;">Reference: {loan['loan_no']}</p>
             </div>
-            <hr/>
-            <p style="font-size:10px;color:#999;text-align:center;">
-              Generated by Hiraya Management System on {datetime.datetime.now().strftime('%B %d, %Y')}
+            
+            <p style="font-size:11px;">
+                <strong>Borrower:</strong> {loan['full_name']}<br/>
+                <strong>Loan Type:</strong> {loan.get('type_name', 'N/A')}
+            </p>
+
+            <table>
+              <thead>
+                <tr>
+                    <th>Reference No.</th>
+                    <th>Payment Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows if rows else '<tr><td colspan="5" style="text-align:center;">No payments recorded yet.</td></tr>'}
+              </tbody>
+            </table>
+
+            <div class="summary">
+              <p style="margin:2px 0; font-size:12px;"><strong>Summary:</strong></p>
+              <p style="margin:2px 0; font-size:11px;">Total Principal: ₱{float(loan['principal_amount']):,.2f}</p>
+              <p style="margin:2px 0; font-size:11px;">Total Payments: ₱{total_paid:,.2f}</p>
+              <p style="margin:2px 0; font-size:11px;">Remaining Balance: ₱{max(remaining_balance, 0):,.2f}</p>
+            </div>
+
+            <p style="font-size:9px; color:#999; text-align:center; margin-top:30px;">
+              Generated by Hiraya Management System on {datetime.datetime.now().strftime('%B %d, %Y %I:%M %p')}
             </p>
           </body>
         </html>
         """
-        pdf = io.BytesIO()
-        pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf)
-        pdf.seek(0)
         
-        # Check if inline viewing is requested
+        # Create PDF
+        pdf_out = io.BytesIO()
+        pisa_status = pisa.CreatePDF(io.BytesIO(html.encode('UTF-8')), dest=pdf_out)
+        
+        if pisa_status.err:
+            return "Error generating PDF", 500
+            
+        pdf_out.seek(0)
+        
         inline = request.args.get('inline', '0') == '1'
         
         return send_file(
-            pdf,
+            pdf_out,
             mimetype='application/pdf',
-            as_attachment=not inline,  # If inline=True, display in browser
+            as_attachment=not inline,
             download_name=f"PaymentHistory_{loan['loan_no']}.pdf"
         )
+        
     except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-        return redirect(url_for('borrower.my_documents'))
+        
+        print(f"PDF Error: {str(e)}")
+        return f"Error generating document: {str(e)}", 500
 
 
 # ================================================================
