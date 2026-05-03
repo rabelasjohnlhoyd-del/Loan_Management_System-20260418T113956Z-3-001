@@ -201,4 +201,87 @@ function escHtml(str) {
     }
   });
 
+  /* ================================================================
+     TABLE PAGINATION — 10 rows per page
+     ================================================================ */
+  (function initPagination() {
+    const tbody   = document.querySelector('.data-table tbody');
+    const pgBar   = document.getElementById('paginationBar');
+    const pgInfo  = document.getElementById('pgInfo');
+    const pgPages = document.getElementById('pgPages');
+    const pgFirst = document.getElementById('pgFirst');
+    const pgPrev  = document.getElementById('pgPrev');
+    const pgNext  = document.getElementById('pgNext');
+    const pgLast  = document.getElementById('pgLast');
+
+    if (!tbody || !pgBar) return;
+
+    const ROWS_PER_PAGE = 10;
+    const allRows       = Array.from(tbody.querySelectorAll('tr'));
+    const totalRows     = allRows.length;
+
+    if (totalRows <= ROWS_PER_PAGE) return;
+
+    const totalPages = Math.ceil(totalRows / ROWS_PER_PAGE);
+    let currentPage  = 1;
+
+    function showPage(page) {
+      currentPage = Math.max(1, Math.min(page, totalPages));
+
+      const start = (currentPage - 1) * ROWS_PER_PAGE;
+      const end   = start + ROWS_PER_PAGE;
+
+      allRows.forEach((row, i) => {
+        row.style.display = (i >= start && i < end) ? '' : 'none';
+      });
+
+      // Info text
+      const from = start + 1;
+      const to   = Math.min(end, totalRows);
+      if (pgInfo) pgInfo.textContent = `Showing ${from}–${to} of ${totalRows} loans`;
+
+      // Nav buttons
+      if (pgFirst) pgFirst.disabled = currentPage === 1;
+      if (pgPrev)  pgPrev.disabled  = currentPage === 1;
+      if (pgNext)  pgNext.disabled  = currentPage === totalPages;
+      if (pgLast)  pgLast.disabled  = currentPage === totalPages;
+
+      // Page number buttons with ellipsis
+      if (!pgPages) return;
+      pgPages.innerHTML = '';
+      buildPageRange(currentPage, totalPages).forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pg-page-btn' +
+          (p === currentPage ? ' active' : '') +
+          (p === '...' ? ' ellipsis' : '');
+        btn.textContent = p;
+        if (p !== '...' && p !== currentPage) {
+          btn.addEventListener('click', () => showPage(p));
+        }
+        pgPages.appendChild(btn);
+      });
+    }
+
+    function buildPageRange(current, total) {
+      if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+      }
+      if (current <= 4) {
+        return [1, 2, 3, 4, 5, '...', total];
+      }
+      if (current >= total - 3) {
+        return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+      }
+      return [1, '...', current - 1, current, current + 1, '...', total];
+    }
+
+    pgFirst?.addEventListener('click', () => showPage(1));
+    pgPrev?.addEventListener('click',  () => showPage(currentPage - 1));
+    pgNext?.addEventListener('click',  () => showPage(currentPage + 1));
+    pgLast?.addEventListener('click',  () => showPage(totalPages));
+
+    showPage(1);
+  })();
+
 })();

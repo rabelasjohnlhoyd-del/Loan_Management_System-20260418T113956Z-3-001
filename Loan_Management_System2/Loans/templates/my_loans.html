@@ -215,6 +215,26 @@
               </p>
             </div>
             {% endif %}
+            {% if loans and loans|length > 10 %}
+                <div class="pagination-bar" id="paginationBar">
+                  <span class="pg-info" id="pgInfo"></span>
+                  <div class="pg-controls">
+                    <button class="pg-btn" id="pgFirst" title="First page" aria-label="First page">
+                      <span class="pg-icon pg-icon--first"></span>
+                    </button>
+                    <button class="pg-btn" id="pgPrev" title="Previous page" aria-label="Previous page">
+                      <span class="pg-icon pg-icon--prev"></span>
+                    </button>
+                    <div class="pg-pages" id="pgPages"></div>
+                    <button class="pg-btn" id="pgNext" title="Next page" aria-label="Next page">
+                      <span class="pg-icon pg-icon--next"></span>
+                    </button>
+                    <button class="pg-btn" id="pgLast" title="Last page" aria-label="Last page">
+                      <span class="pg-icon pg-icon--last"></span>
+                    </button>
+                  </div>
+                </div>
+              {% endif %}
           </div>
         </div>
 

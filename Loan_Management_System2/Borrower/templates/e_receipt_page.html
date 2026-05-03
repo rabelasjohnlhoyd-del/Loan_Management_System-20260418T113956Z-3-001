@@ -284,10 +284,14 @@
               <span class="method-badge method-gcash">💙 GCash</span>
             {% elif payment.payment_method == 'maya' %}
               <span class="method-badge method-maya">💚 Maya</span>
-            {% elif payment.payment_method == 'bank' %}
-              <span class="method-badge method-bank">🏦 BDO Transfer</span>
-            {% else %}
-              <span class="method-badge method-cash">💵 Cash / Walk-in</span>
+            {% elif payment.payment_method == 'bdo' %}
+              <span class="method-badge method-bank">🏦 BDO Bank</span>
+            {% elif payment.payment_method == 'bpi' %}
+              <span class="method-badge method-bank">🏛️ BPI</span>
+            {% elif payment.payment_method == 'landbank' %}
+              <span class="method-badge method-bank">🌾 Landbank</span>
+            {% elif payment.payment_method == 'visa' %}
+              <span class="method-badge method-bank">💳 Visa/Card</span>
             {% endif %}
           </span>
         </div>
@@ -305,7 +309,7 @@
         </div>
         <div class="detail-row">
           <span class="detail-label">Date Verified</span>
-          <span class="detail-val">{{ payment.updated_at.strftime('%B %d, %Y %I:%M %p') if payment.updated_at else '—' }}</span>
+          <span class="detail-val">{{ payment.verified_at.strftime('%B %d, %Y %I:%M %p') if payment.verified_at else '—' }}</span>
         </div>
       </div>
 

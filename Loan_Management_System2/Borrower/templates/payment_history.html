@@ -164,28 +164,13 @@
               <span class="ph-stat-svg ph-stat-svg--approved"></span>
             </div>
             <div class="ph-stat-info">
-              <div class="ph-stat-val">{{ payments | selectattr('status', 'eq', 'approved') | list | length }}</div>
+              <div class="ph-stat-val">{{ payments | selectattr('status', 'equalto', 'approved') | list | length + 
+                                          payments | selectattr('status', 'equalto', 'verified') | list | length }}</div>
               <div class="ph-stat-lbl">Approved</div>
             </div>
           </div>
-          <div class="ph-stat-card">
-            <div class="ph-stat-icon-wrap ph-stat-icon-wrap--yellow">
-              <span class="ph-stat-svg ph-stat-svg--pending"></span>
-            </div>
-            <div class="ph-stat-info">
-              <div class="ph-stat-val">{{ payments | selectattr('status', 'eq', 'pending') | list | length }}</div>
-              <div class="ph-stat-lbl">Pending Review</div>
-            </div>
-          </div>
-          <div class="ph-stat-card">
-            <div class="ph-stat-icon-wrap ph-stat-icon-wrap--red">
-              <span class="ph-stat-svg ph-stat-svg--rejected"></span>
-            </div>
-            <div class="ph-stat-info">
-              <div class="ph-stat-val">{{ payments | selectattr('status', 'eq', 'rejected') | list | length }}</div>
-              <div class="ph-stat-lbl">Rejected</div>
-            </div>
-          </div>
+
+
         </div>
 
         <!-- TABLE CARD -->
@@ -199,6 +184,7 @@
               <select class="ph-select" id="filterStatus" onchange="applyFilters()">
                 <option value="">All Status</option>
                 <option value="approved">Approved</option>
+                <option value="verified">Verified</option>
                 <option value="pending">Pending</option>
                 <option value="rejected">Rejected</option>
               </select>
@@ -229,12 +215,12 @@
                 <thead>
                   <tr>
                     <th class="th-sort" data-col="0">Payment No. <span class="sort-icon">↕</span></th>
-                    <th class="th-sort" data-col="1">Loan Ref <span class="sort-icon">↕</span></th>
-                    <th class="th-sort" data-col="2">Loan Type <span class="sort-icon">↕</span></th>
-                    <th class="th-sort" data-col="3">Amount <span class="sort-icon">↕</span></th>
-                    <th class="th-sort" data-col="4">Method <span class="sort-icon">↕</span></th>
-                    <th class="th-sort" data-col="5">Date <span class="sort-icon">↕</span></th>
-                    <th class="th-sort" data-col="6">Status <span class="sort-icon">↕</span></th>
+                    <th>Loan Ref</th>
+                    <th>Loan Type</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>

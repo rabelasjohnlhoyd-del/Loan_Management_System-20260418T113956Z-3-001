@@ -118,7 +118,7 @@ def borrower_dashboard():
             JOIN loan_plans  lp ON l.loan_plan_id  = lp.id
             WHERE l.borrower_id = %s
             ORDER BY l.created_at DESC
-            LIMIT 5
+            LIMIT 50
         """, (session['user_id'],))
         raw_loans = cursor.fetchall()
  
@@ -266,7 +266,7 @@ def borrower_dashboard():
             WHERE l.borrower_id = %s
  
             ORDER BY event_at DESC
-            LIMIT 8
+            LIMIT 100
         """, (session['user_id'], session['user_id']))
         raw_activity = cursor.fetchall()
  
@@ -695,40 +695,7 @@ def payment_status(pay_no):
         return jsonify({'error': str(e)}), 500
 
 
-# 5.4 VIEW E-RECEIPT
-@borrower_bp.route('/payments/receipt/<string:pay_no>')
-@login_required
-@role_required('borrower')
-def view_receipt(pay_no):
-    try:
-        conn = get_db()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT p.*,
-                   l.loan_no AS loan_ref,
-                   lt.name   AS type_name,
-                   u.full_name AS borrower_name
-            FROM payments p
-            JOIN loans l      ON p.loan_id      = l.id
-            JOIN loan_types lt ON l.loan_type_id = lt.id
-            JOIN users u       ON p.borrower_id  = u.id
-            WHERE p.payment_no  = %s
-              AND p.borrower_id = %s
-              AND p.status IN ('approved', 'completed')
-        """, (pay_no, session['user_id']))
-        payment = cursor.fetchone()
-        cursor.close()
-        conn.close()
 
-        if not payment:
-            flash('Receipt not found or payment not yet confirmed.', 'warning')
-            return redirect(url_for('borrower.payment_history'))
-
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-        return redirect(url_for('borrower.payment_history'))
-
-    return render_template('e_receipt_page.html', payment=payment)
 
 
 
@@ -1071,7 +1038,7 @@ def payment_status_by_id(payment_id):
 @login_required
 @role_required('borrower')
 def view_receipt_page(pay_no):
-    """View e-receipt as HTML page (for approved payments)"""
+    """View e-receipt as HTML page (for approved/verified payments)"""
     try:
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
@@ -1081,28 +1048,25 @@ def view_receipt_page(pay_no):
                    p.payment_method,
                    p.reference_number,
                    p.payment_date,
-                   p.updated_at,
+                   p.verified_at,
                    p.status,
                    l.loan_no AS loan_ref,
                    lt.name   AS type_name,
                    u.full_name AS borrower_name
             FROM payments p
-            JOIN loans l      ON p.loan_id      = l.id
+            JOIN loans l       ON p.loan_id      = l.id
             JOIN loan_types lt ON l.loan_type_id = lt.id
             JOIN users u       ON p.borrower_id  = u.id
             WHERE p.payment_no  = %s
               AND p.borrower_id = %s
+              AND p.status IN ('approved', 'verified')
         """, (pay_no, session['user_id']))
         payment = cursor.fetchone()
         cursor.close()
         conn.close()
 
         if not payment:
-            flash('Receipt not found.', 'warning')
-            return redirect(url_for('borrower.payment_history'))
-            
-        if payment['status'] not in ['approved', 'verified', 'completed']:
-            flash('Payment not yet approved. No official receipt available.', 'warning')
+            flash('Receipt not found or payment not yet confirmed.', 'warning')
             return redirect(url_for('borrower.payment_history'))
 
     except Exception as e:
@@ -1196,4 +1160,3 @@ def recalculate_borrower_metrics(user_id):
     conn.commit()
     cursor.close()
     conn.close()
-    

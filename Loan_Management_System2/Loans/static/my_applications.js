@@ -31,7 +31,6 @@
     document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
   }
 
-  /* Restore desktop preference on page load */
   if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
     openSidebar();
   }
@@ -39,12 +38,10 @@
   burgerBtn?.addEventListener('click', toggleSidebar);
   sidebarOverlay?.addEventListener('click', closeSidebar);
 
-  /* Close on nav click (mobile) */
   sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
     link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
-  /* Re-evaluate on resize */
   window.addEventListener('resize', () => {
     if (!isMobile()) {
       sidebarOverlay.classList.remove('active');
@@ -85,6 +82,80 @@
   });
 
   /* ================================================================
+     TABLE PAGINATION — 10 rows per page
+     ================================================================ */
+  (function initPagination() {
+    const tbody   = document.querySelector('.data-table tbody');
+    const pgBar   = document.getElementById('paginationBar');
+    const pgInfo  = document.getElementById('pgInfo');
+    const pgPages = document.getElementById('pgPages');
+    const pgFirst = document.getElementById('pgFirst');
+    const pgPrev  = document.getElementById('pgPrev');
+    const pgNext  = document.getElementById('pgNext');
+    const pgLast  = document.getElementById('pgLast');
+
+    if (!tbody || !pgBar) return;
+
+    const ROWS_PER_PAGE = 10;
+    const allRows       = Array.from(tbody.querySelectorAll('tr'));
+    const totalRows     = allRows.length;
+
+    if (totalRows <= ROWS_PER_PAGE) return;
+
+    const totalPages = Math.ceil(totalRows / ROWS_PER_PAGE);
+    let currentPage  = 1;
+
+    function showPage(page) {
+      currentPage = Math.max(1, Math.min(page, totalPages));
+
+      const start = (currentPage - 1) * ROWS_PER_PAGE;
+      const end   = start + ROWS_PER_PAGE;
+
+      allRows.forEach((row, i) => {
+        row.style.display = (i >= start && i < end) ? '' : 'none';
+      });
+
+      const from = start + 1;
+      const to   = Math.min(end, totalRows);
+      if (pgInfo) pgInfo.textContent = `Showing ${from}–${to} of ${totalRows} applications`;
+
+      if (pgFirst) pgFirst.disabled = currentPage === 1;
+      if (pgPrev)  pgPrev.disabled  = currentPage === 1;
+      if (pgNext)  pgNext.disabled  = currentPage === totalPages;
+      if (pgLast)  pgLast.disabled  = currentPage === totalPages;
+
+      if (!pgPages) return;
+      pgPages.innerHTML = '';
+      buildPageRange(currentPage, totalPages).forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pg-page-btn' +
+          (p === currentPage ? ' active' : '') +
+          (p === '...' ? ' ellipsis' : '');
+        btn.textContent = p;
+        if (p !== '...' && p !== currentPage) {
+          btn.addEventListener('click', () => showPage(p));
+        }
+        pgPages.appendChild(btn);
+      });
+    }
+
+    function buildPageRange(current, total) {
+      if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+      if (current <= 4)         return [1, 2, 3, 4, 5, '...', total];
+      if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+      return [1, '...', current - 1, current, current + 1, '...', total];
+    }
+
+    pgFirst?.addEventListener('click', () => showPage(1));
+    pgPrev?.addEventListener ('click', () => showPage(currentPage - 1));
+    pgNext?.addEventListener ('click', () => showPage(currentPage + 1));
+    pgLast?.addEventListener ('click', () => showPage(totalPages));
+
+    showPage(1);
+  })();
+
+  /* ================================================================
      NOTIFICATIONS
      ================================================================ */
   const notifBtn      = document.getElementById('notifBtn');
@@ -96,7 +167,6 @@
 
   let notifLoaded = false;
 
-  /* Toggle dropdown open/close */
   notifBtn?.addEventListener('click', function (e) {
     e.stopPropagation();
     const isOpen = notifDropdown.classList.toggle('open');
@@ -105,14 +175,12 @@
     }
   });
 
-  /* Close when clicking outside */
   document.addEventListener('click', (e) => {
     if (!notifWrap?.contains(e.target)) {
       notifDropdown?.classList.remove('open');
     }
   });
 
-  /* Fetch notifications from backend */
   function loadNotifications() {
     notifLoaded = true;
     notifList.innerHTML = '<div class="notif-loading">Loading...</div>';
@@ -128,7 +196,6 @@
   function renderNotifications(data) {
     const items = Array.isArray(data) ? data : (data.notifications || []);
 
-    /* Update the red dot */
     const unreadCount = items.filter(n => !n.is_read).length;
     if (unreadCount > 0) {
       notifDot.classList.remove('hidden');
@@ -164,16 +231,13 @@
       </div>
     `).join('');
 
-    /* Mark individual as read on click */
     notifList.querySelectorAll('.notif-item').forEach(el => {
       el.addEventListener('click', () => markAsRead(el.dataset.id, el));
     });
   }
 
-  /* Mark a single notification as read */
   function markAsRead(id, el) {
     if (!el.classList.contains('unread')) return;
-
     fetch(`/loans/api/notifications/${id}/read`, { method: 'POST' })
       .then(res => res.ok && updateUnreadUI(el))
       .catch(() => {});
@@ -182,13 +246,10 @@
   function updateUnreadUI(el) {
     el.classList.remove('unread');
     el.querySelector('.notif-unread-dot')?.remove();
-
-    /* Recount unread and update dot */
     const remaining = notifList.querySelectorAll('.notif-item.unread').length;
     if (remaining === 0) notifDot.classList.add('hidden');
   }
 
-  /* Mark all as read */
   notifMarkAll?.addEventListener('click', () => {
     fetch('/loans/api/notifications/read-all', { method: 'POST' })
       .then(res => {
@@ -199,7 +260,6 @@
       .catch(() => {});
   });
 
-  /* Check unread count on page load (for the dot) */
   fetch('/loans/api/notifications/count')
     .then(res => res.json())
     .then(data => {
@@ -224,8 +284,8 @@
     if (isNaN(date)) return ts;
     const now  = new Date();
     const diff = Math.floor((now - date) / 1000);
-    if (diff < 60)   return 'Just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 60)    return 'Just now';
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
   }

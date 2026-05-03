@@ -60,51 +60,138 @@
 
   /* ── Progress Bar Animation ─────────────────────────────────── */
   document.querySelectorAll('.progress-fill').forEach(function (fill) {
-    const target = fill.getAttribute('data-width') || '0';
+    const target = fill.style.width || '0%';
     fill.style.width = '0%';
-    setTimeout(function () {
-      fill.style.width = target + '%';
-    }, 200);
-  });
-
-  /* ── Amortization Schedule Filter ──────────────────────────── */
-  const filterBtns = document.querySelectorAll('.filter-tab');
-  const schedRows  = document.querySelectorAll('.sched-row');
-
-  filterBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      filterBtns.forEach(function (b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-
-      const filter = btn.getAttribute('data-filter');
-
-      schedRows.forEach(function (row) {
-        const status = row.getAttribute('data-status') || 'upcoming';
-
-        if (filter === 'all') {
-          row.classList.remove('hidden');
-        } else if (filter === 'upcoming') {
-          if (status === 'paid') {
-            row.classList.add('hidden');
-          } else {
-            row.classList.remove('hidden');
-          }
-        } else if (filter === 'paid') {
-          if (status === 'paid') {
-            row.classList.remove('hidden');
-          } else {
-            row.classList.add('hidden');
-          }
-        }
-      });
-    });
+    setTimeout(function () { fill.style.width = target; }, 200);
   });
 
   /* ── Highlight current (first upcoming) period row ─────────── */
   const firstUpcoming = document.querySelector('.sched-row[data-status="upcoming"]');
-  if (firstUpcoming) {
-    firstUpcoming.classList.add('current-period');
-  }
+  if (firstUpcoming) firstUpcoming.classList.add('current-period');
+
+  /* ── Active Nav Highlight ───────────────────────────────────── */
+  const path = window.location.pathname;
+  document.querySelectorAll('.nav-item').forEach(function (el) {
+    const href = el.getAttribute('href');
+    if (href && href !== '#' && path.startsWith(href)) el.classList.add('active');
+  });
+
+  /* ================================================================
+     AMORTIZATION SCHEDULE — Filter + Pagination
+     ================================================================ */
+  (function initSchedule() {
+    const filterBtns  = document.querySelectorAll('.filter-tab');
+    const allRows     = Array.from(document.querySelectorAll('.sched-row'));
+
+    // Pagination elements (injected via HTML, see below)
+    const pgBar   = document.getElementById('schedPaginationBar');
+    const pgInfo  = document.getElementById('schedPgInfo');
+    const pgPages = document.getElementById('schedPgPages');
+    const pgFirst = document.getElementById('schedPgFirst');
+    const pgPrev  = document.getElementById('schedPgPrev');
+    const pgNext  = document.getElementById('schedPgNext');
+    const pgLast  = document.getElementById('schedPgLast');
+
+    const ROWS_PER_PAGE = 10;
+    let currentFilter   = 'all';
+    let currentPage     = 1;
+
+    /* Returns rows matching the active filter */
+    function getFilteredRows() {
+      return allRows.filter(row => {
+        const status = row.getAttribute('data-status') || 'upcoming';
+        if (currentFilter === 'all')      return true;
+        if (currentFilter === 'upcoming') return status !== 'paid';
+        if (currentFilter === 'paid')     return status === 'paid';
+        return true;
+      });
+    }
+
+    /* Renders the current page of visible rows */
+    function renderPage() {
+      const filtered   = getFilteredRows();
+      const totalRows  = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalRows / ROWS_PER_PAGE));
+
+      // Clamp currentPage
+      currentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+      const start = (currentPage - 1) * ROWS_PER_PAGE;
+      const end   = start + ROWS_PER_PAGE;
+
+      // Hide all rows first, then show only the current page slice
+      allRows.forEach(row => { row.style.display = 'none'; });
+      filtered.forEach((row, i) => {
+        row.style.display = (i >= start && i < end) ? '' : 'none';
+      });
+
+      // Show/hide pagination bar
+      if (!pgBar) return;
+      if (totalRows <= ROWS_PER_PAGE) {
+        pgBar.style.display = 'none';
+        return;
+      }
+      pgBar.style.display = 'flex';
+
+      // Info text
+      const from = totalRows === 0 ? 0 : start + 1;
+      const to   = Math.min(end, totalRows);
+      if (pgInfo) pgInfo.textContent = `Showing ${from}–${to} of ${totalRows} rows`;
+
+      // Nav buttons
+      if (pgFirst) pgFirst.disabled = currentPage === 1;
+      if (pgPrev)  pgPrev.disabled  = currentPage === 1;
+      if (pgNext)  pgNext.disabled  = currentPage === totalPages;
+      if (pgLast)  pgLast.disabled  = currentPage === totalPages;
+
+      // Page number buttons
+      if (!pgPages) return;
+      pgPages.innerHTML = '';
+      buildPageRange(currentPage, totalPages).forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pg-page-btn' +
+          (p === currentPage ? ' active' : '') +
+          (p === '...' ? ' ellipsis' : '');
+        btn.textContent = p;
+        if (p !== '...' && p !== currentPage) {
+          btn.addEventListener('click', () => { currentPage = p; renderPage(); });
+        }
+        pgPages.appendChild(btn);
+      });
+    }
+
+    function buildPageRange(current, total) {
+      if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+      if (current <= 4)          return [1, 2, 3, 4, 5, '...', total];
+      if (current >= total - 3)  return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+      return [1, '...', current - 1, current, current + 1, '...', total];
+    }
+
+    /* Filter tab click */
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', function () {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.getAttribute('data-filter');
+        currentPage   = 1;  // reset to page 1 on filter change
+        renderPage();
+      });
+    });
+
+    /* Pagination nav buttons */
+    pgFirst?.addEventListener('click', () => { currentPage = 1;                              renderPage(); });
+    pgPrev?.addEventListener ('click', () => { currentPage = Math.max(1, currentPage - 1);   renderPage(); });
+    pgNext?.addEventListener ('click', () => { currentPage++;                                 renderPage(); });
+    pgLast?.addEventListener ('click', () => {
+      const total = Math.ceil(getFilteredRows().length / ROWS_PER_PAGE);
+      currentPage = total;
+      renderPage();
+    });
+
+    // Initial render
+    renderPage();
+  })();
 
   /* ── Notification Icons ─────────────────────────────────────── */
   const NOTIF_ICONS = {
@@ -131,7 +218,6 @@
       .then(data => {
         if (data.count > 0) {
           notifDot?.classList.remove('hidden');
-          if (notifDot) notifDot.textContent = data.count > 9 ? '9+' : data.count;
         } else {
           notifDot?.classList.add('hidden');
         }

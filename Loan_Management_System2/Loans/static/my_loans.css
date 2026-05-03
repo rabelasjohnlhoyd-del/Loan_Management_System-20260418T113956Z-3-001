@@ -679,3 +679,119 @@ body:not(.sidebar-open) .sidebar {
   .btn-apply { font-size: 12px; padding: 7px 12px; }
   .btn-topbar-outline span:not(.btn-back-icon) { display: none; }
 }
+
+/* ================================================================
+   PAGINATION — ilagay sa dulo ng my_loans.css
+   ================================================================ */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gray-200);
+  background: var(--gray-100);
+  flex-wrap: wrap;
+}
+
+.pg-info {
+  font-size: 12px;
+  color: var(--gray-600);
+  white-space: nowrap;
+}
+
+.pg-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pg-btn {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--gray-200);
+  background: var(--white);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  flex-shrink: 0;
+}
+.pg-btn:hover:not(:disabled) {
+  background: var(--mint-light);
+  border-color: var(--mint-mid);
+}
+.pg-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pg-icon {
+  display: block;
+  width: 14px; height: 14px;
+  background: var(--accent);
+  mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+}
+.pg-icon--first {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M18.41 16.59L13.82 12l4.59-4.59L17 6l-6 6 6 6zM6 6h2v12H6z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M18.41 16.59L13.82 12l4.59-4.59L17 6l-6 6 6 6zM6 6h2v12H6z'/%3E%3C/svg%3E");
+}
+.pg-icon--prev {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z'/%3E%3C/svg%3E");
+}
+.pg-icon--next {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z'/%3E%3C/svg%3E");
+}
+.pg-icon--last {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M5.59 7.41L10.18 12l-4.59 4.59L7 18l6-6-6-6zM16 6h2v12h-2z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M5.59 7.41L10.18 12l-4.59 4.59L7 18l6-6-6-6zM16 6h2v12h-2z'/%3E%3C/svg%3E");
+}
+
+.pg-pages {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pg-page-btn {
+  min-width: 32px; height: 32px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--gray-200);
+  background: var(--white);
+  font-size: 12px; font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.pg-page-btn:hover {
+  background: var(--mint-light);
+  border-color: var(--mint-mid);
+  color: var(--accent);
+}
+.pg-page-btn.active {
+  background: linear-gradient(135deg, var(--mint) 0%, var(--mint-dark) 100%);
+  border-color: var(--mint-dark);
+  color: #fff;
+  cursor: default;
+}
+.pg-page-btn.ellipsis {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+  color: var(--gray-400);
+  pointer-events: none;
+}
+
+/* Responsive pagination */
+@media (max-width: 480px) {
+  .pagination-bar {
+    justify-content: center;
+    padding: 12px 16px;
+  }
+  .pg-info { display: none; }
+}

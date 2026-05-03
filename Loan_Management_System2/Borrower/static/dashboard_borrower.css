@@ -88,7 +88,7 @@ button { font-family: inherit; }
   align-items: center;
   background: linear-gradient(90deg, var(--mint-darker) 0%, var(--mint-dark) 100%);
   padding: 0 20px 0 0;
-  gap: 0;
+
 }
 
 .topbar-left {
@@ -779,7 +779,6 @@ body.sidebar-open .main-content {
 
   .topbar-left {
     width: auto;
-    padding: 0 12px;
   }
 
   .topbar-center { padding: 0 10px; }
@@ -839,5 +838,4 @@ body.sidebar-open .main-content {
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .topbar-brand-sub { display: none; }
-  .topbar-brand-name { font-size: 13px; }
 }

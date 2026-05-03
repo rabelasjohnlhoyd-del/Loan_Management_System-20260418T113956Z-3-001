@@ -322,6 +322,25 @@
                 </tbody>
               </table>
             </div>
+              <div class="pagination-bar" id="schedPaginationBar" style="display:none;">
+                <span class="pg-info" id="schedPgInfo"></span>
+                <div class="pg-controls">
+                  <button class="pg-btn" id="schedPgFirst" title="First page" aria-label="First page">
+                    <span class="pg-icon pg-icon--first"></span>
+                  </button>
+                  <button class="pg-btn" id="schedPgPrev" title="Previous page" aria-label="Previous page">
+                    <span class="pg-icon pg-icon--prev"></span>
+                  </button>
+                  <div class="pg-pages" id="schedPgPages"></div>
+                  <button class="pg-btn" id="schedPgNext" title="Next page" aria-label="Next page">
+                    <span class="pg-icon pg-icon--next"></span>
+                  </button>
+                  <button class="pg-btn" id="schedPgLast" title="Last page" aria-label="Last page">
+                    <span class="pg-icon pg-icon--last"></span>
+                  </button>
+                </div>
+              </div>
+
             {% else %}
             <div class="table-empty">
               <span class="empty-icon empty-icon--schedule"></span>

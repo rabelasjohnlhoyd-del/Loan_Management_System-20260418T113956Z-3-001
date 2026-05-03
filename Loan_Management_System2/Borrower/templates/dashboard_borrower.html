@@ -8,6 +8,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_borrower.css') }}"/>
+  <style>
+  .dash-pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid var(--gray-200,#e5e7eb);flex-wrap:wrap;gap:8px}
+  .dash-pag-info{font-size:12px;color:var(--gray-400,#9ca3af)}
+  .dash-pag-btns{display:flex;align-items:center;gap:4px}
+  .dash-pag-btn{width:28px;height:28px;border:1px solid var(--gray-200,#e5e7eb);border-radius:6px;background:#fff;color:var(--gray-600,#4b5563);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
+  .dash-pag-btn:hover:not(:disabled){background:var(--mint-50,#f0fdf4);border-color:var(--green-400,#4ade80)}
+  .dash-pag-btn:disabled{opacity:.35;cursor:default}
+  .dash-pag-pages{display:flex;gap:3px}
+  .dash-pag-page{width:28px;height:28px;border:1px solid var(--gray-200,#e5e7eb);border-radius:6px;background:#fff;color:var(--gray-600,#4b5563);font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
+  .dash-pag-page:hover{background:var(--mint-50,#f0fdf4)}
+  .dash-pag-page.active{background:var(--green-600,#16a34a);border-color:var(--green-600,#16a34a);color:#fff}
+  </style>
 </head>
 <body>
 
@@ -265,7 +277,7 @@
 
             {% if recent_loans %}
             <div class="card-body" style="padding: 0;">
-              <table class="loans-table">
+              <table class="loans-table" id="loansTable">
                 <thead>
                   <tr>
                     <th>Reference</th>
@@ -276,9 +288,9 @@
                     <th>Date</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="loansTbody">
                   {% for loan in recent_loans %}
-                  <tr>
+                  <tr class="loan-row">
                     <td>
                       <a href="{{ url_for('loans.loan_detail', loan_id=loan.id) }}">{{ loan.reference_no }}</a>
                       {% if loan.days_overdue and loan.days_overdue > 0 %}
@@ -337,6 +349,14 @@
                 </tbody>
               </table>
             </div>
+            <div class="dash-pagination" id="loansPagination">
+              <div class="dash-pag-info" id="loansPagInfo"></div>
+              <div class="dash-pag-btns">
+                <button class="dash-pag-btn" id="loansPrev" type="button">&#8249;</button>
+                <span class="dash-pag-pages" id="loansPagPages"></span>
+                <button class="dash-pag-btn" id="loansNext" type="button">&#8250;</button>
+              </div>
+            </div>
             {% else %}
             <div class="card-body loans-empty-body">
               <div class="loans-empty-state">
@@ -360,9 +380,9 @@
             </div>
 
             {% if recent_activity %}
-            <div class="activity-feed">
+            <div class="activity-feed" id="activityFeed">
               {% for event in recent_activity %}
-              <div class="activity-item">
+              <div class="activity-item act-row">
                 <div class="activity-icon
                   {% if event.type in ['payment_received', 'loan_closed'] %}activity-icon--green
                   {% elif event.type in ['loan_approved', 'loan_disbursed', 'id_verified'] %}activity-icon--mint
@@ -391,6 +411,15 @@
                 <p class="empty-sub">Your transactions and events will appear here.</p>
               </div>
             </div>
+
+            <div class="dash-pagination" id="activityPagination">
+              <div class="dash-pag-info" id="activityPagInfo"></div>
+              <div class="dash-pag-btns">
+                <button class="dash-pag-btn" id="activityPrev" type="button">&#8249;</button>
+                <span class="dash-pag-pages" id="activityPagPages"></span>
+                <button class="dash-pag-btn" id="activityNext" type="button">&#8250;</button>
+              </div>
+            </div>
             {% endif %}
 
             <div style="display:flex; gap:8px; padding:14px 20px; border-top:1px solid var(--gray-200); flex-wrap:wrap;">
@@ -408,5 +437,48 @@
 </div><!-- /.app-wrap -->
 
 <script src="{{ url_for('borrower.static', filename='dashboard_borrower.js') }}"></script>
+<script>
+function makePaginator(opts){
+  var rows=function(){return Array.from(document.querySelectorAll(opts.rowSelector))};
+  var btnPrev=document.getElementById(opts.prevId);
+  var btnNext=document.getElementById(opts.nextId);
+  var pagesEl=document.getElementById(opts.pagesId);
+  var infoEl=document.getElementById(opts.infoId);
+  var currentPage=1;
+  function totalPages(){return Math.max(1,Math.ceil(rows().length/opts.perPage));}
+  function render(page){
+    currentPage=Math.max(1,Math.min(page,totalPages()));
+    var all=rows();var total=all.length;
+    var start=(currentPage-1)*opts.perPage;var end=start+opts.perPage;
+    all.forEach(function(r,i){r.style.display=(i>=start&&i<end)?'':'none';});
+    if(infoEl){var from=total===0?0:start+1;var to=Math.min(end,total);infoEl.textContent=total===0?'No records':'Showing '+from+'–'+to+' of '+total;}
+    if(pagesEl){
+      pagesEl.innerHTML='';var tp=totalPages();
+      for(var p=1;p<=tp;p++){
+        (function(pg){
+          var btn=document.createElement('button');btn.type='button';
+          btn.className='dash-pag-page'+(pg===currentPage?' active':'');
+          btn.textContent=pg;
+          btn.addEventListener('click',function(){render(pg);});
+          pagesEl.appendChild(btn);
+        })(p);
+      }
+    }
+    if(btnPrev)btnPrev.disabled=currentPage<=1;
+    if(btnNext)btnNext.disabled=currentPage>=totalPages();
+  }
+  if(btnPrev)btnPrev.addEventListener('click',function(){render(currentPage-1);});
+  if(btnNext)btnNext.addEventListener('click',function(){render(currentPage+1);});
+  render(1);
+}
+document.addEventListener('DOMContentLoaded',function(){
+  if(document.querySelectorAll('.loan-row').length>0){
+    makePaginator({rowSelector:'.loan-row',perPage:8,prevId:'loansPrev',nextId:'loansNext',pagesId:'loansPagPages',infoId:'loansPagInfo'});
+  }
+  if(document.querySelectorAll('.act-row').length>0){
+    makePaginator({rowSelector:'.act-row',perPage:10,prevId:'activityPrev',nextId:'activityNext',pagesId:'activityPagPages',infoId:'activityPagInfo'});
+  }
+});
+</script>
 </body>
 </html>

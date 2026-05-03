@@ -800,6 +800,5 @@ body:not(.sidebar-open) .sidebar {
 }
 
 @media (max-width: 480px) {
-  .topbar-brand-name { font-size: 13px; }
   .btn-upload-topbar { font-size: 12px; padding: 7px 12px; }
 }
