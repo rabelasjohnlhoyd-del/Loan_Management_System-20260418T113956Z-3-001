@@ -177,6 +177,68 @@ def logout():
     flash('You have been logged out successfully.', 'info')
     return redirect(url_for('auth.login'))
 
+
+
+
+# ================================================================
+# ACCOUNT UNLOCK REQUEST
+# ================================================================
+@auth.route('/request-unlock', methods=['POST'])
+def request_unlock():
+    email = request.form.get('email', '').strip()
+
+    if not email:
+        flash('Please enter your email address to request an unlock.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if user exists and is actually locked
+        cursor.execute("""
+            SELECT id, full_name, failed_attempts
+            FROM users WHERE email = %s AND role = 'borrower'
+        """, (email,))
+        user = cursor.fetchone()
+
+        if not user or user['failed_attempts'] < 5:
+            # Vague response para hindi ma-enumerate ang accounts
+            flash('If your account is locked, a request has been sent to our team.', 'info')
+            cursor.close(); conn.close()
+            return redirect(url_for('auth.login'))
+
+        # Check kung may existing pending request na para hindi mag-spam
+        cursor.execute("""
+            SELECT id FROM unlock_requests
+            WHERE user_id = %s AND status = 'pending'
+        """, (user['id'],))
+        existing = cursor.fetchone()
+
+        if existing:
+            flash('You already have a pending unlock request. Our team will contact you shortly.', 'info')
+            cursor.close(); conn.close()
+            return redirect(url_for('auth.login'))
+
+        # Insert unlock request
+        cursor.execute("""
+            INSERT INTO unlock_requests (user_id, requested_at, status)
+            VALUES (%s, NOW(), 'pending')
+        """, (user['id'],))
+        conn.commit()
+
+        log_activity(user['id'], 'request_unlock', 'success',
+                     {'message': 'Borrower requested account unlock'})
+
+        cursor.close(); conn.close()
+        flash('Unlock request sent! Our team will review and contact you within 24 hours.', 'success')
+
+    except Exception as e:
+        flash('System error. Please try again later.', 'danger')
+        print(f"Unlock Request Error: {e}")
+
+    return redirect(url_for('auth.login'))
+
 # ================================================================
 # SECTION 4: REGISTRATION — ANTI-BYPASS VERIFICATION
 # ================================================================
