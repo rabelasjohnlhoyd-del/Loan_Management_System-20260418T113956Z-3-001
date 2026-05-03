@@ -1161,33 +1161,37 @@ def recalculate_borrower_metrics(user_id):
     """, (user_id,))
     overdue_count = cursor.fetchone()['overdue']
 
-    # 🧠 NEW: EARLY PAYMENT / REBATE BONUS
-    # Para sa bawat ₱100 na matitipid ng user sa interest (rebates), bigyan natin siya ng +5 points.
+    # EARLY PAYMENT / REBATE BONUS
     interest_saved = float(user_info['total_interest_saved'] or 0)
     early_pay_bonus = int(interest_saved / 100) * 5
 
-    # FINAL FORMULA: Base (500) + Stability (150) + ID Bonus (50) + (On-time * 15) + Early Bonus - (Overdue * 100)
+    # FINAL FORMULA
     final_score = base_score + stability + verification_bonus + (on_time_count * 15) + early_pay_bonus - (overdue_count * 100)
     final_score = max(300, min(850, final_score)) 
 
-    # 4. BALANCED LOAN LIMIT LOGIC
-    if final_score >= 750:   # Excellent
+    # ─── FIXED 4. RISK LEVEL & LOAN LIMIT LOGIC ───
+    if final_score >= 750:   # Excellent Standing
+        risk_level = 'low'
         loan_limit = 150000.00
-    elif final_score >= 650: # Good
+    elif final_score >= 650: # Good Standing
+        risk_level = 'medium'
         loan_limit = 50000.00
-    elif final_score >= 550: # Fair
+    elif final_score >= 550: # Fair Standing
+        risk_level = 'medium'
         loan_limit = 20000.00
-    else:                    # Poor
+    else:                    # Poor Standing
+        risk_level = 'high'
         loan_limit = 10000.00
 
-    # 5. I-SAVE SA DB (Update lahat ng metrics para sa Admin View)
+    # ─── FIXED 5. I-SAVE SA DB (Isinama na ang risk_level sa UPDATE) ───
     cursor.execute("""
         UPDATE borrower_profiles 
         SET credit_score = %s, 
             income_stability_score = %s, 
-            max_loan_limit = %s
+            max_loan_limit = %s,
+            risk_level = %s
         WHERE user_id = %s
-    """, (final_score, stability, loan_limit, user_id))
+    """, (final_score, stability, loan_limit, risk_level, user_id))
     
     conn.commit()
     cursor.close()
