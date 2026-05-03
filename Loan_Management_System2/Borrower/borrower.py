@@ -1196,3 +1196,4 @@ def recalculate_borrower_metrics(user_id):
     conn.commit()
     cursor.close()
     conn.close()
+    
