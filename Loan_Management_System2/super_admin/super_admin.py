@@ -1724,10 +1724,18 @@ def report_borrower_history(borrower_id):
 def report_paid_loans():
     date_from = request.args.get('date_from', '')
     date_to   = request.args.get('date_to', '')
-
+ 
+    paid_loans                 = []
+    total_principal            = 0.0
+    total_interest             = 0.0
+    pending_applications_notif = []
+    activity_logs_notif        = []
+    stats                      = {'pending_applications': 0}
+ 
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
+ 
         query = """
             SELECT l.*, lt.name AS type_name, lp.plan_name,
                    u.full_name AS borrower_name, u.contact_number AS borrower_contact,
@@ -1742,28 +1750,70 @@ def report_paid_loans():
         """
         params = []
         if date_from:
-            query += " AND DATE(l.created_at) >= %s"; params.append(date_from)
+            query += " AND DATE(l.created_at) >= %s"
+            params.append(date_from)
         if date_to:
-            query += " AND DATE(l.created_at) <= %s"; params.append(date_to)
+            query += " AND DATE(l.created_at) <= %s"
+            params.append(date_to)
         query += " GROUP BY l.id ORDER BY l.created_at DESC"
         cursor.execute(query, params)
         paid_loans = cursor.fetchall()
+ 
         for l in paid_loans:
             l['principal_amount']  = float(l.get('principal_amount') or 0)
             l['total_paid_amount'] = float(l.get('total_paid_amount') or 0)
             l['interest_earned']   = float(l.get('interest_earned') or 0)
-
+ 
         total_principal = sum(l['principal_amount'] for l in paid_loans)
         total_interest  = sum(l['interest_earned'] for l in paid_loans)
-        cursor.close(); conn.close()
-
-        return render_template('report_paid_loans.html',
-                               paid_loans=paid_loans, total_principal=total_principal,
-                               total_interest=total_interest,
-                               date_from=date_from, date_to=date_to)
+ 
+        # ── Notification dropdown: pending applications ──
+        cursor.execute("""
+            SELECT la.id, la.reference_no, la.amount_requested,
+                   la.status, la.submitted_at,
+                   u.full_name AS borrower_name, lt.name AS type_name
+            FROM loan_applications la
+            JOIN users u       ON u.id  = la.borrower_id
+            JOIN loan_types lt ON lt.id = la.loan_type_id
+            WHERE la.status IN ('submitted', 'under_review')
+            ORDER BY la.submitted_at DESC
+            LIMIT 10
+        """)
+        pending_applications_notif = cursor.fetchall()
+ 
+        # ── Notification dropdown: recent activity ──
+        cursor.execute("""
+            SELECT al.id, al.action, al.details, al.created_at,
+                   u.full_name AS actor_name
+            FROM audit_logs al
+            LEFT JOIN users u ON u.id = al.user_id
+            ORDER BY al.created_at DESC
+            LIMIT 5
+        """)
+        activity_logs_notif = cursor.fetchall()
+ 
+        # ── Pending count for stats ──
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM loan_applications
+            WHERE status IN ('submitted', 'under_review')
+        """)
+        stats['pending_applications'] = cursor.fetchone()['cnt']
+ 
+        cursor.close()
+        conn.close()
+ 
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-        return redirect(url_for('super_admin.reports_page'))
+ 
+    return render_template('report_paid_loans.html',
+                           paid_loans=paid_loans,
+                           total_principal=total_principal,
+                           total_interest=total_interest,
+                           date_from=date_from,
+                           date_to=date_to,
+                           pending_applications_notif=pending_applications_notif,
+                           activity_logs=activity_logs_notif,
+                           stats=stats)
 
 
 # ─────────────────────────────────────────────

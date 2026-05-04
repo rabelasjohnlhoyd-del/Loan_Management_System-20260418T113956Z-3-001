@@ -10,7 +10,7 @@
   
   <!-- CSS FILES -->
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
-  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='borrower_history.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='report_borrower_history.css') }}"/>
 </head>
 <body class="sidebar-open">
 
@@ -61,7 +61,6 @@
         <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>All Loans</a>
         <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
         <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item"><span class="nav-icon nav-icon--warning"></span>Penalties & Overdue</a>
-        <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active"><span class="nav-icon nav-icon--reports"></span>Reports</a>
       </nav>
     </aside>
 

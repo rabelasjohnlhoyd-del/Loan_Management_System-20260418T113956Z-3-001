@@ -4,34 +4,71 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Loan Performance Report — Hiraya</title>
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
-  
-  <!-- CSS FILES -->
+
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
-  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='reports_performance.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='report_loan_performance.css') }}"/>
 </head>
 <body class="sidebar-open">
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
+
+  <!-- ── TOPBAR ── -->
   <header class="topbar">
     <div class="topbar-left">
-      <button class="burger-btn" id="burgerBtn" type="button"><span></span><span></span><span></span></button>
+      <button class="burger-btn" id="burgerBtn" type="button">
+        <span></span><span></span><span></span>
+      </button>
       <div class="topbar-brand">
         <div class="topbar-logo">$</div>
-        <div class="topbar-brand-text"><span class="topbar-brand-name">Hiraya</span><span class="topbar-brand-sub">Management System</span></div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
     </div>
+
     <div class="topbar-right">
-      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</a>
+      <!-- Notification bell — uses dashboard's topbar-icon-btn pattern -->
+      <div class="notif-wrap">
+        <button class="topbar-icon-btn" id="notifBell" type="button" title="Notifications">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <!-- red dot when there are unread -->
+          <span class="notif-dot hidden" id="notifDot"></span>
+          <!-- count badge (shows number) -->
+          <span class="notif-count-badge" id="notifCountBadge" style="display:none;"></span>
+        </button>
+
+        <!-- Dropdown -->
+        <div id="reportNotifDropdown">
+          <div class="rnd-header">
+            <h4>Notifications</h4>
+            <button class="rnd-mark-all" id="rndMarkAll">Mark all as read</button>
+          </div>
+          <ul class="rnd-list" id="rndList">
+            <li class="rnd-loading"><span class="rnd-spinner"></span> Loading…</li>
+          </ul>
+          <div class="rnd-footer">
+            <a href="{{ url_for('super_admin.notifications_page') }}">View all notifications →</a>
+          </div>
+        </div>
+      </div>
+      <!-- end notif -->
+
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
+        {{ session.user_name[0]|upper if session.user_name else 'A' }}
+      </a>
     </div>
   </header>
 
   <div class="body-row">
+
+    <!-- ── SIDEBAR ── -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
@@ -48,77 +85,152 @@
         <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
       </div>
       <nav class="sidebar-nav">
-        <a href="{{ url_for('auth.dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item"><span class="nav-icon nav-icon--clock"></span>Applications</a>
-        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>All Loans</a>
-        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item"><span class="nav-icon nav-icon--warning"></span>Penalties & Overdue</a>
-        <a href="{{ url_for('super_admin.reports_page') }}" class="nav-item active"><span class="nav-icon nav-icon--reports"></span>Reports</a>
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--clock"></span>Applications
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span>All Loans
+        </a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+        </a>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+          <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
+        </a>
       </nav>
     </aside>
 
+    <!-- ── MAIN CONTENT ── -->
     <div class="main-content" id="mainContent">
       <main class="page-body" style="padding: 24px 32px;">
-        
+
+        <!-- HERO / FILTER -->
         <div class="report-hero">
           <div class="hero-top">
             <div class="hero-info">
               <h2>Loan Performance Report</h2>
               <p>Summary of loan disbursements and collections</p>
             </div>
-            
             <div class="filter-row-wrap">
-                <form method="GET" action="{{ url_for('super_admin.report_loan_performance') }}" style="display:flex; gap:12px; align-items:flex-end;">
-                  <div class="form-group-compact">
-                    <label>Type</label>
-                    <select name="type" class="select-compact">
-                      <option value="all">All Loan Types</option>
-                      {% for t in types %}<option value="{{ t.id }}" {{ 'selected' if type_filter|string == t.id|string }}>{{ t.name }}</option>{% endfor %}
-                    </select>
-                  </div>
-                  <div class="form-group-compact">
-                    <label>From</label>
-                    <input type="date" name="date_from" class="input-compact" value="{{ date_from }}">
-                  </div>
-                  <div class="form-group-compact">
-                    <label>To</label>
-                    <input type="date" name="date_to" class="input-compact" value="{{ date_to }}">
-                  </div>
-                  <button type="submit" class="btn-generate">Generate Report</button>
-                </form>
-                <button onclick="window.print()" class="btn-print-report">Print Report</button>
+              <form id="reportFilterForm" method="GET"
+                    action="{{ url_for('super_admin.report_loan_performance') }}"
+                    style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                <div class="form-group-compact">
+                  <label>Type</label>
+                  <select name="type" class="select-compact">
+                    <option value="all">All Loan Types</option>
+                    {% for t in types %}
+                      <option value="{{ t.id }}"
+                        {{ 'selected' if type_filter|string == t.id|string }}>
+                        {{ t.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group-compact">
+                  <label>Date From</label>
+                  <input type="date" id="filterDateFrom" name="date_from"
+                         class="input-compact" value="{{ date_from }}">
+                </div>
+                <div class="form-group-compact">
+                  <label>Date To</label>
+                  <input type="date" id="filterDateTo" name="date_to"
+                         class="input-compact" value="{{ date_to }}">
+                </div>
+                <button type="submit" class="btn-generate">Filter Results</button>
+                <div class="date-error-msg" id="dateError">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none"
+                       viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  </svg>
+                  Please select a <strong>Date From</strong> and <strong>Date To</strong> to filter results.
+                </div>
+              </form>
+              <button type="button" onclick="window.print()" class="btn-print-report">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm1-4h.01M9 17h.01"/>
+                </svg>
+                Print Report
+              </button>
             </div>
           </div>
         </div>
 
+        <!-- STAT CARDS -->
         <div class="stats-grid">
-          <div class="stat-card visible"><div class="stat-info"><div class="stat-value">₱{{ "{:,.0f}".format(total_disbursed) }}</div><div class="stat-label">Total Disbursed</div></div><div class="stat-icon stat-icon--blue"></div></div>
-          <div class="stat-card visible"><div class="stat-info"><div class="stat-value">₱{{ "{:,.0f}".format(total_balance) }}</div><div class="stat-label">Outstanding Balance</div></div><div class="stat-icon stat-icon--yellow"></div></div>
-          <div class="stat-card visible"><div class="stat-info"><div class="stat-value">{{ active_count }}</div><div class="stat-label">Active Loans</div></div><div class="stat-icon stat-icon--green"></div></div>
-          <div class="stat-card visible"><div class="stat-info"><div class="stat-value">{{ defaulted_count }}</div><div class="stat-label">Defaulted</div></div><div class="stat-icon stat-icon--red"></div></div>
+          <div class="stat-card visible">
+            <div class="stat-info">
+              <div class="stat-value">₱{{ "{:,.0f}".format(total_disbursed) }}</div>
+              <div class="stat-label">Total Disbursed</div>
+            </div>
+            <div class="stat-icon stat-icon--blue"></div>
+          </div>
+          <div class="stat-card visible">
+            <div class="stat-info">
+              <div class="stat-value">₱{{ "{:,.0f}".format(total_balance) }}</div>
+              <div class="stat-label">Outstanding Balance</div>
+            </div>
+            <div class="stat-icon stat-icon--yellow"></div>
+          </div>
+          <div class="stat-card visible">
+            <div class="stat-info">
+              <div class="stat-value">{{ active_count }}</div>
+              <div class="stat-label">Active Loans</div>
+            </div>
+            <div class="stat-icon stat-icon--green"></div>
+          </div>
+          <div class="stat-card visible">
+            <div class="stat-info">
+              <div class="stat-value">{{ defaulted_count }}</div>
+              <div class="stat-label">Defaulted</div>
+            </div>
+            <div class="stat-icon stat-icon--red"></div>
+          </div>
         </div>
 
-        <div class="card card--wide" style="margin-top: 24px; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+        <!-- LOAN RECORDS TABLE -->
+        <div class="card card--wide"
+             style="margin-top:24px; border-radius:var(--r-lg); overflow:hidden; border:1px solid var(--gray-200);">
           <div class="card-header">
-            <div><h3>Loan Records</h3><p>Performance summary details</p></div>
+            <div>
+              <h3>Loan Records</h3>
+              <p>Performance summary details</p>
+            </div>
             <div class="card-header-actions">
-                <input type="text" class="search-input" id="appSearch" placeholder="Search record..."/>
+              <input type="text" class="search-input" id="appSearch" placeholder="Search record…"/>
             </div>
           </div>
+
           <div class="table-wrap">
             <table class="data-table">
               <thead>
-                <tr><th>Loan No.</th><th>Borrower</th><th>Principal</th><th>Balance</th><th>Status</th><th>Date</th></tr>
+                <tr>
+                  <th>Loan No.</th>
+                  <th>Borrower</th>
+                  <th>Principal</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
               </thead>
               <tbody id="appTableBody">
                 {% for loan in loans %}
                 <tr>
-                  <td style="font-weight:600; color:var(--hiraya-teal);">{{ loan.loan_no }}</td>
+                  <td class="loan-no-link">{{ loan.loan_no }}</td>
                   <td class="borrower-name">{{ loan.borrower_name }}</td>
                   <td>₱{{ "{:,.2f}".format(loan.principal_amount) }}</td>
                   <td>₱{{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
                   <td>
-                    <span class="badge-status {% if loan.status.lower() == 'active' %}badge-active{% elif loan.status.lower() == 'paid' %}badge-paid{% else %}badge-default{% endif %}">
+                    <span class="badge-status
+                      {% if loan.status.lower() == 'active' %}badge-active
+                      {% elif loan.status.lower() == 'paid' %}badge-paid
+                      {% else %}badge-default{% endif %}">
                       {{ loan.status }}
                     </span>
                   </td>
@@ -128,12 +240,20 @@
               </tbody>
             </table>
           </div>
+
+          <!-- PAGINATION -->
+          <div class="pagination-footer">
+            <span id="paginationCount"></span>
+            <div id="paginationWrap"></div>
+          </div>
         </div>
+
       </main>
-    </div>
-  </div>
-</div>
+    </div><!-- end main-content -->
+  </div><!-- end body-row -->
+</div><!-- end app-wrap -->
 
 <script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
+<script src="{{ url_for('super_admin.static', filename='report_loan_performance.js') }}"></script>
 </body>
 </html>
