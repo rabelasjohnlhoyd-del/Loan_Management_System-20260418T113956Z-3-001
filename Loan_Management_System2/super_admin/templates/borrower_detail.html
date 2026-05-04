@@ -361,7 +361,7 @@
                       <th></th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody id="loanHistoryTbody">
                     {% for loan in loan_history %}
                     <tr>
                       <td data-label="Loan No."><span class="td-ref">{{ loan.loan_no }}</span></td>
@@ -380,6 +380,27 @@
                     {% endfor %}
                   </tbody>
                 </table>
+
+                <!-- PAGINATION BAR -->
+                <div class="pagination-bar" id="loanHistoryPgBar" style="display:none;">
+                  <span class="pg-info" id="loanHistoryPgInfo"></span>
+                  <div class="pg-controls">
+                    <button class="pg-btn" id="loanHistoryPgFirst" title="First page" aria-label="First page">
+                      <span class="pg-icon pg-icon--first"></span>
+                    </button>
+                    <button class="pg-btn" id="loanHistoryPgPrev" title="Previous page" aria-label="Previous page">
+                      <span class="pg-icon pg-icon--prev"></span>
+                    </button>
+                    <div class="pg-pages" id="loanHistoryPgPages"></div>
+                    <button class="pg-btn" id="loanHistoryPgNext" title="Next page" aria-label="Next page">
+                      <span class="pg-icon pg-icon--next"></span>
+                    </button>
+                    <button class="pg-btn" id="loanHistoryPgLast" title="Last page" aria-label="Last page">
+                      <span class="pg-icon pg-icon--last"></span>
+                    </button>
+                  </div>
+                </div>
+
                 {% else %}
                 <div class="table-empty">
                   <span class="empty-icon"></span>
@@ -594,7 +615,6 @@
 
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-      /* Modal stays open on Escape — only close via Cancel button */
       if (typeof closeLightbox === 'function') closeLightbox();
     }
   });
