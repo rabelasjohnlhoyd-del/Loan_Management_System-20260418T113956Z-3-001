@@ -29,6 +29,7 @@
         </div>
       </div>
     </div>
+
     <div class="topbar-right">
       <div class="notif-wrap" id="notifWrap">
         <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
@@ -119,7 +120,7 @@
 
     </aside>
 
-    <!-- MAIN -->
+    <!-- MAIN CONTENT -->
     <div class="main-content">
       <main class="page-body">
 
@@ -132,8 +133,13 @@
             </a>
             <div>
               <h2 class="loans-page-title">Archived Users</h2>
-              <p class="loans-page-sub">Accounts that have been archived and can no longer log in</p>
+              <p class="loans-page-sub">View and restore previously archived staff accounts</p>
             </div>
+          </div>
+          <!-- Archive count badge -->
+          <div class="archive-count-badge">
+            <span class="archive-count-icon"></span>
+            <span>{{ users|length }} Archived Account{{ 's' if users|length != 1 else '' }}</span>
           </div>
         </div>
 
@@ -163,7 +169,7 @@
                    value="{{ search if search else '' }}"/>
           </div>
           <select name="role" class="filter-select">
-            <option value="all"         {{ 'selected' if not role_filter or role_filter == 'all' }}>All Roles</option>
+            <option value="all" {{ 'selected' if not role_filter or role_filter == 'all' }}>All Roles</option>
             <option value="loan_officer" {{ 'selected' if role_filter == 'loan_officer' }}>Loan Officer</option>
             <option value="auditor"      {{ 'selected' if role_filter == 'auditor'      }}>Auditor</option>
           </select>
@@ -176,10 +182,7 @@
         <!-- INFO BANNER -->
         <div class="info-banner">
           <span class="info-banner-icon"></span>
-          <div>
-            <strong>Archived Accounts:</strong> These users have been archived and can no longer log in to the system.
-            You can restore an account anytime by clicking the <strong>Restore</strong> button.
-          </div>
+          <span>Archived users cannot log in or be activated until they are restored. Restoring an account sets the user back to <strong>inactive</strong> status — they must be manually activated afterward.</span>
         </div>
 
         <!-- TABLE CARD -->
@@ -202,9 +205,7 @@
                 <tr>
                   <td data-label="User">
                     <div class="user-cell">
-                      <div class="user-avatar user-avatar--archived">
-                        {{ u.full_name[0]|upper if u.full_name else '?' }}
-                      </div>
+                      <div class="user-avatar user-avatar--archived">{{ u.full_name[0]|upper if u.full_name else '?' }}</div>
                       <div>
                         <div class="td-name">{{ u.full_name }}</div>
                         <div class="td-sub">{{ u.email }}</div>
@@ -220,20 +221,34 @@
                     <span class="td-contact">{{ u.contact_number if u.contact_number else '—' }}</span>
                   </td>
                   <td data-label="Archived On">
-                    {{ u.archived_at.strftime('%b %d, %Y') if u.archived_at else '—' }}
+                    <span class="td-date">
+                      {{ u.archived_at.strftime('%b %d, %Y') if u.archived_at else '—' }}
+                    </span>
                   </td>
                   <td data-label="Archived By">
-                    <span class="td-archived-by">{{ u.archived_by_name if u.archived_by_name else '—' }}</span>
+                    <span class="td-archivedby">{{ u.archived_by_name if u.archived_by_name else '—' }}</span>
                   </td>
                   <td data-label="Action">
-                    <form method="POST"
-                          action="{{ url_for('super_admin.restore_user', user_id=u.id) }}"
-                          onsubmit="return confirm('Restore this user? They will be able to log in again.')">
-                      <button type="submit" class="btn-restore">
-                        <span class="btn-restore-icon"></span>
-                        Restore
-                      </button>
-                    </form>
+                    <div class="action-wrap">
+                      <!-- Restore -->
+                      <form method="POST"
+                            action="{{ url_for('super_admin.restore_user', user_id=u.id) }}"
+                            onsubmit="return confirm('Restore {{ u.full_name }}? Their status will be set to Inactive and must be manually activated.')">
+                        <button type="submit" class="btn-restore">
+                          <span class="btn-restore-icon"></span>
+                          Restore
+                        </button>
+                      </form>
+                      <!-- Permanent Delete -->
+                      <form method="POST"
+                            action="{{ url_for('super_admin.delete_user', user_id=u.id) }}"
+                            onsubmit="return confirm('Permanently delete {{ u.full_name }}? This CANNOT be undone.')">
+                        <button type="submit" class="btn-delete">
+                          <span class="btn-delete-icon"></span>
+                          Delete
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
                 {% endfor %}
@@ -247,7 +262,7 @@
                 {% if search or role_filter %}
                   No archived users match your search. <a href="{{ url_for('super_admin.archived_users') }}" class="empty-link">Clear filters</a>
                 {% else %}
-                  Archived accounts will appear here.
+                  Archived staff accounts will appear here.
                 {% endif %}
               </p>
             </div>

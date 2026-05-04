@@ -1,56 +1,438 @@
-/* BORROWER HISTORY SPECIFIC STYLES */
+/* ============================================================
+   BORROWER HISTORY — report_borrower_history.css
+   Includes: Icons, Hero, Card, Print, Notifications, Responsive
+   ============================================================ */
 
-/* 1. SIDEBAR & DROPDOWN ICONS (PRESERVED) */
+/* 1. SIDEBAR NAV ICON — REPORTS */
 .nav-icon--reports {
   background-color: currentColor !important;
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E") !important;
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/%3E%3C/svg%3E") !important;
-  mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
+  mask-size: contain; -webkit-mask-size: contain;
+  mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
 }
-.nav-item.active { background: rgba(255, 255, 255, 0.16) !important; color: #fff !important; font-weight: 600 !important; position: relative; border-left: none !important; }
-.nav-item.active::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 4px; background: #ffffff; border-radius: 0 4px 4px 0; }
 
-/* 2. CARD HEADER & PRINT BUTTON STYLING */
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  position: relative;
+  border-left: none !important;
+}
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 6px; bottom: 6px;
+  width: 4px;
+  background: #ffffff;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ============================================================
+   2. NOTIFICATION BELL
+   ============================================================ */
+.notif-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notif-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+  margin-right: 8px;
+}
+.notif-btn:hover {
+  background: rgba(255,255,255,0.28);
+  border-color: rgba(255,255,255,0.6);
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 2px solid var(--topbar-bg, #0d9488);
+  line-height: 1;
+}
+
+/* DROPDOWN */
+.notif-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 340px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 9999;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+.notif-dropdown.open { display: block; }
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  font-weight: 700;
+  font-size: 14px;
+  color: #1e293b;
+}
+.notif-mark-all {
+  background: none;
+  border: none;
+  color: #0d9488;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
+}
+.notif-mark-all:hover { opacity: 0.75; }
+
+.notif-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+.notif-list::-webkit-scrollbar { width: 4px; }
+.notif-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.notif-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 10px 18px 4px;
+}
+
+.notif-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 18px;
+  border-bottom: 1px solid #f8fafc;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-decoration: none;
+  color: inherit;
+}
+.notif-item:hover { background: #f8fafc; }
+.notif-item.unread { background: #f0fdfa; }
+
+.notif-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.notif-content { flex: 1; min-width: 0; }
+.notif-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notif-msg {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notif-time {
+  font-size: 10.5px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+.notif-loading {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+.notif-empty {
+  padding: 28px 18px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.notif-footer {
+  padding: 12px 18px;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+}
+.notif-footer a {
+  font-size: 13px;
+  color: #0d9488;
+  font-weight: 600;
+  text-decoration: none;
+}
+.notif-footer a:hover { text-decoration: underline; }
+
+/* ============================================================
+   3. CARD HEADER & PRINT BUTTON
+   ============================================================ */
 .card-header {
-  background-color: #0d9488 !important; /* Hiraya Teal */
+  background-color: #0d9488 !important;
   color: white !important;
   padding: 20px 25px !important;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-radius: 16px 16px 0 0 !important;
+  flex-wrap: wrap;
+  gap: 12px;
 }
-.card-header h3 { color: white !important; margin: 0 !important; }
-.card-header p { color: rgba(255,255,255,0.8) !important; margin: 4px 0 0 !important; }
+.card-header h3 { color: white !important; margin: 0 !important; font-size: 16px; }
+.card-header p  { color: rgba(255,255,255,0.8) !important; margin: 4px 0 0 !important; font-size: 13px; }
 
-.btn-print-header { 
-    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); 
-    color: white; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;
+.btn-print-header {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  white-space: nowrap;
 }
 .btn-print-header:hover { background: rgba(255,255,255,0.3); }
 
-/* 3. HERO HEADER & BADGES */
-.report-hero { background: white; padding: 32px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-.hero-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 20px; }
-.borrower-info h2 { font-family: 'Sora', sans-serif; font-size: 24px; color: var(--text-h); margin: 0; }
+/* ============================================================
+   4. HERO HEADER
+   ============================================================ */
+.report-hero {
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+.hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.borrower-info h2 {
+  font-family: 'Sora', sans-serif;
+  font-size: 24px;
+  color: var(--text-h);
+  margin: 0;
+  word-break: break-word;
+}
 .borrower-info p { color: var(--text-muted); margin: 4px 0 0; font-size: 14px; }
-.loan-ref { text-align: right; }
-.loan-ref label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-.loan-ref span { font-family: 'Sora', sans-serif; font-size: 20px; color: var(--primary); font-weight: 700; }
-.meta-grid-modern { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px; }
-.meta-box label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; }
-.meta-box span { display: block; font-size: 15px; font-weight: 600; color: var(--text-h); }
-.meta-box.highlight span { color: var(--success); font-size: 18px; font-weight: 700; }
 
-/* 4. PRINTING FIX */
+.loan-ref { text-align: right; }
+.loan-ref label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.loan-ref span {
+  font-family: 'Sora', sans-serif;
+  font-size: 20px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.meta-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 24px;
+}
+.meta-box label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.meta-box span {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.meta-box.highlight span {
+  color: var(--success);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   5. TABLE RESPONSIVE WRAPPER
+   ============================================================ */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.data-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+}
+.data-table th, .data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+}
+.data-table th {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: #f8fafc;
+}
+.data-table tbody tr:hover { background: #f8fafc; }
+
+/* ============================================================
+   6. PRINT STYLES
+   ============================================================ */
 @media print {
   @page { size: portrait; margin: 15mm; }
-  .sidebar, .topbar, .sidebar-overlay, .burger-btn, .btn, .user-dropdown, .btn-print-header { display: none !important; }
-  .main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; position: absolute; left: 0; top: 0; }
+  .sidebar, .topbar, .sidebar-overlay, .burger-btn,
+  .btn, .user-dropdown, .btn-print-header,
+  .notif-wrapper, .notif-dropdown { display: none !important; }
+  .main-content {
+    margin: 0 !important; padding: 0 !important;
+    width: 100% !important;
+    position: absolute; left: 0; top: 0;
+  }
   body { background: white !important; }
   .report-hero, .card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
-  .data-table th { background: #f1f5f9 !important; color: black !important; border-bottom: 2px solid #cbd5e1 !important; }
-  .print-footer { display: flex !important; justify-content: space-between; margin-top: 50px; }
-  .sig-box { border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px; font-size: 12px; }
+  .data-table th {
+    background: #f1f5f9 !important;
+    color: black !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+  }
+  .print-footer {
+    display: flex !important;
+    justify-content: space-between;
+    margin-top: 50px;
+  }
+  .sig-box {
+    border-top: 1px solid #000;
+    width: 200px;
+    text-align: center;
+    padding-top: 5px;
+    font-size: 12px;
+  }
 }
 .print-footer { display: none; }
+
+/* ============================================================
+   7. RESPONSIVE — TABLET (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Page body padding */
+  .page-body { padding: 16px !important; }
+
+  /* Hero card */
+  .report-hero { padding: 20px 16px; }
+  .hero-top { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .borrower-info h2 { font-size: 18px; }
+  .loan-ref { text-align: left; }
+  .loan-ref span { font-size: 16px; }
+
+  /* Meta grid — 2 columns on tablet */
+  .meta-grid-modern { grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* Card header stacks */
+  .card-header { padding: 16px !important; }
+  .card-header h3 { font-size: 14px; }
+
+  /* Notification dropdown width */
+  .notif-dropdown { width: 300px; right: -8px; }
+}
+
+/* ============================================================
+   8. RESPONSIVE — MOBILE (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  /* Page body padding */
+  .page-body { padding: 12px !important; }
+
+  /* Hide brand sub on very small screens */
+  .topbar-brand-sub { display: none; }
+
+  /* Hero card */
+  .report-hero { padding: 16px 14px; border-radius: 12px; }
+  .borrower-info h2 { font-size: 16px; }
+  .borrower-info p  { font-size: 12px; }
+
+  /* Meta grid — single column on mobile */
+  .meta-grid-modern { grid-template-columns: 1fr; gap: 12px; }
+  .meta-box span { font-size: 14px; }
+  .meta-box.highlight span { font-size: 15px; }
+
+  /* Card */
+  .card.card--wide { border-radius: 12px !important; }
+  .card-header { padding: 14px !important; flex-direction: column; align-items: flex-start; }
+  .btn-print-header { width: 100%; text-align: center; padding: 10px; }
+
+  /* Table font */
+  .data-table th, .data-table td { font-size: 12px; padding: 10px 12px; }
+
+  /* Notification dropdown full-width */
+  .notif-dropdown {
+    width: calc(100vw - 24px);
+    right: -60px;
+    left: auto;
+  }
+
+  /* Topbar tighter */
+  .topbar-right { gap: 4px !important; }
+  .notif-btn { width: 34px; height: 34px; }
+  .topbar-avatar { width: 34px !important; height: 34px !important; font-size: 13px !important; }
+}

@@ -12,14 +12,11 @@
 </head>
 <body>
 
-<!-- OVERLAY (mobile sidebar backdrop) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
-       TOPBAR
-  ════════════════════════════════════════════════ -->
+  <!-- TOPBAR -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -40,7 +37,6 @@
     </div>
 
     <div class="topbar-right">
-      <!-- NOTIFICATION BELL -->
       <div class="notif-wrap" id="notifWrap">
         <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
           <span class="topbar-icon topbar-icon--notif"></span>
@@ -54,8 +50,6 @@
           </div>
 
           <ul class="notif-list" id="notifList">
-
-            {# ══ Pending Applications ══ #}
             {% set has_apps = pending_applications_notif or (stats is defined and stats.get('pending_applications', 0) > 0) %}
             {% if has_apps %}
               <li class="notif-group-label"><span>Pending Applications</span></li>
@@ -88,7 +82,6 @@
               </li>
             {% endif %}
 
-            {# ══ Recent Activity ══ #}
             {% if activity_logs %}
               <li class="notif-group-label"><span>Recent Activity</span></li>
               {% for log in activity_logs[:5] %}
@@ -114,7 +107,6 @@
               {% endfor %}
             {% endif %}
 
-            {# ══ Empty state ══ #}
             {% if not has_apps and not activity_logs %}
               <li class="notif-empty-item">
                 <span class="notif-empty-icon-img"></span>
@@ -122,7 +114,6 @@
                 <small>No new notifications</small>
               </li>
             {% endif %}
-
           </ul>
 
           <div class="notif-footer">
@@ -131,7 +122,7 @@
             </a>
           </div>
         </div>
-      </div><!-- /.notif-wrap -->
+      </div>
 
       <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Admin' }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
@@ -139,12 +130,10 @@
     </div>
   </header>
 
-  <!-- BODY ROW -->
   <div class="body-row">
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
-
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
         <div class="s-user-info">
@@ -326,17 +315,134 @@
 
         </div>
 
+        <!-- ═══════════════════════════════════════════
+             REFERENCE TABLES SECTION
+        ════════════════════════════════════════════ -->
+        <div class="ref-section-title">
+          <h3>Quick Reference</h3>
+          <p>Use the IDs below to fill in the report forms above</p>
+        </div>
+
+        <div class="ref-tables-grid">
+
+          <!-- BORROWER ID TABLE -->
+          <div class="ref-card" data-animate>
+            <div class="ref-card-header">
+              <div class="ref-header-left">
+                <div class="ref-icon ref-icon--borrower"></div>
+                <div>
+                  <h3>Borrower IDs</h3>
+                  <p>All registered borrowers</p>
+                </div>
+              </div>
+              <div class="ref-search-wrap">
+                <input type="text" id="borrowerSearch" class="ref-search-input" placeholder="Search name or email…" oninput="filterTable('borrowerTable', this.value)"/>
+              </div>
+            </div>
+            <div class="ref-card-body">
+              <div class="ref-table-wrap">
+                <table class="ref-table" id="borrowerTable">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Full Name</th>
+                      <th>Email</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if borrowers_ref %}
+                      {% for b in borrowers_ref %}
+                      <tr>
+                        <td><span class="id-badge id-badge--borrower">#{{ b.id }}</span></td>
+                        <td class="ref-name">{{ b.full_name }}</td>
+                        <td class="ref-email">{{ b.email }}</td>
+                        <td>
+                          {% if b.is_active %}
+                            <span class="status-pill status-pill--active">Active</span>
+                          {% else %}
+                            <span class="status-pill status-pill--inactive">Inactive</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          <button class="use-id-btn" onclick="fillBorrowerId({{ b.id }})" title="Use this ID">
+                            Use
+                          </button>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr><td colspan="5" class="ref-empty">No borrowers found.</td></tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- LOAN ID TABLE -->
+          <div class="ref-card" data-animate>
+            <div class="ref-card-header">
+              <div class="ref-header-left">
+                <div class="ref-icon ref-icon--loan"></div>
+                <div>
+                  <h3>Loan IDs</h3>
+                  <p>All existing loans with borrower info</p>
+                </div>
+              </div>
+              <div class="ref-search-wrap">
+                <input type="text" id="loanSearch" class="ref-search-input" placeholder="Search name or loan no…" oninput="filterTable('loanTable', this.value)"/>
+              </div>
+            </div>
+            <div class="ref-card-body">
+              <div class="ref-table-wrap">
+                <table class="ref-table" id="loanTable">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Loan No.</th>
+                      <th>Borrower</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if loans_ref %}
+                      {% for l in loans_ref %}
+                      <tr>
+                        <td><span class="id-badge id-badge--loan">#{{ l.id }}</span></td>
+                        <td class="ref-loan-no">{{ l.loan_no }}</td>
+                        <td class="ref-name">{{ l.borrower_name }}</td>
+                        <td class="ref-type">{{ l.type_name }}</td>
+                        <td>
+                          <span class="status-pill status-pill--{{ l.status }}">{{ l.status | title }}</span>
+                        </td>
+                        <td>
+                          <button class="use-id-btn use-id-btn--loan" onclick="fillLoanId({{ l.id }})" title="Use this ID">
+                            Use
+                          </button>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr><td colspan="6" class="ref-empty">No loans found.</td></tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /.ref-tables-grid -->
+
       </main>
     </div>
 
   </div>
 </div>
 
-<!-- ================================================================
-     INJECT FLASK URLs FOR USE IN reports.js
-     Jinja2 only renders .html files, NOT static .js files.
-     So we pass the generated URLs here as a JS global object.
-     ================================================================ -->
 <script>
   window.REPORT_URLS = {
     amortization:   "{{ url_for('super_admin.report_amortization',    loan_id=0)     }}",
