@@ -480,3 +480,43 @@ body:not(.sidebar-open) .sidebar { transform: translateX(calc(-1 * var(--sidebar
   .page-body   { padding: 12px; }
   .topbar-logo { display: none; }
 }
+/* Groups the two header buttons side-by-side */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+ 
+/* Archived Users button */
+.btn-archived {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  border-radius: 8px; font-size: 13px; font-weight: 600; font-family: var(--font);
+  color: var(--warning); background: var(--warning-bg);
+  border: 1.5px solid #fcd34d; text-decoration: none; white-space: nowrap;
+  transition: background 0.15s, transform 0.15s;
+  position: relative;
+}
+.btn-archived:hover { background: #fde68a; transform: translateY(-1px); }
+.btn-archived-icon {
+  width: 15px; height: 15px; background: currentColor; flex-shrink: 0;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.93 1H5.12z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.93 1H5.12z'/%3E%3C/svg%3E");
+  mask-size: contain; mask-repeat: no-repeat;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat;
+}
+ 
+/* Count badge on the Archived Users button */
+.archived-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  background: var(--warning); color: #fff;
+}
+ 
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .header-actions { width: 100%; }
+  .btn-archived, .btn-add-user { flex: 1; justify-content: center; }
+}
+ 

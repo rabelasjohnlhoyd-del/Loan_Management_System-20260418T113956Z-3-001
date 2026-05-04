@@ -1051,42 +1051,60 @@ def review_application(app_id):
 @login_required
 @role_required('super_admin')
 def manage_users():
-    role_filter = request.args.get('role', 'all')
-    search      = request.args.get('search', '').strip()
-
+    role_filter   = request.args.get('role', 'all')
+    status_filter = request.args.get('status', 'all')
+    search        = request.args.get('search', '').strip()
+ 
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
-
+ 
+        # Only show NON-archived users (archived_at IS NULL)
         query = """
             SELECT id, full_name, email, role, is_active, created_at, contact_number
             FROM users
             WHERE role != 'borrower'
+              AND (archived_at IS NULL)
         """
         params = []
-
+ 
         if role_filter != 'all':
             query += " AND role = %s"
             params.append(role_filter)
-
+ 
+        if status_filter == 'active':
+            query += " AND is_active = 1"
+        elif status_filter == 'inactive':
+            query += " AND is_active = 0"
+ 
         if search:
             query += " AND (full_name LIKE %s OR email LIKE %s)"
             params += [f'%{search}%', f'%{search}%']
-
+ 
         query += " ORDER BY created_at DESC"
         cursor.execute(query, params)
         users = cursor.fetchall()
-
+ 
+        # Count how many are archived (for the badge on the button)
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt FROM users
+            WHERE role != 'borrower' AND archived_at IS NOT NULL
+        """)
+        archived_count = cursor.fetchone()['cnt']
+ 
         cursor.close()
         conn.close()
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-        users = []
-
+        users         = []
+        archived_count = 0
+ 
     return render_template('manage_users.html',
                            users=users,
                            role_filter=role_filter,
-                           search=search)
+                           status_filter=status_filter,
+                           search=search,
+                           archived_count=archived_count)
 
 
 @super_admin_bp.route('/users/create', methods=['GET', 'POST'])
@@ -1134,47 +1152,168 @@ def archive_user(user_id):
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT full_name, role, is_active FROM users WHERE id = %s", (user_id,))
+        cursor.execute("SELECT full_name, role FROM users WHERE id = %s", (user_id,))
         user = cursor.fetchone()
-
+ 
         if not user:
             flash('User not found.', 'danger')
             cursor.close(); conn.close()
             return redirect(url_for('super_admin.manage_users'))
-
+ 
         if user['role'] in ('super_admin', 'admin'):
             flash('Protected accounts cannot be archived.', 'danger')
             cursor.close(); conn.close()
             return redirect(url_for('super_admin.manage_users'))
-
+ 
+        # Mark archived AND deactivate so they cannot log in
         cursor.execute("""
-            UPDATE users SET is_active = 0, archived_at = NOW(), archived_by = %s WHERE id = %s
+            UPDATE users
+            SET is_active   = 0,
+                archived_at = NOW(),
+                archived_by = %s
+            WHERE id = %s
         """, (session.get('user_id'), user_id))
         conn.commit()
-
+ 
         log_activity('archive_user', f'Archived user ID {user_id} ({user["role"]}): {user["full_name"]}')
         flash(f'{user["full_name"]} has been archived.', 'success')
-        cursor.close()
-        conn.close()
-
-    except mysql.connector.Error as e:
-        try:
-            conn2   = get_db()
-            cursor2 = conn2.cursor(dictionary=True)
-            cursor2.execute("SELECT full_name, role FROM users WHERE id = %s", (user_id,))
-            user2 = cursor2.fetchone()
-            if user2 and user2['role'] not in ('super_admin', 'admin'):
-                cursor2.execute("UPDATE users SET is_active = 0 WHERE id = %s", (user_id,))
-                conn2.commit()
-                log_activity('archive_user', f'Archived (fallback) user ID {user_id}')
-                flash(f'{user2["full_name"]} has been archived.', 'success')
-            cursor2.close(); conn2.close()
-        except Exception as e2:
-            flash(f'Error archiving user: {str(e2)}', 'danger')
+        cursor.close(); conn.close()
+ 
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-
+ 
     return redirect(url_for('super_admin.manage_users'))
+
+@super_admin_bp.route('/users/archived')
+@login_required
+@role_required('super_admin')
+def archived_users():
+    role_filter = request.args.get('role', 'all')
+    search      = request.args.get('search', '').strip()
+ 
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+ 
+        query = """
+            SELECT u.id, u.full_name, u.email, u.role,
+                   u.contact_number, u.archived_at,
+                   archiver.full_name AS archived_by_name
+            FROM users u
+            LEFT JOIN users archiver ON archiver.id = u.archived_by
+            WHERE u.role != 'borrower'
+              AND u.archived_at IS NOT NULL
+        """
+        params = []
+ 
+        if role_filter != 'all':
+            query += " AND u.role = %s"
+            params.append(role_filter)
+ 
+        if search:
+            query += " AND (u.full_name LIKE %s OR u.email LIKE %s)"
+            params += [f'%{search}%', f'%{search}%']
+ 
+        query += " ORDER BY u.archived_at DESC"
+        cursor.execute(query, params)
+        users = cursor.fetchall()
+ 
+        cursor.close(); conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        users = []
+ 
+    return render_template('archived_users.html',
+                           users=users,
+                           role_filter=role_filter,
+                           search=search)
+    
+# ─────────────────────────────────────────────
+# NEW: Restore archived user
+# Sets archived_at = NULL and is_active = 0
+# (inactive — must be manually activated after restore)
+# ─────────────────────────────────────────────
+@super_admin_bp.route('/users/<int:user_id>/restore', methods=['POST'])
+@login_required
+@role_required('super_admin')
+def restore_user(user_id):
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT full_name, archived_at FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+ 
+        if not user:
+            flash('User not found.', 'danger')
+            cursor.close(); conn.close()
+            return redirect(url_for('super_admin.archived_users'))
+ 
+        if not user.get('archived_at'):
+            flash('This user is not archived.', 'warning')
+            cursor.close(); conn.close()
+            return redirect(url_for('super_admin.archived_users'))
+ 
+        # Restore: clear archive fields, keep is_active = 0
+        # (super admin must explicitly activate them after review)
+        cursor.execute("""
+            UPDATE users
+            SET archived_at = NULL,
+                archived_by = NULL,
+                is_active   = 0
+            WHERE id = %s
+        """, (user_id,))
+        conn.commit()
+ 
+        log_activity('restore_user', f'Restored user ID {user_id}: {user["full_name"]}')
+        flash(f'{user["full_name"]} has been restored and is now Inactive. Activate them from Manage Users when ready.', 'success')
+        cursor.close(); conn.close()
+ 
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+ 
+    return redirect(url_for('super_admin.archived_users'))
+
+# ─────────────────────────────────────────────
+# NEW: Permanently delete archived user
+# ─────────────────────────────────────────────
+@super_admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@role_required('super_admin')
+def delete_user(user_id):
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT full_name, role, archived_at FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+ 
+        if not user:
+            flash('User not found.', 'danger')
+            cursor.close(); conn.close()
+            return redirect(url_for('super_admin.archived_users'))
+ 
+        if user['role'] in ('super_admin', 'admin'):
+            flash('Protected accounts cannot be deleted.', 'danger')
+            cursor.close(); conn.close()
+            return redirect(url_for('super_admin.archived_users'))
+ 
+        if not user.get('archived_at'):
+            flash('Only archived users can be permanently deleted.', 'warning')
+            cursor.close(); conn.close()
+            return redirect(url_for('super_admin.archived_users'))
+ 
+        name = user['full_name']
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        conn.commit()
+ 
+        log_activity('delete_user', f'Permanently deleted user ID {user_id}: {name}')
+        flash(f'{name} has been permanently deleted.', 'success')
+        cursor.close(); conn.close()
+ 
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+ 
+    return redirect(url_for('super_admin.archived_users'))
+ 
 
 
 @super_admin_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
@@ -1184,10 +1323,15 @@ def toggle_user_status(user_id):
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT full_name, is_active FROM users WHERE id = %s", (user_id,))
+        cursor.execute("SELECT full_name, is_active, archived_at FROM users WHERE id = %s", (user_id,))
         user = cursor.fetchone()
+ 
         if not user:
             flash('User not found.', 'danger')
+        elif user.get('archived_at'):
+            # Archived users cannot be toggled from manage_users —
+            # they must be restored from the Archived Users page first.
+            flash('This user is archived. Restore them from the Archived Users page before changing their status.', 'warning')
         else:
             new_status = 0 if user['is_active'] else 1
             cursor.execute("UPDATE users SET is_active = %s WHERE id = %s", (new_status, user_id))
@@ -1195,13 +1339,12 @@ def toggle_user_status(user_id):
             label = 'activated' if new_status else 'deactivated'
             log_activity('toggle_user_status', f'User {user_id} {label}')
             flash(f'{user["full_name"]} has been {label}.', 'success')
-        cursor.close()
-        conn.close()
+ 
+        cursor.close(); conn.close()
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-
+ 
     return redirect(url_for('super_admin.manage_users'))
-
 
 # ═════════════════════════════════════════════
 # PENALTIES & OVERDUE

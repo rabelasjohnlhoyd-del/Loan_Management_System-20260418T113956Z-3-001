@@ -16,9 +16,7 @@
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
-       TOPBAR
-  ════════════════════════════════════════════════ -->
+  <!-- TOPBAR -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -58,9 +56,7 @@
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════════
-       BODY ROW
-  ════════════════════════════════════════════════ -->
+  <!-- BODY ROW -->
   <div class="body-row">
 
     <!-- SIDEBAR -->
@@ -142,10 +138,19 @@
               <p class="loans-page-sub">Manage admin, loan officer, and auditor accounts</p>
             </div>
           </div>
-          <a href="{{ url_for('super_admin.create_user') }}" class="btn-add-user">
-            <span class="btn-add-icon"></span>
-            Add User
-          </a>
+          <div class="header-actions">
+            <a href="{{ url_for('super_admin.archived_users') }}" class="btn-archived">
+              <span class="btn-archived-icon"></span>
+              Archived Users
+              {% if archived_count and archived_count > 0 %}
+              <span class="archived-badge">{{ archived_count }}</span>
+              {% endif %}
+            </a>
+            <a href="{{ url_for('super_admin.create_user') }}" class="btn-add-user">
+              <span class="btn-add-icon"></span>
+              Add User
+            </a>
+          </div>
         </div>
 
         <!-- FLASH MESSAGES -->
@@ -249,7 +254,7 @@
                         <!-- Archive -->
                         <form method="POST"
                               action="{{ url_for('super_admin.archive_user', user_id=u.id) }}"
-                              onsubmit="return confirm('Archive this user? They will no longer be able to log in.')">
+                              onsubmit="return confirm('Archive this user? They will be moved to the Archived Users list and cannot log in.')">
                           <button type="submit" class="btn-archive">
                             <span class="btn-archive-icon"></span>
                             Archive
