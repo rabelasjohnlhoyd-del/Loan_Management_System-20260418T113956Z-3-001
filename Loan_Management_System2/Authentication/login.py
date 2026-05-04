@@ -319,16 +319,26 @@ def register():
                 datetime.datetime.now()
             ))
             
-            # Kunin ang bagong gawang user_id
+         
             new_user_id = cursor.lastrowid
             
-            # --- 5. INITIAL STABILITY SYNC (Ang dinagdag natin) ---
-            # Gawan agad ng entry sa borrower_profiles para hindi mag-error si Admin
-            cursor.execute("INSERT INTO borrower_profiles (user_id) VALUES (%s)", (new_user_id,))
-            conn.commit() # I-save muna si User at Profile
             
-            # Tawagin ang function para i-compute ang starting score base sa work info
-            # In-import natin ito sa loob para iwas circular import error
+            cursor.execute("INSERT INTO borrower_profiles (user_id) VALUES (%s)", (new_user_id,))
+            default_wallets = [
+            ('gcash',    'GC-' + str(new_user_id).zfill(10), 50000.00),
+            ('maya',     'MY-' + str(new_user_id).zfill(10), 50000.00),
+            ('bdo',      'BD-' + str(new_user_id).zfill(10), 50000.00),
+            ('bpi',      'BP-' + str(new_user_id).zfill(10), 50000.00),
+            ('landbank', 'LB-' + str(new_user_id).zfill(10), 50000.00),
+            ('visa',     'VS-' + str(new_user_id).zfill(10), 50000.00),
+            ]
+            cursor.executemany("""
+            INSERT INTO dummy_wallets (user_id, method, account_number, balance)
+            VALUES (%s, %s, %s, %s)
+            """, [(new_user_id, m, acct, bal) for m, acct, bal in default_wallets])
+            conn.commit() 
+            
+            
             try:
                 from Loan_Management_System2.Borrower.borrower import recalculate_borrower_metrics
                 recalculate_borrower_metrics(new_user_id)
@@ -445,7 +455,7 @@ def validate_id_api():
     if 'reg_data' not in session or not session.get('otp_verified'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    gemini_key = 'AIzaSyBcMLHTgJFEpFYej4CGk1jutzOFp5FX5Jo'
+    gemini_key = 'AIzaSyDc2lBioV7SupmGvdQcifS_KfoQ6pqX0ZA'
     data = request.json or {}
     id_b64 = data.get('id_image')
     selfie_b64 = data.get('selfie_image')
