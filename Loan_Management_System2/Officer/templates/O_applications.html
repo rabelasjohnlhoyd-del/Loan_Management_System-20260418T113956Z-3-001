@@ -6,148 +6,258 @@
   <title>Loan Applications — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_applications.css') }}"/>
 </head>
 <body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
+
+  <!-- TOPBAR -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
     </div>
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
-      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
-      <span class="s-chevron"></span>
-    </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item"><span class="nav-icon nav-icon--verification"></span>ID Verification</a>
-      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item active"><span class="nav-icon nav-icon--applications"></span>Applications</a>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item"><span class="nav-icon nav-icon--loans"></span>Active Loans</a>
-      <a href="{{ url_for('officer.payment_list') }}" class="nav-item"><span class="nav-icon nav-icon--payments"></span>Payments</a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
-      </form>
-    </div>
-  </aside>
 
-  <div class="main-content">
-    <header class="topbar">
-      <div>
-        <div class="topbar-heading">Loan Applications</div>
-        <div class="topbar-sub">Review &amp; recommend applications for admin approval</div>
+    <div class="topbar-center">
+      <h1 class="topbar-title">Loan Applications</h1>
+      <p class="topbar-sub">Review & recommend applications for admin approval</p>
+    </div>
+
+    <div class="topbar-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-empty-item">
+              <span class="notif-empty-icon-img"></span>
+              <p>You're all caught up!</p>
+              <small>No new notifications</small>
+            </li>
+          </ul>
+          <div class="notif-footer">
+            <a href="{{ url_for('officer.my_activity') }}" class="notif-see-all">See all activity →</a>
+          </div>
+        </div>
       </div>
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
-    </header>
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar">
+        {{ session.user_name[0]|upper if session.user_name else 'O' }}
+      </a>
+    </div>
+  </header>
 
-    <main class="page-body">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}<div class="flash-wrap">{% for c, m in messages %}<div class="alert alert-{{ c }}">{{ m }}</div>{% endfor %}</div>{% endif %}
-      {% endwith %}
+  <div class="body-row">
 
-      <!-- Status Tabs -->
-      <form method="GET" action="{{ url_for('officer.officer_applications') }}">
-        <div class="toolbar">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Loan Officer' }}</h4>
+          <div class="s-role-badge">LOAN OFFICER</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--verification"></span><span class="nav-label">ID Verification</span>
+        </a>
+        <a href="{{ url_for('officer.officer_applications') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('officer.officer_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--loans"></span><span class="nav-label">Active Loans</span>
+        </a>
+        <a href="{{ url_for('officer.payment_list') }}" class="nav-item">
+          <span class="nav-icon nav-icon--payments"></span><span class="nav-label">Payments</span>
+        </a>
+        <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
+          <span class="nav-icon nav-icon--locked"></span><span class="nav-label">Locked Accounts</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <a href="{{ url_for('officer.officer_dashboard') }}" class="btn-back">
+              <span class="btn-back-icon"></span> Dashboard
+            </a>
+            <div>
+              <h2 class="page-title">Loan Applications</h2>
+              <p class="page-sub">Review and recommend applications for admin approval</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- Status Tabs -->
+        <div class="status-tabs">
+          {% for s in [('all','All'), ('submitted','Submitted'), ('under_review','Under Review'), ('flagged','Flagged'), ('approved','Approved'), ('rejected','Rejected')] %}
+          <a href="{{ url_for('officer.officer_applications', status=s[0], search=search) }}"
+             class="status-tab {{ 'active' if status_filter == s[0] }}">
+            {{ s[1] }}
+            <span class="tab-count">{{ counts.get(s[0], 0) }}</span>
+          </a>
+          {% endfor %}
+        </div>
+
+        <!-- Filter Bar -->
+        <form method="GET" action="{{ url_for('officer.officer_applications') }}" class="filter-bar">
+          <input type="hidden" name="status" value="{{ status_filter }}"/>
           <div class="search-wrap">
             <span class="search-icon"></span>
-            <input type="text" name="search" placeholder="Search name, ref no, email…" value="{{ search }}"/>
+            <input type="text" class="search-input" name="search" placeholder="Search by name, email or reference no..." value="{{ search }}"/>
           </div>
-          <div class="filter-tabs">
-            <a href="{{ url_for('officer.officer_applications') }}" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All <span class="tab-count">{{ counts.get('all', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_applications', status='submitted') }}" class="filter-tab {% if status_filter == 'submitted' %}active{% endif %}">Submitted <span class="tab-count">{{ counts.get('submitted', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_applications', status='under_review') }}" class="filter-tab {% if status_filter == 'under_review' %}active{% endif %}">Under Review <span class="tab-count">{{ counts.get('under_review', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_applications', status='flagged') }}" class="filter-tab {% if status_filter == 'flagged' %}active{% endif %}">Flagged <span class="tab-count">{{ counts.get('flagged', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_applications', status='approved') }}" class="filter-tab {% if status_filter == 'approved' %}active{% endif %}">Approved <span class="tab-count">{{ counts.get('approved', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_applications', status='rejected') }}" class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">Rejected <span class="tab-count">{{ counts.get('rejected', 0) }}</span></a>
-          </div>
-        </div>
-      </form>
+          <button type="submit" class="btn-filter">Filter</button>
+          {% if search %}
+          <a href="{{ url_for('officer.officer_applications', status=status_filter) }}" class="btn-clear">Clear</a>
+          {% endif %}
+        </form>
 
-      <div class="card">
-        <div class="card-info">
-          <span>Showing {{ applications|length }} application(s)</span>
-          <span style="font-size:11px;color:var(--yellow);">⚠ Officer can recommend only — admin makes final approval</span>
+        <!-- Applications Table -->
+        <div class="card">
+          <div class="card-info">
+            <span>Showing <span id="resultCount">{{ applications|length }}</span> application(s)</span>
+            <span style="font-size:11px; color:var(--warning);">⚠ Officer can recommend only — admin makes final approval</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Borrower</th>
+                  <th>Loan Type</th>
+                  <th>Plan</th>
+                  <th>Amount</th>
+                  <th>Term</th>
+                  <th>Credit Score</th>
+                  <th>Risk</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="appTableBody">
+                {% for app in applications %}
+                <tr class="app-row">
+                  <td data-label="Reference"><span class="ref-code">{{ app.reference_no }}</span></td>
+                  <td data-label="Borrower">
+                    <div class="borrower-name">{{ app.borrower_name }}</div>
+                    <div class="borrower-email">{{ app.borrower_email }}</div>
+                  </td>
+                  <td data-label="Loan Type">{{ app.type_name }}</td>
+                  <td data-label="Plan" class="td-muted">{{ app.plan_name }}</td>
+                  <td data-label="Amount" class="td-amount">₱{{ "{:,.2f}".format(app.amount_requested) }}</td>
+                  <td data-label="Term">{{ app.term_months }} mo.</td>
+                  <td data-label="Credit Score">
+                    {% set score = app.credit_score | int %}
+                    <span class="score-text {% if score >= 700 %}score-high{% elif score >= 550 %}score-med{% else %}score-low{% endif %}">{{ score }}</span>
+                  </td>
+                  <td data-label="Risk">
+                    {% set r = app.risk_level | lower %}
+                    {% if r == 'low' %}<span class="risk-low">Low</span>
+                    {% elif r == 'high' %}<span class="risk-high">High</span>
+                    {% else %}<span class="risk-medium">{{ app.risk_level }}</span>{% endif %}
+                  </td>
+                  <td data-label="Status">
+                    {% if app.status == 'submitted' %}<span class="badge badge--submitted">Submitted</span>
+                    {% elif app.status == 'under_review' %}<span class="badge badge--under_review">Under Review</span>
+                    {% elif app.status == 'approved' %}<span class="badge badge--approved">Approved</span>
+                    {% elif app.status == 'rejected' %}<span class="badge badge--rejected">Rejected</span>
+                    {% elif app.status == 'flagged' %}<span class="badge badge--flagged">Flagged</span>
+                    {% else %}<span class="badge badge--pending">{{ app.status | title }}</span>{% endif %}
+                  </td>
+                  <td data-label="Submitted" class="td-date">
+                    {% if app.submitted_at %}{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at.__class__.__name__ != 'str' else app.submitted_at }}{% else %}—{% endif %}
+                  </td>
+                  <td data-label="Action">
+                    {% if app.status in ('submitted', 'under_review') %}
+                      <a href="{{ url_for('officer.officer_application_detail', app_id=app.id) }}" class="tbl-btn tbl-btn--process">Review</a>
+                    {% else %}
+                      <a href="{{ url_for('officer.officer_application_detail', app_id=app.id) }}" class="tbl-btn tbl-btn--view">View</a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% else %}
+                <tr id="emptyRow">
+                  <td colspan="11"><div class="empty-state">No applications found matching your filters.</div></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Container -->
+          <div id="appPaginationContainer" class="pagination-container">
+            <div id="appPaginationInfo" class="pagination-info"></div>
+            <div id="appPaginationButtons" class="pagination-buttons"></div>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Reference</th>
-                <th>Borrower</th>
-                <th>Loan Type</th>
-                <th>Plan</th>
-                <th>Amount</th>
-                <th>Term</th>
-                <th>Credit Score</th>
-                <th>Risk</th>
-                <th>Status</th>
-                <th>Submitted</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for app in applications %}
-              <tr>
-                <td><span class="ref-code">{{ app.reference_no }}</span></td>
-                <td>
-                  <div class="borrower-name">{{ app.borrower_name }}</div>
-                  <div class="borrower-email">{{ app.borrower_email }}</div>
-                </td>
-                <td>{{ app.type_name }}</td>
-                <td style="font-size:12px;color:var(--muted);">{{ app.plan_name }}</td>
-                <td style="font-weight:600;">₱{{ "{:,.2f}".format(app.amount_requested) }}</td>
-                <td style="color:var(--muted);">{{ app.term_months }} mo.</td>
-                <td>
-                  {% set score = app.credit_score | int %}
-                  <span style="font-weight:600;{% if score >= 700 %}color:var(--green);{% elif score >= 550 %}color:var(--yellow);{% else %}color:var(--red);{% endif %}">{{ score }}</span>
-                </td>
-                <td>
-                  {% set r = app.risk_level | lower %}
-                  {% if r == 'low' %}<span class="badge risk-low">Low</span>
-                  {% elif r == 'high' %}<span class="badge risk-high">High</span>
-                  {% else %}<span class="badge risk-medium">{{ app.risk_level }}</span>{% endif %}
-                </td>
-                <td>
-                  {% if app.status == 'submitted' %}<span class="badge badge--submitted">Submitted</span>
-                  {% elif app.status == 'under_review' %}<span class="badge badge--review">Under Review</span>
-                  {% elif app.status == 'approved' %}<span class="badge badge--approved">Approved</span>
-                  {% elif app.status == 'rejected' %}<span class="badge badge--rejected">Rejected</span>
-                  {% elif app.status == 'flagged' %}<span class="badge badge--flagged">Flagged</span>
-                  {% else %}<span class="badge badge--cancelled">{{ app.status | title }}</span>{% endif %}
-                </td>
-                <td style="font-size:12px;color:var(--muted);">
-                  {% if app.submitted_at %}{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at.__class__.__name__ != 'str' else app.submitted_at }}{% else %}—{% endif %}
-                </td>
-                <td>
-                  {% if app.status in ('submitted', 'under_review') %}
-                    <a href="{{ url_for('officer.officer_application_detail', app_id=app.id) }}" class="tbl-btn tbl-btn--process">Review</a>
-                  {% else %}
-                    <a href="{{ url_for('officer.officer_application_detail', app_id=app.id) }}" class="tbl-btn tbl-btn--view">View</a>
-                  {% endif %}
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="11"><div class="empty-state">No applications found matching your filters.</div></td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+
+      </main>
+    </div>
+
   </div>
 </div>
 
 <script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='O_applications.js') }}"></script>
 </body>
 </html>

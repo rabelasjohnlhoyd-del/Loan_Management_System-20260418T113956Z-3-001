@@ -2,323 +2,441 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"/>
   <title>Borrower Detail — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
-
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_borrower_detail.css') }}"/>
 </head>
 <body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
+
+  <!-- TOPBAR -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
     </div>
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
-      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
-      <span class="s-chevron"></span>
-    </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item"><span class="nav-icon nav-icon--verification"></span>ID Verification</a>
-      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>Applications</a>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item active"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item"><span class="nav-icon nav-icon--loans"></span>Active Loans</a>
-      <a href="{{ url_for('officer.payment_list') }}" class="nav-item"><span class="nav-icon nav-icon--payments"></span>Payments</a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
-      </form>
-    </div>
-  </aside>
 
-  <div class="main-content">
-    <header class="topbar">
-      <div>
-        <div class="topbar-heading">{{ borrower.full_name }}</div>
-        <div class="topbar-sub">Borrower Profile · ID: #{{ borrower.id }}</div>
+    <div class="topbar-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-empty-item">
+              <span class="notif-empty-icon-img"></span>
+              <p>You're all caught up!</p>
+              <small>No new notifications</small>
+            </li>
+          </ul>
+          <div class="notif-footer">
+            <a href="{{ url_for('officer.my_activity') }}" class="notif-see-all">See all activity →</a>
+          </div>
+        </div>
       </div>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="btn btn-ghost btn-sm">← Borrowers</a>
-    </header>
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar">
+        {{ session.user_name[0]|upper if session.user_name else 'O' }}
+      </a>
+    </div>
+  </header>
 
-    <main class="page-body">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}<div class="flash-wrap">{% for c, m in messages %}<div class="alert alert-{{ c }}">{{ m }}</div>{% endfor %}</div>{% endif %}
-      {% endwith %}
+  <div class="body-row">
 
-      <div class="detail-grid">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Loan Officer' }}</h4>
+          <div class="s-role-badge">LOAN OFFICER</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
 
-        <!-- LEFT SIDEBAR -->
-        <div class="detail-col">
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+      </div>
 
-          <!-- Profile Card -->
-          <div class="card">
-            <div class="profile-banner"></div>
-            <div class="profile-header-content">
-              <div class="profile-avatar-wrap">
-                <div class="profile-avatar">{{ borrower.full_name[0]|upper }}</div>
-              </div>
-              <div class="profile-name">{{ borrower.full_name }}</div>
-              <div class="profile-email">{{ borrower.email }}</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
-                {% set vstatus = borrower.id_verification_status | lower %}
-                {% if vstatus == 'verified' %}<span class="badge badge--verified">✓ Verified</span>
-                {% elif vstatus == 'rejected' %}<span class="badge badge--rejected">✗ Rejected</span>
-                {% else %}<span class="badge badge--pending">⏳ {{ borrower.id_verification_status | title }}</span>{% endif %}
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--verification"></span><span class="nav-label">ID Verification</span>
+        </a>
+        <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('officer.officer_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--loans"></span><span class="nav-label">Active Loans</span>
+        </a>
+        <a href="{{ url_for('officer.payment_list') }}" class="nav-item">
+          <span class="nav-icon nav-icon--payments"></span><span class="nav-label">Payments</span>
+        </a>
+        <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
+          <span class="nav-icon nav-icon--locked"></span><span class="nav-label">Locked Accounts</span>
+        </a>
+      </nav>
 
-                {% set r = borrower.risk_level | lower %}
-                {% if r == 'low' %}<span class="badge risk-low">Low Risk</span>
-                {% elif r == 'high' %}<span class="badge risk-high">High Risk</span>
-                {% else %}<span class="badge risk-medium">{{ borrower.risk_level }} Risk</span>{% endif %}
-              </div>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <a href="{{ url_for('officer.manage_borrowers') }}" class="btn-back">
+              <span class="btn-back-icon"></span> Borrowers
+            </a>
+            <div>
+              <h2 class="page-title">{{ borrower.full_name }}</h2>
+              <p class="page-sub">Borrower Profile · ID: #{{ borrower.id }}</p>
             </div>
+          </div>
+        </div>
 
-            <!-- Credit Score Display -->
-            <div style="padding: 0 20px 20px;">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- DETAIL GRID -->
+        <div class="detail-grid">
+
+          <!-- LEFT COLUMN -->
+          <div class="detail-col">
+            
+            <!-- Profile Card -->
+            <div class="card profile-card">
+              <div class="profile-banner"></div>
+              <div class="profile-header-content">
+                <div class="profile-avatar-wrap">
+                  <div class="profile-avatar">{{ borrower.full_name[0]|upper }}</div>
+                </div>
+                <div class="profile-name">{{ borrower.full_name }}</div>
+                <div class="profile-email">{{ borrower.email }}</div>
+                <div class="profile-badges">
+                  {% set vstatus = borrower.id_verification_status | lower %}
+                  {% if vstatus == 'verified' %}
+                    <span class="badge badge-success">✓ Verified</span>
+                  {% elif vstatus == 'rejected' %}
+                    <span class="badge badge-danger">✗ Rejected</span>
+                  {% else %}
+                    <span class="badge badge-warning">⏳ {{ borrower.id_verification_status | title }}</span>
+                  {% endif %}
+                  {% set r = borrower.risk_level | lower %}
+                  {% if r == 'low' %}
+                    <span class="badge risk-low">Low Risk</span>
+                  {% elif r == 'high' %}
+                    <span class="badge risk-high">High Risk</span>
+                  {% else %}
+                    <span class="badge risk-medium">{{ borrower.risk_level }} Risk</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Credit Score Section -->
               <div class="score-section">
-                <div class="info-label" style="margin-bottom:10px;">Credit Score</div>
+                <div class="info-label">Credit Score</div>
                 {% set score = borrower.credit_score | int %}
                 {% set pct = [((score - 300) / 550 * 100), 0] | max | int %}
-                {% if score >= 700 %}{% set sc = 'var(--green)' %}{% set slabel = 'Excellent' %}
-                {% elif score >= 600 %}{% set sc = 'var(--accent)' %}{% set slabel = 'Good' %}
-                {% elif score >= 500 %}{% set sc = 'var(--yellow)' %}{% set slabel = 'Fair' %}
-                {% else %}{% set sc = 'var(--red)' %}{% set slabel = 'Poor' %}{% endif %}
+                {% if score >= 700 %}
+                  {% set sc = 'var(--success)' %}
+                  {% set slabel = 'Excellent' %}
+                {% elif score >= 600 %}
+                  {% set sc = 'var(--primary)' %}
+                  {% set slabel = 'Good' %}
+                {% elif score >= 500 %}
+                  {% set sc = 'var(--warning)' %}
+                  {% set slabel = 'Fair' %}
+                {% else %}
+                  {% set sc = 'var(--danger)' %}
+                  {% set slabel = 'Poor' %}
+                {% endif %}
                 <div class="score-row">
-                  <span class="score-number" style="color:{{ sc }};">{{ score }}</span>
-                  <div>
+                  <span class="score-number" style="color: {{ sc }};">{{ score }}</span>
+                  <div class="score-bar-wrap">
                     <div class="score-bar-bg">
-                      <div class="score-bar-fill" style="width:{{ pct }}%;background:{{ sc }};"></div>
+                      <div class="score-bar-fill" style="width: {{ pct }}%; background: {{ sc }};"></div>
                     </div>
                     <div class="score-sublabel">{{ slabel }} · {{ pct }}th percentile</div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Update Credit Score -->
-          <div class="card">
-            <div class="card-header"><h3>Update Credit Score & Risk</h3></div>
-            <div class="card-body">
-              <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Adjust the borrower's credit score and risk classification based on your assessment.</p>
-              <form action="{{ url_for('officer.update_score', user_id=borrower.id) }}" method="POST" class="update-form">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Credit Score (300–850)</label>
-                    <input type="number" name="credit_score" value="{{ borrower.credit_score }}" class="form-input" min="300" max="850" required/>
+            <!-- Update Credit Score Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Update Credit Score &amp; Risk</h3>
+              </div>
+              <div class="card-body">
+                <p class="form-hint">Adjust the borrower's credit score and risk classification based on your assessment.</p>
+                <form action="{{ url_for('officer.update_score', user_id=borrower.id) }}" method="POST" class="update-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Credit Score (300–850)</label>
+                      <input type="number" name="credit_score" value="{{ borrower.credit_score }}" class="form-input" min="300" max="850" required>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Risk Level</label>
+                      <select name="risk_level" class="form-select" required>
+                        <option value="low" {{ 'selected' if borrower.risk_level|lower == 'low' }}>🟢 Low Risk</option>
+                        <option value="medium" {{ 'selected' if borrower.risk_level|lower == 'medium' or borrower.risk_level == 'Not Set' }}>🟡 Medium Risk</option>
+                        <option value="high" {{ 'selected' if borrower.risk_level|lower == 'high' }}>🔴 High Risk</option>
+                      </select>
+                    </div>
                   </div>
-                  <div class="form-group">
-                    <label class="form-label">Risk Level</label>
-                    <select name="risk_level" class="form-select" required>
-                      <option value="low"    {% if borrower.risk_level|lower == 'low' %}selected{% endif %}>🟢 Low Risk</option>
-                      <option value="medium" {% if borrower.risk_level|lower == 'medium' or borrower.risk_level == 'Not Set' %}selected{% endif %}>🟡 Medium Risk</option>
-                      <option value="high"   {% if borrower.risk_level|lower == 'high' %}selected{% endif %}>🔴 High Risk</option>
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" class="btn-save">💾 Save Changes</button>
-              </form>
+                  <button type="submit" class="btn-save">💾 Save Changes</button>
+                </form>
+              </div>
             </div>
+
+            <!-- Loan Statistics Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Loan Statistics</h3>
+              </div>
+              <div class="card-body">
+                <div class="stats-row">
+                  <div class="stat-mini">
+                    <div class="val">{{ borrower.total_loans }}</div>
+                    <div class="lbl">Total</div>
+                  </div>
+                  <div class="stat-mini">
+                    <div class="val" style="color: var(--warning);">{{ borrower.active_loans }}</div>
+                    <div class="lbl">Active</div>
+                  </div>
+                  <div class="stat-mini">
+                    <div class="val" style="color: var(--success);">{{ borrower.paid_loans }}</div>
+                    <div class="lbl">Paid</div>
+                  </div>
+                </div>
+                <div class="divider"></div>
+                <div class="stats-list">
+                  <div class="stat-row">
+                    <span class="stat-label">Total Borrowed</span>
+                    <span class="stat-value">₱{{ "{:,.2f}".format(borrower.total_borrowed) }}</span>
+                  </div>
+                  <div class="stat-row">
+                    <span class="stat-label">Total Paid</span>
+                    <span class="stat-value" style="color: var(--success);">₱{{ "{:,.2f}".format(borrower.total_paid) }}</span>
+                  </div>
+                  <div class="stat-row">
+                    <span class="stat-label">Defaulted</span>
+                    <span class="stat-value" style="{% if borrower.defaulted_loans > 0 %}color: var(--danger);{% endif %}">{{ borrower.defaulted_loans }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <!-- Loan Stats -->
-          <div class="card">
-            <div class="card-header"><h3>Loan Statistics</h3></div>
-            <div class="card-body">
-              <div class="stats-row" style="margin-bottom:14px;">
-                <div class="stat-mini">
-                  <div class="val" style="color:var(--accent);">{{ borrower.total_loans }}</div>
-                  <div class="lbl">Total</div>
-                </div>
-                <div class="stat-mini">
-                  <div class="val" style="color:var(--yellow);">{{ borrower.active_loans }}</div>
-                  <div class="lbl">Active</div>
-                </div>
-                <div class="stat-mini">
-                  <div class="val" style="color:var(--green);">{{ borrower.paid_loans }}</div>
-                  <div class="lbl">Paid</div>
+          <!-- RIGHT COLUMN -->
+          <div class="detail-col">
+
+            <!-- Personal Information Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Personal Information</h3>
+              </div>
+              <div class="card-body">
+                <div class="info-grid">
+                  <div class="info-field">
+                    <div class="info-label">Full Name</div>
+                    <div class="info-value">{{ borrower.full_name }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">{{ borrower.email }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Contact Number</div>
+                    <div class="info-value">{{ borrower.contact_number or '—' }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Date of Birth</div>
+                    <div class="info-value">
+                      {% if borrower.date_of_birth %}{{ borrower.date_of_birth.strftime('%B %d, %Y') if borrower.date_of_birth.__class__.__name__ != 'str' else borrower.date_of_birth }}{% else %}—{% endif %}
+                    </div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Age</div>
+                    <div class="info-value">{{ borrower.age or '—' }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Gender</div>
+                    <div class="info-value">{{ borrower.gender or '—' }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Civil Status</div>
+                    <div class="info-value">{{ borrower.civil_status or '—' }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Nationality</div>
+                    <div class="info-value">{{ borrower.nationality or '—' }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Employment Type</div>
+                    <div class="info-value">{{ borrower.employment_type or '—' }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Source of Funds</div>
+                    <div class="info-value">{{ borrower.source_of_funds or '—' }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">City</div>
+                    <div class="info-value">{{ borrower.city or '—' }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Member Since</div>
+                    <div class="info-value">
+                      {% if borrower.created_at %}{{ borrower.created_at.strftime('%B %d, %Y') if borrower.created_at.__class__.__name__ != 'str' else borrower.created_at }}{% else %}—{% endif %}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="divider"></div>
-              <div style="display:flex;flex-direction:column;gap:10px;">
-                <div style="display:flex;justify-content:space-between;">
-                  <span style="font-size:13px;color:var(--muted);">Total Borrowed</span>
-                  <span style="font-weight:700;">₱{{ "{:,.2f}".format(borrower.total_borrowed) }}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;">
-                  <span style="font-size:13px;color:var(--muted);">Total Paid</span>
-                  <span style="font-weight:700;color:var(--green);">₱{{ "{:,.2f}".format(borrower.total_paid) }}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;">
-                  <span style="font-size:13px;color:var(--muted);">Defaulted</span>
-                  <span style="font-weight:700;{% if borrower.defaulted_loans > 0 %}color:var(--red);{% endif %}">{{ borrower.defaulted_loans }}</span>
-                </div>
+            </div>
+
+            <!-- Active Applications -->
+            {% if active_applications %}
+            <div class="card">
+              <div class="card-header">
+                <h3>Active Applications</h3>
+                <span class="badge-count">{{ active_applications|length }} pending</span>
               </div>
-              {% if borrower.profile_notes %}
-              <div class="divider"></div>
-              <div>
-                <div class="info-label" style="margin-bottom:6px;">Officer Notes</div>
-                <div style="font-size:13px;color:var(--text);padding:10px;background:var(--bg3);border-radius:8px;line-height:1.5;">{{ borrower.profile_notes }}</div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Reference</th><th>Type</th><th>Amount</th><th>Status</th><th>Submitted</th><th>Action</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for app in active_applications %}
+                    <tr>
+                      <td data-label="Reference">{{ app.reference_no }}</td>
+                      <td data-label="Type">{{ app.type_name }}</td>
+                      <td data-label="Amount">₱{{ "{:,.2f}".format(app.amount_requested) }}</td>
+                      <td data-label="Status">
+                        {% if app.status == 'submitted' %}<span class="badge badge--submitted">Submitted</span>
+                        {% elif app.status == 'under_review' %}<span class="badge badge--under_review">Under Review</span>
+                        {% elif app.status == 'flagged' %}<span class="badge badge--flagged">Flagged</span>
+                        {% else %}<span class="badge badge--pending">{{ app.status | title }}</span>{% endif %}
+                      </td>
+                      <td data-label="Submitted">{% if app.submitted_at %}{{ app.submitted_at.strftime('%b %d, %Y') }}{% else %}—{% endif %}</td>
+                      <td data-label="Action"><a href="{{ url_for('officer.officer_application_detail', app_id=app.id) }}" class="tbl-btn tbl-btn--view">Review</a></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
               </div>
+            </div>
+            {% endif %}
+
+            <!-- Loan History with Pagination -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Loan History</h3>
+                <span class="badge-count" id="loanTotalCount">{{ loan_history|length }} loan(s)</span>
+              </div>
+              {% if loan_history %}
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Loan No.</th>
+                      <th>Type</th>
+                      <th>Plan</th>
+                      <th>Principal</th>
+                      <th>Balance</th>
+                      <th>Monthly</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="loanHistoryBody">
+                    {% for l in loan_history %}
+                    <tr class="loan-row">
+                      <td data-label="Loan No.">{{ l.loan_no }}</td>
+                      <td data-label="Type">{{ l.type_name }}</td>
+                      <td data-label="Plan">{{ l.plan_name }}</td>
+                      <td data-label="Principal">₱{{ "{:,.0f}".format(l.principal_amount) }}</td>
+                      <td data-label="Balance" class="{% if l.outstanding_balance > 0 %}text-warning{% else %}text-success{% endif %}">₱{{ "{:,.0f}".format(l.outstanding_balance) }}</td>
+                      <td data-label="Monthly">₱{{ "{:,.0f}".format(l.monthly_payment) }}</td>
+                      <td data-label="Status">
+                        {% if l.status == 'active' %}<span class="badge badge--active">Active</span>
+                        {% elif l.status == 'paid' %}<span class="badge badge--paid">Paid</span>
+                        {% elif l.status == 'defaulted' %}<span class="badge badge--defaulted">Defaulted</span>
+                        {% elif l.status == 'overdue' %}<span class="badge badge--overdue">Overdue</span>
+                        {% else %}<span class="badge badge--pending">{{ l.status | title }}</span>{% endif %}
+                      </td>
+                      <td data-label="Action"><a href="{{ url_for('officer.officer_loan_detail', loan_id=l.id) }}" class="tbl-btn tbl-btn--view">View</a></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <!-- Pagination Container -->
+              <div id="loanPaginationContainer" style="padding: 12px 20px; border-top: 1px solid var(--gray-200); background: var(--gray-100); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div id="loanPaginationInfo" style="font-size: 13px; color: var(--gray-500);"></div>
+                <div id="loanPaginationButtons" style="display: flex; gap: 6px;"></div>
+              </div>
+              {% else %}
+              <div class="empty-state">No loan history found.</div>
               {% endif %}
             </div>
-          </div>
 
+          </div>
         </div>
 
-        <!-- RIGHT MAIN -->
-        <div class="detail-col">
+      </main>
+    </div>
 
-          <!-- Personal Info -->
-          <div class="card">
-            <div class="card-header"><h3>Personal Information</h3></div>
-            <div class="card-body">
-              <div class="info-grid">
-                <div>
-                  <div class="info-label">Full Name</div>
-                  <div class="info-value">{{ borrower.full_name }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Email</div>
-                  <div class="info-value">{{ borrower.email }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Contact Number</div>
-                  <div class="info-value {% if not borrower.contact_number %}empty{% endif %}">{{ borrower.contact_number or '—' }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Date of Birth</div>
-                  <div class="info-value {% if not borrower.date_of_birth %}empty{% endif %}">
-                    {% if borrower.date_of_birth %}{{ borrower.date_of_birth.strftime('%B %d, %Y') if borrower.date_of_birth.__class__.__name__ != 'str' else borrower.date_of_birth }}{% else %}—{% endif %}
-                  </div>
-                </div>
-                <div>
-                  <div class="info-label">Age</div>
-                  <div class="info-value">{{ borrower.age or '—' }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Gender</div>
-                  <div class="info-value {% if not borrower.gender %}empty{% endif %}">{{ borrower.gender or '—' }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Civil Status</div>
-                  <div class="info-value {% if not borrower.civil_status %}empty{% endif %}">{{ borrower.civil_status or '—' }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Nationality</div>
-                  <div class="info-value {% if not borrower.nationality %}empty{% endif %}">{{ borrower.nationality or '—' }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Employment Type</div>
-                  <div class="info-value {% if not borrower.employment_type %}empty{% endif %}">{{ borrower.employment_type or '—' }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Source of Funds</div>
-                  <div class="info-value {% if not borrower.source_of_funds %}empty{% endif %}">{{ borrower.source_of_funds or '—' }}</div>
-                </div>
-                <div>
-                  <div class="info-label">City</div>
-                  <div class="info-value {% if not borrower.city %}empty{% endif %}">{{ borrower.city or '—' }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Member Since</div>
-                  <div class="info-value">
-                    {% if borrower.created_at %}{{ borrower.created_at.strftime('%B %d, %Y') if borrower.created_at.__class__.__name__ != 'str' else borrower.created_at }}{% else %}—{% endif %}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Active Applications -->
-          {% if active_applications %}
-          <div class="card">
-            <div class="card-header">
-              <h3>Active Applications</h3>
-              <span style="font-size:12px;color:var(--yellow);">{{ active_applications | length }} pending</span>
-            </div>
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr><th>Reference</th><th>Type</th><th>Amount</th><th>Status</th><th>Submitted</th><th>Action</th></tr>
-                </thead>
-                <tbody>
-                  {% for app in active_applications %}
-                  <tr>
-                    <td style="font-size:11px;font-family:monospace;color:var(--muted);">{{ app.reference_no }}</td>
-                    <td>{{ app.type_name }}</td>
-                    <td style="font-weight:600;">₱{{ "{:,.2f}".format(app.amount_requested) }}</td>
-                    <td>
-                      {% if app.status == 'submitted' %}<span class="badge badge--submitted">Submitted</span>
-                      {% elif app.status == 'under_review' %}<span class="badge badge--review">Under Review</span>
-                      {% elif app.status == 'flagged' %}<span class="badge badge--flagged">Flagged</span>
-                      {% else %}<span class="badge badge--pending">{{ app.status | title }}</span>{% endif %}
-                    </td>
-                    <td style="font-size:12px;color:var(--muted);">{% if app.submitted_at %}{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at.__class__.__name__ != 'str' else app.submitted_at }}{% else %}—{% endif %}</td>
-                    <td><a href="{{ url_for('officer.officer_application_detail', app_id=app.id) }}" class="tbl-btn tbl-btn--view">Review</a></td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {% endif %}
-
-          <!-- Loan History -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Loan History</h3>
-              <span style="font-size:12px;color:var(--muted);">{{ loan_history | length }} loan(s)</span>
-            </div>
-            {% if loan_history %}
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr><th>Loan No.</th><th>Type</th><th>Plan</th><th>Principal</th><th>Balance</th><th>Monthly</th><th>Status</th><th>Action</th></tr>
-                </thead>
-                <tbody>
-                  {% for l in loan_history %}
-                  <tr>
-                    <td style="font-size:11px;font-family:monospace;color:var(--muted);">{{ l.loan_no }}</td>
-                    <td>{{ l.type_name }}</td>
-                    <td style="font-size:12px;color:var(--muted);">{{ l.plan_name }}</td>
-                    <td style="font-weight:600;">₱{{ "{:,.0f}".format(l.principal_amount) }}</td>
-                    <td style="{% if l.outstanding_balance > 0 %}color:var(--yellow);{% else %}color:var(--green);{% endif %}">₱{{ "{:,.0f}".format(l.outstanding_balance) }}</td>
-                    <td style="color:var(--muted);">₱{{ "{:,.0f}".format(l.monthly_payment) }}</td>
-                    <td>
-                      {% if l.status == 'active' %}<span class="badge badge--active">Active</span>
-                      {% elif l.status == 'paid' %}<span class="badge badge--paid">Paid</span>
-                      {% elif l.status == 'defaulted' %}<span class="badge badge--defaulted">Defaulted</span>
-                      {% elif l.status == 'overdue' %}<span class="badge badge--overdue">Overdue</span>
-                      {% else %}<span class="badge badge--pending">{{ l.status | title }}</span>{% endif %}
-                    </td>
-                    <td><a href="{{ url_for('officer.officer_loan_detail', loan_id=l.id) }}" class="tbl-btn tbl-btn--view">View</a></td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% else %}
-            <div class="empty-state">No loan history found.</div>
-            {% endif %}
-          </div>
-
-        </div>
-      </div>
-    </main>
   </div>
 </div>
+
 <script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='O_borrower_detail.js') }}"></script>
 </body>
 </html>

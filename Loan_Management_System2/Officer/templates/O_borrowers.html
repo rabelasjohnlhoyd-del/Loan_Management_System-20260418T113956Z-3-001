@@ -1,148 +1,271 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Borrower Management — Hiraya</title>
+  <title>Borrower Management — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_borrowers.css') }}"/>
 </head>
 <body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ════════════ SIDEBAR ════════════ -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
-      </div>
-    </div>
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
-      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
-      <span class="s-chevron"></span>
-    </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item"><span class="nav-icon nav-icon--verification"></span>ID Verification</a>
-      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>Applications</a>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item active"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item"><span class="nav-icon nav-icon--loans"></span>Active Loans</a>
-      <a href="{{ url_for('officer.payment_list') }}" class="nav-item"><span class="nav-icon nav-icon--payments"></span>Payments</a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
-      </form>
-    </div>
-  </aside>
-
-  <!-- ════════════ MAIN ════════════ -->
-  <div class="main-content">
-    <header class="topbar">
-      <div>
-        <div class="topbar-heading">Borrower Management</div>
-        <div class="topbar-sub">Credit scores & risk level management</div>
-      </div>
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
-    </header>
-
-    <main class="page-body">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}<div class="flash-wrap">{% for c, m in messages %}<div class="alert alert-{{ c }}">{{ m }}</div>{% endfor %}</div>{% endif %}
-      {% endwith %}
-
-      <div class="toolbar">
-        <form method="GET" action="{{ url_for('officer.manage_borrowers') }}" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;">
-          <div class="search-wrap">
-            <span class="search-icon"></span>
-            <input type="text" name="search" placeholder="Search borrower or email…" value="{{ search }}"/>
-          </div>
-          <div class="filter-tabs">
-            <a href="{{ url_for('officer.manage_borrowers') }}" class="filter-tab {% if risk_filter == 'all' %}active{% endif %}">All</a>
-            <a href="{{ url_for('officer.manage_borrowers', risk='low') }}" class="filter-tab {% if risk_filter == 'low' %}active{% endif %}">Low Risk</a>
-            <a href="{{ url_for('officer.manage_borrowers', risk='medium') }}" class="filter-tab {% if risk_filter == 'medium' %}active{% endif %}">Medium</a>
-            <a href="{{ url_for('officer.manage_borrowers', risk='high') }}" class="filter-tab {% if risk_filter == 'high' %}active{% endif %}">High Risk</a>
-          </div>
-        </form>
-      </div>
-
-      <div class="card">
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Borrower</th>
-                <th>Credit Score</th>
-                <th>Risk Level</th>
-                <th>Active Loans</th>
-                <th>Total Loans</th>
-                <th>Update Score & Risk</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for b in borrowers %}
-              <tr>
-                <td>
-                  <div class="borrower-name">{{ b.full_name }}</div>
-                  <div class="borrower-email">{{ b.email }}</div>
-                </td>
-                <td>
-                  {% set score = b.credit_score | int %}
-                  {% set pct = ((score - 300) / 550 * 100) | round | int %}
-                  {% if score >= 700 %}{% set bar_color = 'var(--green)' %}
-                  {% elif score >= 550 %}{% set bar_color = 'var(--yellow)' %}
-                  {% else %}{% set bar_color = 'var(--red)' %}{% endif %}
-                  <div class="score-wrap">
-                    <span class="score-val">{{ score }}</span>
-                    <div class="score-bar-bg">
-                      <div class="score-bar-fill" style="width:{{ pct }}%;background:{{ bar_color }};"></div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  {% set r = b.risk_level | lower %}
-                  {% if r == 'low' %}<span class="badge risk-low">Low</span>
-                  {% elif r == 'high' %}<span class="badge risk-high">High</span>
-                  {% elif r == 'medium' %}<span class="badge risk-medium">Medium</span>
-                  {% else %}<span class="badge risk-not-set">{{ b.risk_level }}</span>{% endif %}
-                </td>
-                <td>{{ b.active_loans }}</td>
-                <td>{{ b.total_loans }}</td>
-                <td>
-                  <form action="{{ url_for('officer.update_score', user_id=b.id) }}" method="POST" class="score-form">
-                    <input type="number" name="credit_score" value="{{ b.credit_score }}" class="score-input" min="300" max="850" required/>
-                    <select name="risk_level" class="risk-select">
-                      <option value="low"    {% if b.risk_level|lower == 'low' %}selected{% endif %}>Low</option>
-                      <option value="medium" {% if b.risk_level|lower == 'medium' or b.risk_level == 'Not Set' %}selected{% endif %}>Medium</option>
-                      <option value="high"   {% if b.risk_level|lower == 'high' %}selected{% endif %}>High</option>
-                    </select>
-                    <button type="submit" class="btn-save">Save</button>
-                  </form>
-                </td>
-                <td>
-                  <a href="{{ url_for('officer.borrower_detail', borrower_id=b.id) }}" class="tbl-btn tbl-btn--view">View</a>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="7"><div class="empty-state">No borrowers found.</div></td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <!-- TOPBAR -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
-    </main>
+    </div>
+
+    <div class="topbar-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-empty-item">
+              <span class="notif-empty-icon-img"></span>
+              <p>You're all caught up!</p>
+              <small>No new notifications</small>
+            </li>
+          </ul>
+          <div class="notif-footer">
+            <a href="{{ url_for('officer.my_activity') }}" class="notif-see-all">See all activity →</a>
+          </div>
+        </div>
+      </div>
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar">
+        {{ session.user_name[0]|upper if session.user_name else 'O' }}
+      </a>
+    </div>
+  </header>
+
+  <div class="body-row">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Loan Officer' }}</h4>
+          <div class="s-role-badge">LOAN OFFICER</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--verification"></span><span class="nav-label">ID Verification</span>
+        </a>
+        <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('officer.officer_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--loans"></span><span class="nav-label">Active Loans</span>
+        </a>
+        <a href="{{ url_for('officer.payment_list') }}" class="nav-item">
+          <span class="nav-icon nav-icon--payments"></span><span class="nav-label">Payments</span>
+        </a>
+        <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
+          <span class="nav-icon nav-icon--locked"></span><span class="nav-label">Locked Accounts</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <main class="page-body">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <a href="{{ url_for('officer.officer_dashboard') }}" class="btn-back">
+              <span class="btn-back-icon"></span> Dashboard
+            </a>
+            <div>
+              <h2 class="page-title">Borrower Management</h2>
+              <p class="page-sub">Credit scores &amp; risk level management</p>
+            </div>
+          </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-value">{{ borrowers|length }}</div>
+              <div class="stat-label">Total Borrowers</div>
+            </div>
+            <div class="stat-icon stat-icon--blue"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-value">{{ borrowers|selectattr('risk_level', 'equalto', 'high')|list|length }}</div>
+              <div class="stat-label">High Risk</div>
+            </div>
+            <div class="stat-icon stat-icon--red"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-value">{{ borrowers|selectattr('id_verification_status', 'equalto', 'verified')|list|length }}</div>
+              <div class="stat-label">Verified ID</div>
+            </div>
+            <div class="stat-icon stat-icon--green"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-value">{{ borrowers|selectattr('id_verification_status', 'equalto', 'pending')|list|length }}</div>
+              <div class="stat-label">Pending KYC</div>
+            </div>
+            <div class="stat-icon stat-icon--yellow"></div>
+          </div>
+        </div>
+
+        <form method="GET" action="{{ url_for('officer.manage_borrowers') }}" class="filter-bar">
+          <div class="search-wrap">
+            <span class="search-icon"></span>
+            <input type="text" class="search-input" name="search" placeholder="Search borrower or email…" value="{{ search }}">
+          </div>
+          <select name="risk" class="filter-select">
+            <option value="all" {{ 'selected' if risk_filter == 'all' }}>All Risk Levels</option>
+            <option value="low" {{ 'selected' if risk_filter == 'low' }}>Low Risk</option>
+            <option value="medium" {{ 'selected' if risk_filter == 'medium' }}>Medium Risk</option>
+            <option value="high" {{ 'selected' if risk_filter == 'high' }}>High Risk</option>
+          </select>
+          <button type="submit" class="btn-filter">Filter</button>
+          {% if search or risk_filter != 'all' %}
+          <a href="{{ url_for('officer.manage_borrowers') }}" class="btn-clear">Clear</a>
+          {% endif %}
+        </form>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Borrowers</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Borrower</th>
+                  <th>Credit Score</th>
+                  <th>Risk Level</th>
+                  <th>Active Loans</th>
+                  <th>Total Loans</th>
+                  <th>Update Score &amp; Risk</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                {% for b in borrowers %}
+                <tr>
+                  <td data-label="Borrower">
+                    <div class="borrower-name">{{ b.full_name }}</div>
+                    <div class="borrower-email">{{ b.email }}</div>
+                  </td>
+                  <td data-label="Credit Score">
+                    {% set score = b.credit_score|int %}
+                    {% set pct = ((score - 300) / 550 * 100)|round|int %}
+                    {% if pct < 0 %}{% set pct = 0 %}{% endif %}
+                    <div class="score-wrap">
+                      <span class="score-val">{{ score }}</span>
+                      <div class="score-bar-bg">
+                        <div class="score-bar-fill" style="width: {{ pct }}%; background: {% if score >= 700 %}var(--success){% elif score >= 550 %}var(--warning){% else %}var(--danger){% endif %}"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td data-label="Risk Level">
+                    {% if b.risk_level|lower == 'low' %}<span class="risk-low">Low</span>
+                    {% elif b.risk_level|lower == 'high' %}<span class="risk-high">High</span>
+                    {% else %}<span class="risk-medium">Medium</span>{% endif %}
+                  </td>
+                  <td data-label="Active Loans">{{ b.active_loans }}</td>
+                  <td data-label="Total Loans">{{ b.total_loans }}</td>
+                  <td data-label="Update Score &amp; Risk">
+                    <form action="{{ url_for('officer.update_score', user_id=b.id) }}" method="POST" class="score-form">
+                      <input type="number" name="credit_score" value="{{ score }}" class="score-input" min="300" max="850">
+                      <select name="risk_level" class="risk-select">
+                        <option value="low" {{ 'selected' if b.risk_level|lower == 'low' }}>Low</option>
+                        <option value="medium" {{ 'selected' if b.risk_level|lower == 'medium' }}>Medium</option>
+                        <option value="high" {{ 'selected' if b.risk_level|lower == 'high' }}>High</option>
+                      </select>
+                      <button type="submit" class="btn-save">Save</button>
+                    </form>
+                  </td>
+                  <td data-label="Actions">
+                    <a href="{{ url_for('officer.borrower_detail', borrower_id=b.id) }}" class="tbl-btn tbl-btn--view">View</a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr id="emptyRow">
+                  <td colspan="7"><div class="empty-state">No borrowers found.</div></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination-wrap" id="paginationWrap">
+            <div class="pagination-info" id="paginationInfo"></div>
+            <div class="pagination-btns" id="paginationBtns"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
   </div>
 </div>
 
 <script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='O_borrowers.js') }}"></script>
 </body>
 </html>

@@ -12,16 +12,16 @@
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='report_loan_performance.css') }}"/>
 </head>
-<body class="sidebar-open">
+<body>
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ── TOPBAR ── -->
-  <header class="topbar">
+  <!-- TOPBAR — same structure as dashboard -->
+  <header class="topbar" id="topbar">
     <div class="topbar-left">
-      <button class="burger-btn" id="burgerBtn" type="button">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
         <span></span><span></span><span></span>
       </button>
       <div class="topbar-brand">
@@ -34,33 +34,98 @@
     </div>
 
     <div class="topbar-right">
-      <!-- Notification bell — uses dashboard's topbar-icon-btn pattern -->
-      <div class="notif-wrap">
-        <button class="topbar-icon-btn" id="notifBell" type="button" title="Notifications">
+
+      <!-- NOTIFICATION BELL — exact same as dashboard -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
           <span class="topbar-icon topbar-icon--notif"></span>
-          <!-- red dot when there are unread -->
           <span class="notif-dot hidden" id="notifDot"></span>
-          <!-- count badge (shows number) -->
-          <span class="notif-count-badge" id="notifCountBadge" style="display:none;"></span>
         </button>
 
-        <!-- Dropdown -->
-        <div id="reportNotifDropdown">
-          <div class="rnd-header">
-            <h4>Notifications</h4>
-            <button class="rnd-mark-all" id="rndMarkAll">Mark all as read</button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
           </div>
-          <ul class="rnd-list" id="rndList">
-            <li class="rnd-loading"><span class="rnd-spinner"></span> Loading…</li>
+
+          <ul class="notif-list" id="notifList">
+
+            {% set has_apps = pending_applications_notif or (stats is defined and stats.get('pending_applications', 0) > 0) %}
+            {% if has_apps %}
+              <li class="notif-group-label"><span>Pending Applications</span></li>
+            {% endif %}
+
+            {% if pending_applications_notif %}
+              {% for app in pending_applications_notif %}
+              <li class="notif-item unread" data-notif-id="app-{{ app.id }}">
+                <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">New Application — {{ app.reference_no }}</div>
+                    <div class="notif-item-msg">{{ app.borrower_name }} · {{ app.type_name }} · ₱{{ "{:,.0f}".format(app.amount_requested) }}</div>
+                    <div class="notif-item-time">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '' }}</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+              {% endfor %}
+            {% elif stats is defined and stats.get('pending_applications', 0) > 0 %}
+              <li class="notif-item unread" data-notif-id="pending-apps-summary">
+                <a href="{{ url_for('super_admin.admin_applications') }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">Pending Applications</div>
+                    <div class="notif-item-msg">{{ stats.pending_applications }} application(s) awaiting your review.</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+            {% endif %}
+
+            {% if activity_logs %}
+              <li class="notif-group-label"><span>Recent Activity</span></li>
+              {% for log in activity_logs[:5] %}
+              <li class="notif-item" data-notif-id="log-{{ log.id if log.id else loop.index }}">
+                <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-item-link">
+                  <div class="notif-item-icon
+                    {% if 'approved' in log.action or 'verified' in log.action or 'paid' in log.action %}notif-icon--green
+                    {% elif 'rejected' in log.action or 'overdue' in log.action %}notif-icon--red
+                    {% elif 'disbursed' in log.action %}notif-icon--teal
+                    {% else %}notif-icon--activity{% endif %}">
+                    <span></span>
+                  </div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">{{ log.action | replace('_',' ') | title }}</div>
+                    <div class="notif-item-msg">
+                      {% if log.details %}{{ log.details }}{% endif %}
+                      {% if log.actor_name %} · by {{ log.actor_name }}{% endif %}
+                    </div>
+                    <div class="notif-item-time">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '' }}</div>
+                  </div>
+                </a>
+              </li>
+              {% endfor %}
+            {% endif %}
+
+            {% if not has_apps and not activity_logs %}
+              <li class="notif-empty-item">
+                <span class="notif-empty-icon-img"></span>
+                <p>You're all caught up!</p>
+                <small>No new notifications</small>
+              </li>
+            {% endif %}
+
           </ul>
-          <div class="rnd-footer">
-            <a href="{{ url_for('super_admin.notifications_page') }}">View all notifications →</a>
+
+          <div class="notif-footer">
+            <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-see-all">
+              See all notifications →
+            </a>
           </div>
         </div>
-      </div>
-      <!-- end notif -->
+      </div><!-- /.notif-wrap -->
 
-      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Admin' }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
       </a>
     </div>
@@ -68,42 +133,69 @@
 
   <div class="body-row">
 
-    <!-- ── SIDEBAR ── -->
+    <!-- SIDEBAR — with Sign Out -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
         <div class="s-user-info">
           <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
-          <div class="s-role-badge">SUPER ADMIN</div>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
         </div>
         <span class="s-chevron"></span>
       </div>
+
       <div class="user-dropdown" id="userDropdown">
-        <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-        <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
-        <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
-        <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
+        <a href="{{ url_for('super_admin.SA_profile') }}">
+          <span class="dd-icon dd-icon--profile"></span>My Profile
+        </a>
+        {% if session.role == 'super_admin' %}
+        <a href="{{ url_for('super_admin.manage_users') }}">
+          <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+        </a>
+        {% endif %}
+        <a href="{{ url_for('super_admin.reports_page') }}">
+          <span class="dd-icon dd-icon--reports"></span>Reports
+        </a>
+        <a href="{{ url_for('super_admin.activity_logs') }}">
+          <span class="dd-icon dd-icon--activity"></span>Activity Logs
+        </a>
       </div>
+
       <nav class="sidebar-nav">
         <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
-          <span class="nav-icon nav-icon--dashboard"></span>Dashboard
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
         </a>
         <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
-          <span class="nav-icon nav-icon--clock"></span>Applications
+          <span class="nav-icon nav-icon--clock"></span>
+          <span class="nav-label">Applications</span>
         </a>
         <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
-          <span class="nav-icon nav-icon--applications"></span>All Loans
+          <span class="nav-icon nav-icon--applications"></span>
+          <span class="nav-label">All Loans</span>
         </a>
         <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
-          <span class="nav-icon nav-icon--borrowers"></span>Borrowers
+          <span class="nav-icon nav-icon--borrowers"></span>
+          <span class="nav-label">Borrowers</span>
         </a>
         <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
-          <span class="nav-icon nav-icon--warning"></span>Penalties &amp; Overdue
+          <span class="nav-icon nav-icon--warning"></span>
+          <span class="nav-label">Penalties &amp; Overdue</span>
         </a>
       </nav>
+
+      <!-- SIGN OUT -->
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
     </aside>
 
-    <!-- ── MAIN CONTENT ── -->
+    <!-- MAIN CONTENT -->
     <div class="main-content" id="mainContent">
       <main class="page-body" style="padding: 24px 32px;">
 
@@ -222,11 +314,11 @@
               <tbody id="appTableBody">
                 {% for loan in loans %}
                 <tr>
-                  <td class="loan-no-link">{{ loan.loan_no }}</td>
-                  <td class="borrower-name">{{ loan.borrower_name }}</td>
-                  <td>₱{{ "{:,.2f}".format(loan.principal_amount) }}</td>
-                  <td>₱{{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
-                  <td>
+                  <td data-label="Loan No." class="loan-no-link">{{ loan.loan_no }}</td>
+                  <td data-label="Borrower" class="borrower-name">{{ loan.borrower_name }}</td>
+                  <td data-label="Principal">₱{{ "{:,.2f}".format(loan.principal_amount) }}</td>
+                  <td data-label="Balance">₱{{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
+                  <td data-label="Status">
                     <span class="badge-status
                       {% if loan.status.lower() == 'active' %}badge-active
                       {% elif loan.status.lower() == 'paid' %}badge-paid
@@ -234,7 +326,7 @@
                       {{ loan.status }}
                     </span>
                   </td>
-                  <td>{{ loan.created_at.strftime('%b %d, %Y') }}</td>
+                  <td data-label="Date">{{ loan.created_at.strftime('%b %d, %Y') }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -249,9 +341,9 @@
         </div>
 
       </main>
-    </div><!-- end main-content -->
-  </div><!-- end body-row -->
-</div><!-- end app-wrap -->
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
 <script src="{{ url_for('super_admin.static', filename='report_loan_performance.js') }}"></script>

@@ -308,7 +308,7 @@
 }
 
 /* ============================================================
-   5. TABLE RESPONSIVE WRAPPER
+   5. TABLE — DESKTOP
    ============================================================ */
 .table-wrap {
   overflow-x: auto;
@@ -316,7 +316,6 @@
 }
 .data-table {
   width: 100%;
-  min-width: 520px;
   border-collapse: collapse;
 }
 .data-table th, .data-table td {
@@ -334,7 +333,62 @@
   letter-spacing: 0.6px;
   background: #f8fafc;
 }
-.data-table tbody tr:hover { background: #f8fafc; }
+
+/* ============================================================
+   5b. TABLE → CARD LAYOUT on mobile (≤ 600px)
+       Hide the normal thead, turn each <tr> into a card
+   ============================================================ */
+@media (max-width: 600px) {
+  /* Remove horizontal scroll — no longer needed */
+  .table-wrap { overflow-x: visible; }
+
+  /* Hide column headers */
+  .data-table thead { display: none; }
+
+  /* Each row becomes a card */
+  .data-table tbody tr {
+    display: block;
+    margin: 0 0 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .data-table tbody tr:last-child { margin-bottom: 0; }
+  .data-table tbody tr:hover { background: #f8fafc; }
+
+  /* Each cell becomes a labeled row */
+  .data-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border: none;
+    font-size: 13px;
+    white-space: normal;
+    word-break: break-word;
+    gap: 8px;
+  }
+  .data-table tbody td:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+
+  /* data-label pseudo-labels via HTML attribute */
+  .data-table tbody td::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 90px;
+  }
+}
 
 /* ============================================================
    6. PRINT STYLES

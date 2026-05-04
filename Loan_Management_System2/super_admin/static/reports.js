@@ -1,13 +1,12 @@
 /* ================================================================
    reports.js — Reports Page
-   Sidebar + dropdown matches dashboard_admin.js exactly
    ================================================================ */
 
 (function () {
   'use strict';
 
   /* ================================================================
-     SIDEBAR TOGGLE — same pattern as dashboard
+     SIDEBAR TOGGLE
      ================================================================ */
   const burgerBtn      = document.getElementById('burgerBtn');
   const sidebar        = document.getElementById('sidebar');
@@ -31,7 +30,6 @@
     document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
   }
 
-  /* Restore desktop preference on page load */
   if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
     openSidebar();
   }
@@ -72,7 +70,7 @@
   });
 
   /* ================================================================
-     ACTIVE NAV HIGHLIGHT — mark Reports as active
+     ACTIVE NAV HIGHLIGHT
      ================================================================ */
   const currentPath = window.location.pathname;
   document.querySelectorAll('.nav-item[href]').forEach((el) => {
@@ -84,7 +82,7 @@
   });
 
   /* ================================================================
-     REPORT CARD ENTRANCE ANIMATION
+     REPORT CARD & REF CARD ENTRANCE ANIMATION
      ================================================================ */
   const obs = new IntersectionObserver((entries) => {
     entries.forEach((entry, i) => {
@@ -94,7 +92,7 @@
     });
   }, { threshold: 0.1 });
 
-  document.querySelectorAll('.report-card[data-animate]').forEach(c => obs.observe(c));
+  document.querySelectorAll('.report-card[data-animate], .ref-card[data-animate]').forEach(c => obs.observe(c));
 
   /* ================================================================
      AUTO-DISMISS FLASH MESSAGES
@@ -105,8 +103,6 @@
 
   /* ================================================================
      REPORT NAVIGATION FUNCTIONS
-     Uses window.REPORT_URLS injected by the HTML template
-     so that Jinja2 url_for() is resolved correctly.
      ================================================================ */
   window.goAmort = function () {
     const val = document.getElementById('loanIdInput').value.trim();
@@ -139,6 +135,59 @@
   });
 
   /* ================================================================
+     QUICK-FILL HELPERS — called by "Use" buttons in ref tables
+     Fills the matching input field and smoothly scrolls to it
+     ================================================================ */
+  window.fillBorrowerId = function (id) {
+    const input = document.getElementById('borrowerIdInput');
+    if (!input) return;
+    input.value = id;
+    // Clear any previous error state
+    input.style.borderColor = '';
+    input.style.boxShadow   = '';
+    // Highlight briefly so user knows it was filled
+    input.style.borderColor = 'var(--primary, #3aa7b5)';
+    input.style.boxShadow   = '0 0 0 3px rgba(58,167,181,0.18)';
+    setTimeout(() => {
+      input.style.borderColor = '';
+      input.style.boxShadow   = '';
+    }, 1400);
+    // Scroll the input into view
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input.focus();
+  };
+
+  window.fillLoanId = function (id) {
+    const input = document.getElementById('loanIdInput');
+    if (!input) return;
+    input.value = id;
+    input.style.borderColor = '';
+    input.style.boxShadow   = '';
+    input.style.borderColor = '#059669';
+    input.style.boxShadow   = '0 0 0 3px rgba(5,150,105,0.15)';
+    setTimeout(() => {
+      input.style.borderColor = '';
+      input.style.boxShadow   = '';
+    }, 1400);
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input.focus();
+  };
+
+  /* ================================================================
+     REFERENCE TABLE SEARCH / FILTER
+     Filters visible rows by matching any cell text
+     ================================================================ */
+  window.filterTable = function (tableId, query) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const q = query.trim().toLowerCase();
+    table.querySelectorAll('tbody tr').forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.classList.toggle('hidden-row', q.length > 0 && !text.includes(q));
+    });
+  };
+
+  /* ================================================================
      INPUT ERROR HELPER
      ================================================================ */
   function showInputError(inputId, message) {
@@ -156,7 +205,7 @@
   }
 
   /* ================================================================
-     NOTIFICATION BELL TOGGLE (static — data rendered by Jinja)
+     NOTIFICATION BELL TOGGLE
      ================================================================ */
   const notifBtn      = document.getElementById('notifBtn');
   const notifDropdown = document.getElementById('notifDropdown');

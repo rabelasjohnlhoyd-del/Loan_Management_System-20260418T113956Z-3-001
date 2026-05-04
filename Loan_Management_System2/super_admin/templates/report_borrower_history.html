@@ -7,19 +7,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
-  
-  <!-- CSS FILES -->
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='report_borrower_history.css') }}"/>
 </head>
-<body class="sidebar-open">
+<body>
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
-  <header class="topbar">
+
+  <!-- TOPBAR — same structure as dashboard -->
+  <header class="topbar" id="topbar">
     <div class="topbar-left">
-      <button class="burger-btn" id="burgerBtn" type="button"><span></span><span></span><span></span></button>
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
       <div class="topbar-brand">
         <div class="topbar-logo">$</div>
         <div class="topbar-brand-text">
@@ -28,69 +30,175 @@
         </div>
       </div>
     </div>
+
     <div class="topbar-right">
-      <!-- NOTIFICATION BELL -->
-      <div class="notif-wrapper" id="notifWrapper">
-        <button class="notif-btn" id="notifBtn" type="button" aria-label="Notifications">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-          </svg>
-          <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+
+      <!-- NOTIFICATION BELL — exact same as dashboard -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
         </button>
 
-        <!-- NOTIFICATION DROPDOWN -->
         <div class="notif-dropdown" id="notifDropdown">
           <div class="notif-header">
-            <span>Notifications</span>
-            <button class="notif-mark-all" id="markAllRead" type="button">Mark all as read</button>
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
           </div>
-          <div class="notif-list" id="notifList">
-            <div class="notif-loading">Loading...</div>
-          </div>
+
+          <ul class="notif-list" id="notifList">
+
+            {% set has_apps = pending_applications_notif or (stats is defined and stats.get('pending_applications', 0) > 0) %}
+            {% if has_apps %}
+              <li class="notif-group-label"><span>Pending Applications</span></li>
+            {% endif %}
+
+            {% if pending_applications_notif %}
+              {% for app in pending_applications_notif %}
+              <li class="notif-item unread" data-notif-id="app-{{ app.id }}">
+                <a href="{{ url_for('super_admin.application_detail', app_id=app.id) }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">New Application — {{ app.reference_no }}</div>
+                    <div class="notif-item-msg">{{ app.borrower_name }} · {{ app.type_name }} · ₱{{ "{:,.0f}".format(app.amount_requested) }}</div>
+                    <div class="notif-item-time">{{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else '' }}</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+              {% endfor %}
+            {% elif stats is defined and stats.get('pending_applications', 0) > 0 %}
+              <li class="notif-item unread" data-notif-id="pending-apps-summary">
+                <a href="{{ url_for('super_admin.admin_applications') }}" class="notif-item-link">
+                  <div class="notif-item-icon notif-icon--warning"><span></span></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">Pending Applications</div>
+                    <div class="notif-item-msg">{{ stats.pending_applications }} application(s) awaiting your review.</div>
+                  </div>
+                  <span class="notif-unread-dot"></span>
+                </a>
+              </li>
+            {% endif %}
+
+            {% if activity_logs %}
+              <li class="notif-group-label"><span>Recent Activity</span></li>
+              {% for log in activity_logs[:5] %}
+              <li class="notif-item" data-notif-id="log-{{ log.id if log.id else loop.index }}">
+                <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-item-link">
+                  <div class="notif-item-icon
+                    {% if 'approved' in log.action or 'verified' in log.action or 'paid' in log.action %}notif-icon--green
+                    {% elif 'rejected' in log.action or 'overdue' in log.action %}notif-icon--red
+                    {% elif 'disbursed' in log.action %}notif-icon--teal
+                    {% else %}notif-icon--activity{% endif %}">
+                    <span></span>
+                  </div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">{{ log.action | replace('_',' ') | title }}</div>
+                    <div class="notif-item-msg">
+                      {% if log.details %}{{ log.details }}{% endif %}
+                      {% if log.actor_name %} · by {{ log.actor_name }}{% endif %}
+                    </div>
+                    <div class="notif-item-time">{{ log.created_at.strftime('%b %d, %Y %I:%M %p') if log.created_at else '' }}</div>
+                  </div>
+                </a>
+              </li>
+              {% endfor %}
+            {% endif %}
+
+            {% if not has_apps and not activity_logs %}
+              <li class="notif-empty-item">
+                <span class="notif-empty-icon-img"></span>
+                <p>You're all caught up!</p>
+                <small>No new notifications</small>
+              </li>
+            {% endif %}
+
+          </ul>
+
           <div class="notif-footer">
-            <a href="{{ url_for('super_admin.notifications_page') }}">See all notifications →</a>
+            <a href="{{ url_for('super_admin.activity_logs') }}" class="notif-see-all">
+              See all notifications →
+            </a>
           </div>
         </div>
-      </div>
+      </div><!-- /.notif-wrap -->
 
-      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar">
+      <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Admin' }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
       </a>
     </div>
   </header>
 
+  <!-- BODY ROW -->
   <div class="body-row">
+
+    <!-- SIDEBAR — with Sign Out -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'A' }}</div>
         <div class="s-user-info">
-          <h4>{{ session.user_name }}</h4>
-          <div class="s-role-badge">SUPER ADMIN</div>
+          <h4>{{ session.user_name if session.user_name else 'Administrator' }}</h4>
+          <div class="s-role-badge">{{ session.role | replace('_',' ') | title if session.role else 'Admin' }}</div>
         </div>
         <span class="s-chevron"></span>
       </div>
 
       <div class="user-dropdown" id="userDropdown">
-        <a href="{{ url_for('super_admin.SA_profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('super_admin.SA_profile') }}">
+          <span class="dd-icon dd-icon--profile"></span>My Profile
+        </a>
         {% if session.role == 'super_admin' %}
-        <a href="{{ url_for('super_admin.manage_users') }}"><span class="dd-icon dd-icon--manage-users"></span>Manage Users</a>
+        <a href="{{ url_for('super_admin.manage_users') }}">
+          <span class="dd-icon dd-icon--manage-users"></span>Manage Users
+        </a>
         {% endif %}
-        <a href="{{ url_for('super_admin.reports_page') }}"><span class="dd-icon dd-icon--reports"></span>Reports</a>
-        <a href="{{ url_for('super_admin.activity_logs') }}"><span class="dd-icon dd-icon--activity"></span>Activity Logs</a>
+        <a href="{{ url_for('super_admin.reports_page') }}">
+          <span class="dd-icon dd-icon--reports"></span>Reports
+        </a>
+        <a href="{{ url_for('super_admin.activity_logs') }}">
+          <span class="dd-icon dd-icon--activity"></span>Activity Logs
+        </a>
       </div>
 
       <nav class="sidebar-nav">
-        <a href="{{ url_for('auth.dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item"><span class="nav-icon nav-icon--clock"></span>Applications</a>
-        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>All Loans</a>
-        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item"><span class="nav-icon nav-icon--warning"></span>Penalties & Overdue</a>
+        <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('super_admin.admin_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--clock"></span>
+          <span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('super_admin.all_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span>
+          <span class="nav-label">All Loans</span>
+        </a>
+        <a href="{{ url_for('super_admin.borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span>
+          <span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('super_admin.penalties_page') }}" class="nav-item">
+          <span class="nav-icon nav-icon--warning"></span>
+          <span class="nav-label">Penalties &amp; Overdue</span>
+        </a>
       </nav>
+
+      <!-- SIGN OUT -->
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
     </aside>
 
+    <!-- MAIN CONTENT -->
     <div class="main-content" id="mainContent">
       <main class="page-body">
-        
+
+        <!-- HERO -->
         <div class="report-hero">
           <div class="hero-top">
             <div class="borrower-info">
@@ -104,34 +212,61 @@
             </div>
           </div>
           <div class="meta-grid-modern">
-            <div class="meta-box"><label>Total Borrowed</label><span>₱{{ "{:,.2f}".format(borrower.total_borrowed) }}</span></div>
-            <div class="meta-box highlight"><label>Total Paid Amount</label><span>₱{{ "{:,.2f}".format(total_paid_computed) }}</span></div>
-            <div class="meta-box"><label>Risk Assessment</label><span style="text-transform:uppercase; font-size:13px; color:var(--primary);">{{ borrower.risk_level }} RISK</span></div>
+            <div class="meta-box">
+              <label>Total Borrowed</label>
+              <span>₱{{ "{:,.2f}".format(borrower.total_borrowed) }}</span>
+            </div>
+            <div class="meta-box highlight">
+              <label>Total Paid Amount</label>
+              <span>₱{{ "{:,.2f}".format(total_paid_computed) }}</span>
+            </div>
+            <div class="meta-box">
+              <label>Risk Assessment</label>
+              <span style="text-transform:uppercase; font-size:13px; color:var(--primary);">{{ borrower.risk_level }} RISK</span>
+            </div>
           </div>
         </div>
 
+        <!-- PAYMENTS TABLE -->
         <div class="card card--wide" style="border-radius:16px; overflow:hidden; border:1px solid #e2e8f0;">
           <div class="card-header">
-            <div>
-              <h3>Payment Transaction History</h3>
-              <p>Detailed list of all approved payments</p>
+            <div class="card-header-btn-wrap">
+              <div>
+                <h3>Payment Transaction History</h3>
+                <p>Detailed list of all approved payments</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="window.print()">Print Statement</button>
             </div>
-            <button class="btn-print-header" onclick="window.print()">Print Statement</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>Date</th><th>Loan No.</th><th>Type</th><th>Amount Paid</th><th>Reference No.</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Loan No.</th>
+                  <th>Type</th>
+                  <th>Amount Paid</th>
+                  <th>Reference No.</th>
+                </tr>
+              </thead>
               <tbody>
                 {% for p in payments %}
                 <tr>
-                  <td>{{ p.payment_date.strftime('%b %d, %Y') }}</td>
-                  <td style="font-weight:600; color:var(--primary-dark);">{{ p.loan_no }}</td>
-                  <td>{{ p.type_name }}</td>
-                  <td style="font-weight:700; color:var(--success);">₱{{ "{:,.2f}".format(p.amount_paid) }}</td>
-                  <td><small style="color:var(--text-muted);">{{ p.reference_no if p.reference_no else '—' }}</small></td>
+                  <td data-label="Date">{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date else '—' }}</td>
+                  <td data-label="Loan No." style="font-weight:600; color:var(--primary-dark);">{{ p.loan_no }}</td>
+                  <td data-label="Type">{{ p.type_name }}</td>
+                  <td data-label="Amount Paid" style="font-weight:700; color:var(--success);">₱{{ "{:,.2f}".format(p.amount_paid) }}</td>
+                  <td data-label="Reference No.">
+                    <span style="font-weight:600; font-size:12px; color:var(--text-h);">{{ p.payment_no if p.payment_no else '—' }}</span>
+                    {% if p.reference_number %}
+                    <br><small style="color:var(--text-muted);">{{ p.reference_number }}</small>
+                    {% endif %}
+                  </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:32px;">No payment transactions found.</td></tr>
+                <tr>
+                  <td colspan="5" style="text-align:center; color:#94a3b8; padding:32px;">No payment transactions found.</td>
+                </tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -143,12 +278,13 @@
           <div class="sig-box"><p>Verified By:</p><p><strong>{{ session.user_name }}</strong></p></div>
           <div class="sig-box"><p>Borrower Acknowledgment:</p><br></div>
         </div>
+
       </main>
     </div>
   </div>
 </div>
 
+<!-- dashboard_admin.js handles sidebar, notif bell, user dropdown -->
 <script src="{{ url_for('super_admin.static', filename='dashboard_admin.js') }}"></script>
-<script src="{{ url_for('super_admin.static', filename='report_borrower_history.js') }}"></script>
 </body>
 </html>
