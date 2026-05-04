@@ -455,7 +455,7 @@ def validate_id_api():
     if 'reg_data' not in session or not session.get('otp_verified'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    gemini_key = 'AIzaSyDc2lBioV7SupmGvdQcifS_KfoQ6pqX0ZA'
+    gemini_key = 'AIzaSyDvZpu3PGaicEmY4HNZM7FPUzQa7kzD6Lg'
     data = request.json or {}
     id_b64 = data.get('id_image')
     selfie_b64 = data.get('selfie_image')
@@ -670,15 +670,17 @@ def upload_id():
                 final_status = 'pending'
 
             # 4. ONE execute lang
+            # 4. ONE execute lang
             conn = get_db(); cursor = conn.cursor()
             query = """
             UPDATE users 
             SET id_document_path = %s, selfie_path = %s, 
             id_verification_status = %s, id_number = %s,
-            id_photo_hash = %s
+            id_photo_hash = %s,
+            verified_at = CASE WHEN %s = 'verified' THEN NOW() ELSE NULL END
             WHERE email = %s
             """
-            cursor.execute(query, (id_fn, selfie_fn, final_status, id_number, id_photo_hash, target_email))
+            cursor.execute(query, (id_fn, selfie_fn, final_status, id_number, id_photo_hash, final_status, target_email))
             conn.commit(); cursor.close(); conn.close()
 
             # Clear session after successful submission

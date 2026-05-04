@@ -637,3 +637,263 @@ body:not(.sidebar-open) .sidebar { transform: translateX(calc(-1 * var(--sidebar
   .pagination-bar { justify-content: center; padding: 12px 16px; }
   .pg-info { display: none; }
 }
+
+
+
+/* ================================================================
+   STATUS MODAL — Fixed & Optimized
+   ================================================================ */
+
+/* Backdrop - Blurred background */
+.status-modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 30, 28, 0.70);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: smBackdropIn 0.25s ease both;
+}
+
+.status-modal-backdrop.open {
+  display: flex;
+}
+
+@keyframes smBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Modal card */
+.status-modal {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  animation: smCardIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes smCardIn {
+  from { opacity: 0; transform: scale(0.9) translateY(30px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Header Strip (Icon Wrap) */
+.status-modal__icon-wrap {
+  width: 100%;
+  padding: 40px 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Colors for Approved vs Rejected Header */
+.status-modal__icon-wrap[data-variant="approved"] {
+  background: linear-gradient(160deg, #d1fae5 0%, #a7f3d0 100%);
+}
+.status-modal__icon-wrap[data-variant="rejected"] {
+  background: linear-gradient(160deg, #fee2e2 0%, #fecaca 100%);
+}
+
+/* Icon Ring */
+.status-modal__icon-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.status-modal__icon-wrap[data-variant="approved"] .status-modal__icon-ring {
+  background: #10b981; /* Success Green */
+}
+.status-modal__icon-wrap[data-variant="rejected"] .status-modal__icon-ring {
+  background: #ef4444; /* Danger Red */
+}
+
+/* Icon Mask */
+.status-modal__icon {
+  display: block;
+  width: 38px;
+  height: 38px;
+  background: #ffffff;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+/* Checkmark icon for approved */
+.status-modal__icon-wrap[data-variant="approved"] .status-modal__icon {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+}
+
+/* X icon for rejected */
+.status-modal__icon-wrap[data-variant="rejected"] .status-modal__icon {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+}
+
+/* Modal Body Content */
+.status-modal__body {
+  padding: 24px 32px 0;
+  width: 100%;
+  text-align: center;
+}
+
+.status-modal__title {
+  font-family: 'Sora', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.status-modal__ref {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.status-modal__msg {
+  font-size: 15px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+
+/* Rejection Reason Box - Stylized as a "Note" */
+.status-modal__reason-box {
+  display: none; 
+  margin: 16px 0 0;
+  width: 100%;
+  background: #fff5f5;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+  padding: 14px 16px;
+  text-align: left;
+}
+.status-modal__reason-box.visible {
+  display: block;
+}
+.status-modal__reason-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #b91c1c;
+  margin-bottom: 4px;
+}
+.status-modal__reason-text {
+  font-size: 14px;
+  color: #7f1d1d;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* Action Buttons Container */
+.status-modal__actions {
+  padding: 24px 32px 32px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Success/View Button */
+.sm-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #10b981; /* Standard Mint/Green */
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.sm-btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+/* Secondary/Dismiss Button */
+.sm-btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sm-btn-secondary:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+/* Apply New Button for Rejected State */
+.sm-btn-apply {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #059669;
+  background: #ecfdf5;
+  border: 2px solid #10b981;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.sm-btn-apply:hover {
+  background: #10b981;
+  color: #ffffff;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .status-modal {
+    border-radius: 20px;
+    margin: 10px;
+  }
+  .status-modal__body { padding: 20px 24px 0; }
+  .status-modal__actions { padding: 20px 24px 28px; }
+  .status-modal__title { font-size: 19px; }
+}
+
+
+
+
+

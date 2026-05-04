@@ -290,4 +290,113 @@
     return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+
+  (function initStatusModal() {
+    const SEEN_KEY = 'hiraya_seen_statuses';
+
+    const backdrop   = document.getElementById('statusModalBackdrop');
+    const modal      = document.getElementById('statusModal');
+    const iconWrap   = document.getElementById('statusModalIconWrap');
+    const titleEl    = document.getElementById('statusModalTitle');
+    const refEl      = document.getElementById('statusModalRef');
+    const msgEl      = document.getElementById('statusModalMsg');
+    const reasonBox  = document.getElementById('statusModalReasonBox');
+    const reasonText = document.getElementById('statusModalReasonText');
+    const actionsEl  = document.getElementById('statusModalActions');
+    const appsBadge  = document.getElementById('appsBadge'); 
+
+    if (!backdrop || !modal) return;
+
+    const apps     = window.__APP_STATUSES__ || [];
+    const applyUrl = window.__APPLY_URL__    || '#';
+
+    let seenIds = [];
+    try {
+      seenIds = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]');
+    } catch (_) { seenIds = []; }
+
+    const hasUnseenUpdate = apps.some(a => 
+      (a.status === 'approved' || a.status === 'rejected') && !seenIds.includes(a.id)
+    );
+
+    if (hasUnseenUpdate && appsBadge) {
+      appsBadge.classList.remove('hidden');
+    }
+
+  
+    const target = apps.find(function (a) {
+      return (a.status === 'approved' || a.status === 'rejected') &&
+             !seenIds.includes(a.id);
+    });
+
+    if (!target) return; 
+
+
+    const isApproved = target.status === 'approved';
+    const variant    = isApproved ? 'approved' : 'rejected';
+
+    iconWrap.setAttribute('data-variant', variant);
+
+    titleEl.textContent = isApproved
+      ? '🎉 Loan Application Approved!'
+      : 'Application Not Approved';
+
+    refEl.textContent = 'Ref: ' + target.ref;
+
+    const amountFormatted = Number(target.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+
+    if (isApproved) {
+      msgEl.textContent =
+        'Great news, ' + target.type + ' worth ₱' + amountFormatted +
+        ' has been approved. Our team will be in touch regarding the next steps.';
+      reasonBox.classList.remove('visible');
+  
+      actionsEl.innerHTML =
+        '<button type="button" class="sm-btn-secondary" id="smDismiss">Got it, thanks!</button>';
+    } else {
+      const reason = (target.reason || '').trim();
+      msgEl.textContent =
+        'Unfortunately, your ' + target.type + ' application (₱' + amountFormatted +
+        ') was not approved at this time.';
+      if (reason) {
+        reasonText.textContent = reason;
+        reasonBox.classList.add('visible');
+      } else {
+        reasonBox.classList.remove('visible');
+      }
+      actionsEl.innerHTML =
+        '<a href="' + applyUrl + '" class="sm-btn-apply">Apply for a New Loan</a>' +
+        '<button type="button" class="sm-btn-secondary" id="smDismiss">Maybe later</button>';
+    }
+
+    function openModal() {
+      backdrop.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      backdrop.classList.remove('open');
+      document.body.style.overflow = '';
+      
+      if (!seenIds.includes(target.id)) {
+        seenIds.push(target.id);
+        localStorage.setItem(SEEN_KEY, JSON.stringify(seenIds));
+      }
+      
+      if (appsBadge) appsBadge.classList.add('hidden');
+    }
+
+    setTimeout(openModal, 800);
+
+    actionsEl.addEventListener('click', function (e) {
+      if (e.target.id === 'smDismiss' || e.target.closest('#smDismiss')) {
+        closeModal();
+      }
+    });
+
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && backdrop.classList.contains('open')) closeModal(); });
+
+  })();
+
 })();

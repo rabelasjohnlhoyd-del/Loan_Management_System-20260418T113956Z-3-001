@@ -15,7 +15,7 @@
 
 <div class="app-wrap">
 
-  <!-- TOPBAR — same as my_loans -->
+  <!-- TOPBAR -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -30,7 +30,6 @@
       </div>
     </div>
 
-    <!-- Right: notif + avatar only (same as my_loans) -->
     <div class="topbar-right">
       <div class="notif-wrap" id="notifWrap">
         <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
@@ -115,16 +114,16 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+ 
     <div class="main-content">
       <main class="page-body">
 
-        {# ── FLASH MESSAGE BLOCK (IMPLEMENTED) ── #}
+     
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             <div class="flash-stack" style="margin-bottom: 20px;">
               {% for category, message in messages %}
-                <div class="flash-msg {{ category }}" style="padding: 12px; border-radius: 8px; margin-bottom: 10px; 
+                <div class="flash-msg {{ category }}" style="padding: 12px; border-radius: 8px; margin-bottom: 10px;
                      background: {% if category=='danger' %}#fee2e2{% elif category=='warning' %}#fef3c7{% else %}#dcfce7{% endif %};
                      color: {% if category=='danger' %}#b91c1c{% elif category=='warning' %}#92400e{% else %}#15803d{% endif %};
                      border: 1px solid currentColor; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px;">
@@ -136,7 +135,7 @@
           {% endif %}
         {% endwith %}
 
-        <!-- PAGE HEADER — same layout as my_loans -->
+      
         <div class="page-header">
           <div class="page-header-left">
             <a href="{{ url_for('borrower.borrower_dashboard') }}" class="btn-back">
@@ -204,6 +203,7 @@
               </p>
             </div>
             {% endif %}
+
             {% if applications and applications|length > 10 %}
             <div class="pagination-bar" id="paginationBar">
               <span class="pg-info" id="pgInfo"></span>
@@ -231,7 +231,57 @@
     </div>
 
   </div>
+
+
+  <div class="status-modal-backdrop" id="statusModalBackdrop">
+    <div class="status-modal" id="statusModal" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
+
+      
+      <div class="status-modal__icon-wrap" id="statusModalIconWrap">
+        <div class="status-modal__icon-ring">
+          <span class="status-modal__icon" id="statusModalIcon"></span>
+        </div>
+      </div>
+
+   >
+      <div class="status-modal__body">
+        <h2 class="status-modal__title" id="statusModalTitle"></h2>
+        <p  class="status-modal__ref"   id="statusModalRef"></p>
+        <p  class="status-modal__msg"   id="statusModalMsg"></p>
+
+        
+        <div class="status-modal__reason-box" id="statusModalReasonBox">
+          <span class="status-modal__reason-label">Reason for rejection</span>
+          <p class="status-modal__reason-text" id="statusModalReasonText"></p>
+        </div>
+      </div>
+
+      
+      <div class="status-modal__actions" id="statusModalActions"></div>
+
+    </div>
+  </div>
+
 </div>
+
+
+<script>
+  window.__APP_STATUSES__ = [
+    {% for app in applications %}
+    {
+      id:         {{ app.id }},
+      ref:        {{ app.reference_no | tojson }},
+      status:     {{ app.status       | tojson }},
+      type:       {{ app.type_name    | tojson }},
+      amount:     {{ app.amount_requested | float }},
+      reason:     {{ (app.rejection_reason or '') | tojson }},
+      reviewedAt: {{ (app.reviewed_at.strftime('%b %d, %Y') if app.reviewed_at else '') | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+  window.__APPLY_URL__ = {{ url_for('loans.apply') | tojson }};
+ 
+</script>
 
 <script src="{{ url_for('loans.static', filename='my_applications.js') }}"></script>
 </body>
