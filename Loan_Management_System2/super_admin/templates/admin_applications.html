@@ -217,11 +217,14 @@
           </div>
         </div>
 
+        <!-- ═══ FLASH MESSAGES — tagged for JS result modal detection ═══ -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div class="flash-stack">
+            <div class="flash-stack" id="flashStack">
               {% for category, message in messages %}
-                <div class="flash-msg {{ category }}">
+                <div class="flash-msg {{ category }}"
+                     data-flash-category="{{ category }}"
+                     data-flash-message="{{ message }}">
                   <span>{{ message }}</span>
                   <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
                 </div>
@@ -423,6 +426,21 @@
     </div>
     <div class="modal-actions modal-actions--right">
       <button class="btn-reject-confirm" onclick="submitReject()">Yes, Reject</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ RESULT MODAL ═══════════════════ -->
+<div class="modal-overlay modal-no-backdrop" id="resultModal">
+  <div class="modal-box modal-box--result">
+    <div class="result-modal-icon-wrap" id="resultModalIconWrap">
+      <div class="result-modal-icon" id="resultModalIcon"></div>
+    </div>
+    <h3 class="result-modal-title" id="resultModalTitle"></h3>
+    <p class="result-modal-msg" id="resultModalMsg"></p>
+    <div class="result-modal-meta" id="resultModalMeta"></div>
+    <div class="modal-actions modal-actions--center">
+      <button class="btn-approve result-done-btn" id="resultDoneBtn" onclick="closeModals()">Done</button>
     </div>
   </div>
 </div>

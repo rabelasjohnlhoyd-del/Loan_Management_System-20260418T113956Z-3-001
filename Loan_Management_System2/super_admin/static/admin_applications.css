@@ -930,3 +930,110 @@ body:not(.sidebar-open) .sidebar { transform: translateX(calc(-1 * var(--sidebar
   .modal-actions--spaced > div { width: 100%; flex-direction: column; }
   .modal-actions--spaced .btn-cancel { width: 100%; text-align: center; }
 }
+
+
+
+
+/* ================================================================
+   RESULT MODAL
+   ================================================================ */
+
+/* Re-center override for the result box */
+.modal-actions--center { justify-content: center; }
+
+.modal-box--result {
+  text-align: center;
+  padding: 40px 36px 32px;
+  max-width: 440px;
+}
+
+/* Icon wrapper — coloured glow ring */
+.result-modal-icon-wrap {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  margin: 0 auto 22px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.result-modal-icon-wrap--approved {
+  background: rgba(22, 163, 74, 0.10);
+  box-shadow: 0 0 0 8px rgba(22, 163, 74, 0.07);
+}
+.result-modal-icon-wrap--rejected {
+  background: rgba(220, 38, 38, 0.10);
+  box-shadow: 0 0 0 8px rgba(220, 38, 38, 0.07);
+}
+
+/* SVG icon */
+.result-modal-icon {
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+}
+.result-modal-icon svg { width: 100%; height: 100%; }
+.result-modal-icon--approved { color: #16a34a; }
+.result-modal-icon--rejected { color: #dc2626; }
+
+/* SVG draw-in animation */
+.result-svg-circle {
+  stroke-dasharray: 157;
+  stroke-dashoffset: 157;
+  animation: drawCircle 0.55s ease forwards;
+}
+.result-svg-check {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: drawCheck 0.40s ease 0.45s forwards;
+}
+@keyframes drawCircle {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes drawCheck {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Title */
+.result-modal-title {
+  font-family: var(--font-h);
+  font-size: 20px; font-weight: 700;
+  color: var(--text-h);
+  margin: 0 0 10px;
+}
+
+/* Message */
+.result-modal-msg {
+  font-size: 13px; color: var(--text-muted);
+  line-height: 1.65; margin: 0 0 20px;
+}
+
+/* Loan number pill */
+.result-modal-meta { margin-bottom: 24px; }
+.result-loan-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--success-bg);
+  border: 1px solid #86efac;
+  border-radius: 99px;
+  padding: 6px 16px;
+}
+.result-loan-label {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--success);
+}
+.result-loan-no {
+  font-size: 14px; font-weight: 700;
+  color: var(--success); letter-spacing: 0.3px;
+}
+
+/* Done button sizing inside result modal */
+.result-done-btn {
+  min-width: 120px;
+  padding: 10px 28px;
+  font-size: 14px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .modal-box--result { padding: 32px 20px 24px; }
+  .result-modal-title { font-size: 17px; }
+  .result-done-btn { width: 100%; }
+}

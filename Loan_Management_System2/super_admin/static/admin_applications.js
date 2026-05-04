@@ -5,6 +5,8 @@
    2. View modal   : no backdrop-close, no Close button
    3. Approve modal: no backdrop-close, X button only, no Cancel
    4. Reject modal : no backdrop-close, X button only, no Cancel
+   5. Result modal : auto-shows on page load when flash has
+                     approve/reject message (admin-side only)
    ================================================================ */
 
 (function () {
@@ -83,11 +85,6 @@
 
   /* ================================================================
      NOTIFICATIONS — localStorage persistence
-     Same pattern as dashboard_admin.js
-     Reads from the rendered <ul#notifList> items that have
-     data-notif-id attributes. If the page uses server-rendered
-     notif items, they must have data-notif-id set in the template.
-     Falls back gracefully if the list is empty / API-driven.
      ================================================================ */
   const NOTIF_READ_KEY = 'hiraya_admin_read_notifs';
   const notifBtn       = document.getElementById('notifBtn');
@@ -106,11 +103,11 @@
     catch (e) { /* quota */ }
   }
 
-function markNotifItemRead(el) {
-  el.classList.remove('unread');
-  el.classList.add('read-local');
-  el.querySelectorAll('.notif-unread-dot').forEach(d => d.remove());
-}
+  function markNotifItemRead(el) {
+    el.classList.remove('unread');
+    el.classList.add('read-local');
+    el.querySelectorAll('.notif-unread-dot').forEach(d => d.remove());
+  }
   function refreshNotifDot() {
     const stillUnread = notifList?.querySelectorAll('.notif-item.unread').length ?? 0;
     stillUnread > 0
@@ -118,14 +115,12 @@ function markNotifItemRead(el) {
       : notifDot?.classList.add('hidden');
   }
 
-  /* Apply persisted read state to server-rendered items */
   const readSet = getReadSet();
   notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
     if (readSet.has(item.dataset.notifId)) markNotifItemRead(item);
   });
   refreshNotifDot();
 
-  /* Toggle dropdown */
   notifBtn?.addEventListener('click', function (e) {
     e.stopPropagation();
     notifDropdown?.classList.toggle('open');
@@ -134,7 +129,6 @@ function markNotifItemRead(el) {
     if (!notifWrap?.contains(e.target)) notifDropdown?.classList.remove('open');
   });
 
-  /* Mark individual notif as read on click */
   notifList?.addEventListener('click', function (e) {
     const item = e.target.closest('.notif-item[data-notif-id]');
     if (!item || !item.classList.contains('unread')) return;
@@ -144,7 +138,6 @@ function markNotifItemRead(el) {
     refreshNotifDot();
   });
 
-  /* Mark all as read */
   notifMarkAll?.addEventListener('click', () => {
     notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
       markNotifItemRead(item);
@@ -197,13 +190,11 @@ function markNotifItemRead(el) {
         return;
       }
 
-      /* Prev */
       const prev = makeBtn('‹', page === 1, false, () => showPage(page - 1));
       prev.classList.add('page-btn--wide');
       prev.title = 'Previous';
       paginationBtns.appendChild(prev);
 
-      /* Page numbers */
       const delta = 2;
       const pages = [];
       for (let p = 1; p <= totalPages; p++) {
@@ -220,7 +211,6 @@ function markNotifItemRead(el) {
         last = p;
       });
 
-      /* Next */
       const next = makeBtn('›', page === totalPages, false, () => showPage(page + 1));
       next.classList.add('page-btn--wide');
       next.title = 'Next';
@@ -243,17 +233,55 @@ function markNotifItemRead(el) {
      AUTO-DISMISS FLASH MESSAGES
      ================================================================ */
   setTimeout(() => {
-    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
+    document.querySelectorAll('.flash-msg').forEach(el => {
+      if (!el.classList.contains('result-intercepted')) el.remove();
+    });
   }, 5000);
 
-})();
+  /* ================================================================
+     RESULT MODAL — auto-show on page load when flash has
+     an approve or reject result message (admin-side only)
+     ================================================================ */
+  (function checkFlashForResult() {
+    const flashItems = document.querySelectorAll('.flash-msg[data-flash-category]');
+
+    flashItems.forEach(function (el) {
+      const category = el.dataset.flashCategory  || '';
+      const message  = el.dataset.flashMessage   || '';
+      const msgLower = message.toLowerCase();
+
+      const isApproval  = msgLower.includes('approved') || msgLower.includes('loan no');
+      const isRejection = msgLower.includes('rejected')  || msgLower.includes('reject');
+
+      if (!isApproval && !isRejection) return;
+
+      /* Hide the plain flash bar — the modal takes over */
+      el.classList.add('result-intercepted');
+      el.style.display = 'none';
+
+      /* Extract loan number if present  e.g. "Loan approved! Loan No: LN-20240001" */
+      let loanNo = '';
+      const loanNoMatch = message.match(/Loan\s*No[.:]?\s*([A-Z0-9\-]+)/i);
+      if (loanNoMatch) loanNo = loanNoMatch[1];
+
+      setTimeout(function () {
+        showResultModal(
+          isApproval ? 'approved' : 'rejected',
+          isApproval ? 'Application Approved!' : 'Application Rejected',
+          isApproval
+            ? 'The loan application has been successfully approved and a new loan has been created.'
+            : 'The loan application has been rejected. The borrower will be notified.',
+          loanNo
+        );
+      }, 350);
+    });
+  })();
+
+})(); /* end IIFE */
+
 
 /* ================================================================
-   MODAL LOGIC
-   - closeModals()      : X button lang ang nag-close
-   - openModal(id)      : opens modal
-   - Backdrop click     : DISABLED for all modals with .modal-no-backdrop
-   - Escape key         : still closes (convenience)
+   MODAL LOGIC  (global scope — called by inline onclick handlers)
    ================================================================ */
 
 let currentAppId = null;
@@ -267,7 +295,7 @@ function openModal(id) {
   document.getElementById(id).classList.add('open');
 }
 
-/* Backdrop click: only close modals that do NOT have .modal-no-backdrop */
+/* Backdrop click: only close modals WITHOUT .modal-no-backdrop */
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', function (e) {
     if (e.target === this && !this.classList.contains('modal-no-backdrop')) {
@@ -326,9 +354,10 @@ function openViewModal(refNo, borrowerName, borrowerEmail, typeName, planName,
   };
   const sc = statusColors[status] || { bg: '#f4f8f7', color: '#5a7a76' };
   document.getElementById('viewStatusBadge').innerHTML =
-    `<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:${sc.bg};color:${sc.color};">${getStatusLabel(status)}</span>`;
+    `<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;
+      font-size:11px;font-weight:600;background:${sc.bg};color:${sc.color};">
+      ${getStatusLabel(status)}</span>`;
 
-  /* Approve + Reject buttons (only for actionable statuses) */
   const actionDiv = document.getElementById('viewActionButtons');
   actionDiv.innerHTML = '';
 
@@ -340,10 +369,10 @@ function openViewModal(refNo, borrowerName, borrowerEmail, typeName, planName,
     approveBtn.textContent = 'Approve';
     approveBtn.onclick     = function () { closeModals(); openApproveModal(appId, refNo, amount, term); };
 
-    const rejectBtn             = document.createElement('button');
-    rejectBtn.className         = 'btn-reject-confirm';
-    rejectBtn.textContent       = 'Reject';
-    rejectBtn.onclick           = function () { closeModals(); openRejectModal(appId, refNo); };
+    const rejectBtn       = document.createElement('button');
+    rejectBtn.className   = 'btn-reject-confirm';
+    rejectBtn.textContent = 'Reject';
+    rejectBtn.onclick     = function () { closeModals(); openRejectModal(appId, refNo); };
 
     actionDiv.appendChild(approveBtn);
     actionDiv.appendChild(rejectBtn);
@@ -384,4 +413,59 @@ function submitReject() {
     action:           'reject',
     rejection_reason: document.getElementById('rejectReason').value
   });
+}
+
+/* ── RESULT MODAL ────────────────────────────────────── */
+function showResultModal(type, title, message, loanNo) {
+  const modal      = document.getElementById('resultModal');
+  const iconEl     = document.getElementById('resultModalIcon');
+  const iconWrap   = document.getElementById('resultModalIconWrap');
+  const titleEl    = document.getElementById('resultModalTitle');
+  const msgEl      = document.getElementById('resultModalMsg');
+  const metaEl     = document.getElementById('resultModalMeta');
+  const doneBtn    = document.getElementById('resultDoneBtn');
+
+  if (!modal) return;
+
+  titleEl.textContent = title;
+  msgEl.textContent   = message;
+
+  /* Icon — animated circle with check or X */
+  iconEl.innerHTML  = '';
+  iconWrap.className = 'result-modal-icon-wrap result-modal-icon-wrap--' + type;
+  iconEl.className   = 'result-modal-icon result-modal-icon--' + type;
+
+  if (type === 'approved') {
+    iconEl.innerHTML = `
+      <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle class="result-svg-circle" cx="26" cy="26" r="24"
+                stroke="currentColor" stroke-width="2.5" fill="none"/>
+        <path   class="result-svg-check"  d="M14 26l8 9 16-18"
+                stroke="currentColor" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>`;
+    doneBtn.className = 'btn-approve result-done-btn';
+  } else {
+    iconEl.innerHTML = `
+      <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle class="result-svg-circle" cx="26" cy="26" r="24"
+                stroke="currentColor" stroke-width="2.5" fill="none"/>
+        <path   class="result-svg-check"  d="M17 17l18 18M35 17L17 35"
+                stroke="currentColor" stroke-width="3"
+                stroke-linecap="round" fill="none"/>
+      </svg>`;
+    doneBtn.className = 'btn-reject-confirm result-done-btn';
+  }
+
+  /* Loan number pill (approved only) */
+  metaEl.innerHTML = '';
+  if (loanNo && type === 'approved') {
+    metaEl.innerHTML = `
+      <div class="result-loan-pill">
+        <span class="result-loan-label">Loan No.</span>
+        <span class="result-loan-no">${loanNo}</span>
+      </div>`;
+  }
+
+  openModal('resultModal');
 }
