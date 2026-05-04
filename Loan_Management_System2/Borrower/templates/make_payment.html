@@ -168,13 +168,17 @@
           <div class="loan-select-grid">
             {% if active_loans %}
               {% for loan in active_loans %}
-              <div class="loan-select-card" onclick="selectLoan(this, {{ loan.id }}, '{{ loan.loan_no }}', {{ loan.next_amount or 0 }}, '{{ loan.type_name }}')">
+              <div class="loan-select-card"
+                   data-loan-id="{{ loan.id }}"
+                   data-loan-ref="{{ loan.loan_no }}"
+                   data-loan-amount="{{ loan.next_amount or 0 }}"
+                   data-loan-type="{{ loan.type_name }}">
                 <div class="loan-card-top">
                   <div>
                     <div class="loan-card-ref">{{ loan.loan_no }}</div>
                     <div class="loan-card-type">{{ loan.type_name }}</div>
                   </div>
-                  <button type="button" class="btn-download-qr" onclick="downloadOfficialQR('{{ loan.loan_no }}', event); event.stopPropagation();">
+                  <button type="button" class="btn-download-qr btn-qr-token" data-loan-ref="{{ loan.loan_no }}">
                     <span class="qr-icon"></span> QR Token
                   </button>
                   <div class="loan-card-check">✓</div>

@@ -1,18 +1,16 @@
 /**
- * payment_history.js
- * Features: filter (status + date range), search, sort by column,
- *           pagination, print, export CSV, amount tooltip, rejected reason tooltip.
- *           NOTIFICATIONS DROPDOWN + PAYMENT RECEIPT VIEWING
+ * make_payment.js
+ * Full sidebar + notifications + payment flow
+ * Consistent with payment_history.js logic
  */
 
 (function () {
   'use strict';
 
   /* ================================================================
-     SIDEBAR TOGGLE
+     1. SIDEBAR TOGGLE
   ================================================================ */
   const burgerBtn      = document.getElementById('burgerBtn');
-  const sidebar        = document.getElementById('sidebar');
   const sidebarOverlay = document.getElementById('sidebarOverlay');
   const SIDEBAR_KEY    = 'hiraya_sidebar_open';
   const isMobile       = () => window.innerWidth <= 768;
@@ -33,12 +31,14 @@
     document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
   }
 
+  // Restore sidebar state on load
   if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
 
   burgerBtn?.addEventListener('click', toggleSidebar);
   sidebarOverlay?.addEventListener('click', closeSidebar);
 
-  sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
+  // Close sidebar on mobile when nav link clicked
+  document.querySelectorAll('.sidebar .nav-item, .user-dropdown a').forEach(link => {
     link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
   });
 
@@ -52,7 +52,7 @@
   });
 
   /* ================================================================
-     USER DROPDOWN
+     2. USER DROPDOWN
   ================================================================ */
   const userToggle   = document.getElementById('userDropdownToggle');
   const userDropdown = document.getElementById('userDropdown');
@@ -63,6 +63,7 @@
       userDropdown.classList.toggle('open');
       userToggle.classList.toggle('open');
     });
+
     document.addEventListener('click', (e) => {
       if (!userToggle.contains(e.target) && !userDropdown.contains(e.target)) {
         userDropdown.classList.remove('open');
@@ -72,20 +73,13 @@
   }
 
   /* ================================================================
-     NOTIFICATIONS DROPDOWN
+     3. NOTIFICATIONS DROPDOWN
   ================================================================ */
   const notifBtn      = document.getElementById('notifBtn');
   const notifDropdown = document.getElementById('notifDropdown');
   const notifDot      = document.getElementById('notifDot');
   const notifList     = document.getElementById('notifList');
   const notifMarkAll  = document.getElementById('notifMarkAll');
-
-  function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
   function fetchUnreadCount() {
     fetch('/loans/api/notifications/count')
@@ -116,11 +110,12 @@
             <div class="notif-item-body">
               <div class="notif-item-title">${escapeHtml(n.title)}</div>
               <div class="notif-item-msg">${escapeHtml(n.message || '')}</div>
-              <div class="notif-item-time">${escapeHtml(n.time_ago)}</div>
+              <div class="notif-item-time">${escapeHtml(n.time_ago || '')}</div>
             </div>
             ${unread ? '<span class="notif-unread-dot"></span>' : ''}
           </div>`;
         }).join('');
+
         notifList.querySelectorAll('.notif-item').forEach(el => {
           el.addEventListener('click', function () {
             const id   = this.dataset.id;
@@ -149,6 +144,7 @@
       notifDropdown.classList.toggle('open');
       if (opening) fetchNotifications();
     });
+
     document.addEventListener('click', (e) => {
       if (!document.getElementById('notifWrap')?.contains(e.target)) {
         notifDropdown?.classList.remove('open');
@@ -160,7 +156,7 @@
     notifMarkAll.addEventListener('click', () => {
       fetch('/loans/api/notifications/read-all', { method: 'POST' })
         .then(() => {
-          notifList.querySelectorAll('.notif-item.unread').forEach(el => {
+          notifList?.querySelectorAll('.notif-item.unread').forEach(el => {
             el.classList.remove('unread');
             el.querySelector('.notif-unread-dot')?.remove();
           });
@@ -170,307 +166,415 @@
   }
 
   /* ================================================================
-     NOTIFICATION STYLES (injected once)
+     4. NOTIFICATIONS STYLES (injected)
   ================================================================ */
+  const notifStyles = document.createElement('style');
+  notifStyles.id = 'notif-styles';
+  notifStyles.textContent = `
+    .notif-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #deecea; border-top-color: #3ab5a0;
+      border-radius: 50%; animation: notifSpin 0.7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes notifSpin { to { transform: rotate(360deg); } }
+    .notif-empty { padding: 32px 16px; text-align: center; color: #8aaeaa; }
+    .notif-empty p { font-size: 13px; font-weight: 600; color: #4a6b67; margin: 0 0 4px; }
+    .notif-empty small { font-size: 12px; }
+  `;
   if (!document.querySelector('#notif-styles')) {
-    const notifStyles = document.createElement('style');
-    notifStyles.id = 'notif-styles';
-    notifStyles.textContent = `
-      .notif-spinner { width:16px;height:16px;border:2px solid #deecea;border-top-color:#3ab5a0;border-radius:50%;animation:notifSpin 0.7s linear infinite;flex-shrink:0; }
-      @keyframes notifSpin { to { transform: rotate(360deg); } }
-      .notif-empty { padding:32px 16px;text-align:center;color:#8aaeaa; }
-      .notif-empty p { font-size:13px;font-weight:600;color:#4a6b67;margin:0 0 4px; }
-      .notif-empty small { font-size:12px; }
-    `;
     document.head.appendChild(notifStyles);
   }
 
   /* ================================================================
-     PAYMENT RECEIPT / PROOF VIEWING
+     5. DOWNLOAD QR TOKEN
   ================================================================ */
-  window.viewPaymentReceipt = function (paymentId, paymentNo) {
-    const ref = paymentNo || paymentId;
-    if (!ref) { alert('No payment reference found.'); return; }
-    window.open('/borrower/payments/receipt/' + ref, '_blank');
-  };
+  window.downloadOfficialQR = function (loanRef) {
+    const canvas = document.createElement('canvas');
+    const qrData = `HIRAYA-AUTH-${loanRef}`;
 
-  window.viewPaymentProof = function (paymentId) {
-    if (!paymentId) { alert('No payment ID found.'); return; }
-    window.open('/loans/payment-proof/' + paymentId, '_blank');
+    if (typeof QRious !== 'undefined') {
+      new QRious({
+        element: canvas,
+        value: qrData,
+        size: 300,
+        level: 'H',
+        foreground: '#1a3330'
+      });
+      const link = document.createElement('a');
+      link.download = `Official_QR_${loanRef}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } else {
+      alert('QR Library not loaded. Please refresh the page.');
+    }
   };
 
   /* ================================================================
-     TABLE: FILTER, SORT, PAGINATION
+     6. PAYMENT FLOW STATE
   ================================================================ */
-  let currentPage  = 1;
-  let pageSize     = 10;
-  let sortCol      = -1;
-  let sortDir      = 'asc';
+  let selectedLoanData = null;
+  let selectedMethod   = null;
+  let _confirmedPayNo  = null;
 
-  // FIX: Initialize filteredRows immediately (DOM is ready — script is at bottom of body)
-  let filteredRows = Array.from(document.querySelectorAll('.ph-row'));
+  const methodDetails = {
+    gcash:    { name: 'GCash',       icon: '💙' },
+    maya:     { name: 'Maya',        icon: '💚' },
+    bdo:      { name: 'BDO Bank',    icon: '🏦' },
+    bpi:      { name: 'BPI',         icon: '🏛️' },
+    landbank: { name: 'Landbank',    icon: '🌾' },
+    visa:     { name: 'Visa/Card',   icon: '💳' }
+  };
 
-  function getCleanCellText(cell) {
-    if (!cell) return '';
-    const clone = cell.cloneNode(true);
-    clone.querySelector('.td-amount-info')?.remove();
-    return clone.textContent.trim();
-  }
+  /* ================================================================
+     7. QR SCANNER
+  ================================================================ */
+  const qrDropZone      = document.getElementById('qrDropZone');
+  const qrFileInput     = document.getElementById('qrFileInput');
+  const btnConfirm      = document.getElementById('btnConfirmPayment');
+  const qrValidationMsg = document.getElementById('qrValidationMsg');
 
-  // FIX: Get readable method text from method cell (has emoji/spans)
-  function getMethodText(cell) {
-    if (!cell) return '';
-    const pill = cell.querySelector('.method-pill');
-    if (pill) {
-      // Remove emoji span, get just text
-      const clone = pill.cloneNode(true);
-      clone.querySelector('.m-icon')?.remove();
-      return clone.textContent.trim();
-    }
-    return cell.textContent.trim();
-  }
-
-  window.applyFilters = function () {
-    const status   = document.getElementById('filterStatus').value.toLowerCase();
-    const query    = document.getElementById('searchInput').value.toLowerCase().trim();
-    const dateFrom = document.getElementById('dateFrom').value;
-    const dateTo   = document.getElementById('dateTo').value;
-
-    const allRows = Array.from(document.querySelectorAll('.ph-row'));
-
-    filteredRows = allRows.filter(row => {
-      const rowStatus = (row.dataset.status || '').toLowerCase();
-      const rowSearch = (row.dataset.search || '').toLowerCase();
-      const rowDate   = (row.dataset.date || '');
-
-      const matchStatus = !status || rowStatus === status;
-      const matchSearch = !query  || rowSearch.includes(query);
-      const matchFrom   = !dateFrom || rowDate >= dateFrom;
-      const matchTo     = !dateTo   || rowDate <= dateTo;
-
-      return matchStatus && matchSearch && matchFrom && matchTo;
+  if (qrDropZone) {
+    qrDropZone.addEventListener('click', () => {
+      if (document.getElementById('qrPreviewContainer')?.classList.contains('hidden')) {
+        qrFileInput?.click();
+      }
     });
+    qrDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      qrDropZone.classList.add('dragging');
+    });
+    qrDropZone.addEventListener('dragleave', () => {
+      qrDropZone.classList.remove('dragging');
+    });
+    qrDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      qrDropZone.classList.remove('dragging');
+      if (e.dataTransfer.files[0]) handleQRFile(e.dataTransfer.files[0]);
+    });
+  }
 
-    if (sortCol >= 0) sortRows();
-    currentPage = 1;
-    renderPage();
-  };
+  qrFileInput?.addEventListener('change', (e) => {
+    if (e.target.files[0]) handleQRFile(e.target.files[0]);
+  });
 
-  window.clearDateFilter = function () {
-    document.getElementById('dateFrom').value = '';
-    document.getElementById('dateTo').value = '';
-    applyFilters();
-  };
+  function handleQRFile(file) {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        const canvas = document.createElement('canvas');
+        const ctx    = canvas.getContext('2d');
+        canvas.width  = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = window.jsQR ? jsQR(imageData.data, imageData.width, imageData.height) : null;
 
-  function initSortHeaders() {
-    document.querySelectorAll('.th-sort').forEach(th => {
-      th.addEventListener('click', () => {
-        const col = parseInt(th.dataset.col, 10);
-        if (sortCol === col) {
-          sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        if (code && code.data === `HIRAYA-AUTH-${selectedLoanData?.ref}`) {
+          processValidQR(e.target.result);
         } else {
-          sortCol = col;
-          sortDir = 'asc';
+          if (qrValidationMsg) {
+            qrValidationMsg.textContent = '❌ Authentication Failed! Invalid or wrong QR token.';
+            qrValidationMsg.style.color = '#dc2626';
+          }
         }
-        document.querySelectorAll('.th-sort').forEach(h => h.classList.remove('asc', 'desc'));
-        th.classList.add(sortDir);
-        sortRows();
-        renderPage();
-      });
-    });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
-  function sortRows() {
-    if (sortCol < 0 || filteredRows.length === 0) return;
-    filteredRows.sort((a, b) => {
-      const cellsA = a.querySelectorAll('td');
-      const cellsB = b.querySelectorAll('td');
-      if (!cellsA[sortCol] || !cellsB[sortCol]) return 0;
+  function processValidQR(imageSrc) {
+    const previewImg  = document.getElementById('qrPreviewImg');
+    const previewWrap = document.getElementById('qrPreviewContainer');
+    const scanContent = document.getElementById('scannerContent');
 
-      // Amount column (col 3) — numeric sort
-      if (sortCol === 3) {
-        const valA = parseFloat(getCleanCellText(cellsA[3]).replace(/[₱P,]/g, '')) || 0;
-        const valB = parseFloat(getCleanCellText(cellsB[3]).replace(/[₱P,]/g, '')) || 0;
-        return sortDir === 'asc' ? valA - valB : valB - valA;
-      }
+    if (previewImg)  previewImg.src = imageSrc;
+    if (previewWrap) previewWrap.classList.remove('hidden');
+    if (scanContent) scanContent.classList.add('hidden');
 
-      // Date column (col 5) — use data-raw-date
-      if (sortCol === 5) {
-        const valA = cellsA[5].dataset.rawDate || '';
-        const valB = cellsB[5].dataset.rawDate || '';
-        return sortDir === 'asc'
-          ? valA.localeCompare(valB)
-          : valB.localeCompare(valA);
-      }
-
-      // Method column (col 4) — strip emoji
-      if (sortCol === 4) {
-        const valA = getMethodText(cellsA[4]);
-        const valB = getMethodText(cellsB[4]);
-        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      }
-
-      // Default: text sort
-      const valA = getCleanCellText(cellsA[sortCol]);
-      const valB = getCleanCellText(cellsB[sortCol]);
-      return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    });
+    if (qrValidationMsg) {
+      qrValidationMsg.textContent = '✅ QR Verified! You can now proceed.';
+      qrValidationMsg.style.color = '#15803d';
+    }
+    if (btnConfirm) btnConfirm.disabled = false;
+    document.getElementById('btnResetQR')?.classList.remove('hidden');
   }
 
-  function renderPage() {
-    const tbody  = document.getElementById('historyBody');
-    const noRes  = document.getElementById('noResults');
-    const count  = document.getElementById('recordCount');
-    const allRows = Array.from(document.querySelectorAll('.ph-row'));
+  window.resetScanner = function () {
+    document.getElementById('qrPreviewContainer')?.classList.add('hidden');
+    document.getElementById('scannerContent')?.classList.remove('hidden');
+    if (qrFileInput) qrFileInput.value = '';
+    if (btnConfirm)  btnConfirm.disabled = true;
+    document.getElementById('btnResetQR')?.classList.add('hidden');
+    if (qrValidationMsg) {
+      qrValidationMsg.textContent = 'Waiting for QR verification...';
+      qrValidationMsg.style.color = '';
+    }
+  };
 
-    allRows.forEach(r => r.style.display = 'none');
+  /* ================================================================
+     8. NAVIGATION HANDLERS
+  ================================================================ */
 
-    if (filteredRows.length === 0) {
-      if (noRes) noRes.classList.remove('hidden');
-      if (count) count.textContent = '0 record(s)';
-      renderPagination(0);
+  // Quick amount buttons
+  window.setQuickAmount = function (months) {
+    if (!selectedLoanData) return;
+    const total    = selectedLoanData.amount * months;
+    const amtInput = document.getElementById('inputAmountToPay');
+    if (amtInput) {
+      amtInput.value = total.toFixed(2);
+      amtInput.style.backgroundColor = '#eaf8f5';
+      setTimeout(() => amtInput.style.backgroundColor = '', 350);
+    }
+  };
+
+  // Step 2 — Select Method
+  window.selectMethod = function (method, el) {
+    selectedMethod = method;
+    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+
+    const btn = document.getElementById('btnContinueToQR');
+    if (btn) btn.disabled = false;
+  };
+
+  // Proceed to Step 3
+  window.proceedToStep3 = function () {
+    const amtInput   = document.getElementById('inputAmountToPay');
+    const finalAmount = parseFloat(amtInput?.value || 0);
+
+    if (!finalAmount || finalAmount < selectedLoanData.amount) {
+      alert(`The amount cannot be lower than your monthly due of ₱${selectedLoanData.amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`);
       return;
     }
 
-    if (noRes) noRes.classList.add('hidden');
+    selectedLoanData.userSelectedAmount = finalAmount;
 
-    const start    = (currentPage - 1) * pageSize;
-    const pageRows = filteredRows.slice(start, start + pageSize);
-
-    // Re-append in sorted order, then show only current page
-    filteredRows.forEach(row => tbody.appendChild(row));
-    pageRows.forEach(r => r.style.display = '');
-
-    if (count) count.textContent = filteredRows.length + ' record(s)';
-    renderPagination(filteredRows.length);
-  }
-
-  function renderPagination(total) {
-    const totalPages   = Math.ceil(total / pageSize) || 1;
-    const info         = document.getElementById('paginationInfo');
-    const pageNums     = document.getElementById('pageNums');
-    const btnPrev      = document.getElementById('btnPrev');
-    const btnNext      = document.getElementById('btnNext');
-    const wrap         = document.getElementById('paginationControls');
-
-    if (!wrap) return;
-    wrap.style.display = total <= pageSize ? 'none' : 'flex';
-
-    if (info) {
-      const start = Math.min((currentPage - 1) * pageSize + 1, total);
-      const end   = Math.min(currentPage * pageSize, total);
-      info.textContent = `Showing ${start}–${end} of ${total} records`;
-    }
-
-    if (btnPrev) btnPrev.disabled = currentPage <= 1;
-    if (btnNext) btnNext.disabled = currentPage >= totalPages;
-
-    if (pageNums) {
-      pageNums.innerHTML = '';
-      let startPage = Math.max(1, currentPage - 2);
-      let endPage   = Math.min(totalPages, startPage + 4);
-      if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
-
-      for (let p = startPage; p <= endPage; p++) {
-        const btn = document.createElement('button');
-        btn.className = 'ph-page-num' + (p === currentPage ? ' active' : '');
-        btn.textContent = p;
-        btn.addEventListener('click', (function (page) {
-          return function () { currentPage = page; renderPage(); };
-        })(p));
-        pageNums.appendChild(btn);
-      }
-    }
-  }
-
-  window.changePage = function (delta) {
-    const totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
-    currentPage = Math.max(1, Math.min(currentPage + delta, totalPages));
-    renderPage();
+    hideSection('sectionStep2');
+    showSection('sectionStep3');
+    setStep(3);
+    buildQRScreen();
   };
 
-  window.changePageSize = function () {
-    pageSize    = parseInt(document.getElementById('pageSize').value, 10);
-    currentPage = 1;
-    renderPage();
+  function buildQRScreen() {
+    const d = methodDetails[selectedMethod] || { name: selectedMethod, icon: '💳' };
+
+    setText('sumLoanRef', selectedLoanData.ref);
+    setText('sumMethod',  `${d.icon} ${d.name}`);
+    setText('sumAmount',  `₱${selectedLoanData.userSelectedAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`);
+
+    const form = document.getElementById('paymentForm');
+    if (form) form.action = `/borrower/payments/make/${selectedLoanData.id}`;
+
+    setVal('hiddenLoanId',  selectedLoanData.id);
+    setVal('hiddenMethod',  selectedMethod);
+    setVal('hiddenRef',     'TXN-' + Math.random().toString(36).toUpperCase().slice(-8));
+    setVal('hiddenAmount',  selectedLoanData.userSelectedAmount);
+    setVal('hiddenDate',    new Date().toISOString().split('T')[0]);
+
+    resetScanner();
+  }
+
+  // Final submit
+  window.submitPayment = function () {
+    const btn = document.getElementById('btnConfirmPayment');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:erSpin 0.7s linear infinite;margin-right:8px;vertical-align:middle;"></span> Processing...';
+    }
+    document.getElementById('paymentForm')?.submit();
+  };
+
+  // Back buttons
+  window.backToStep1 = function () {
+    hideSection('sectionStep2');
+    showSection('sectionSelectLoan');
+    setStep(1);
+  };
+
+  window.backToStep2 = function () {
+    hideSection('sectionStep3');
+    showSection('sectionStep2');
+    setStep(2);
   };
 
   /* ================================================================
-     PRINT
+     9. SUCCESS RECEIPT — auto-load after redirect
   ================================================================ */
-  window.printHistory = function () {
-    const meta = document.getElementById('printMeta');
-    if (meta) {
-      const borrower = document.querySelector('.s-user-info h4')?.textContent?.trim() || '';
-      const now = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-      meta.textContent = (borrower ? borrower + '  •  ' : '') + 'Printed on: ' + now;
-    }
-    window.print();
-  };
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') !== '1') return;
 
-  /* ================================================================
-     EXPORT CSV (FIX: clean method text, remove emoji)
-  ================================================================ */
-  window.exportCSV = function () {
-    const headers  = ['Payment No.', 'Loan Reference', 'Loan Type', 'Amount (PHP)', 'Payment Method', 'Payment Date', 'Status'];
-    const now      = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-    const clean    = v => '"' + (v || '—').replace(/"/g, '""').replace(/[\r\n]+/g, ' ').trim() + '"';
+    window.addEventListener('load', function () {
+      const payNo = params.get('ref');
+      if (!payNo) return;
 
-    const lines = [
-      ['"Hiraya Management System — Payment History"'].join(','),
-      ['"Exported on: ' + now + '"'].join(','),
-      [''].join(','),
-      headers.map(clean).join(',')
-    ];
+      hideSection('sectionSelectLoan');
+      hideSection('sectionStep2');
+      hideSection('sectionStep3');
+      setStep(4);
+      showSection('sectionStep5');
 
-    filteredRows.forEach(row => {
-      const cells  = row.querySelectorAll('td');
-      const amount = getCleanCellText(cells[3]).replace(/[₱P,\s]/g, '');
-      const method = getMethodText(cells[4]);
-      const status = cells[6]?.querySelector('.pay-status')?.textContent.trim()
-                   || cells[6]?.textContent.trim() || '';
-      const rowData = [
-        cells[0]?.textContent.trim(),
-        cells[1]?.textContent.trim(),
-        cells[2]?.textContent.trim(),
-        amount,
-        method,
-        cells[5]?.textContent.trim(),
-        status,
-      ].map(clean);
-      lines.push(rowData.join(','));
+      _confirmedPayNo = payNo;
+      _loadReceiptData(payNo);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+  })();
 
-    const BOM  = '\uFEFF';
-    const blob = new Blob([BOM + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = 'Hiraya_PaymentHistory_' + new Date().toISOString().slice(0, 10) + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  function _loadReceiptData(payNo) {
+    const loadingEl = document.getElementById('receiptLoading');
+    const cardEl    = document.getElementById('erCard');
+
+    if (loadingEl) loadingEl.style.display = 'flex';
+    if (cardEl)    cardEl.style.display    = 'none';
+
+    fetch(`/borrower/payments/receipt-data/${payNo}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+
+        setText('erPayNo',        data.payment_no);
+        setText('erAmountVal',    `₱${parseFloat(data.amount_paid).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`);
+        setText('erLoanRef',      data.loan_ref);
+        setText('erLoanType',     data.type_name);
+        setText('erBorrowerName', data.borrower_name);
+        setText('erDateVerified', data.date_verified || '—');
+        setText('erTxnRef',       data.reference_number || '—');
+
+        const methodBadgeEl = document.getElementById('erMethodBadge');
+        if (methodBadgeEl) {
+          const icons = {
+            gcash:    '💙 GCash',
+            maya:     '💚 Maya',
+            bdo:      '🏦 BDO Bank',
+            bpi:      '🏛️ BPI',
+            landbank: '🌾 Landbank',
+            visa:     '💳 Visa/Card'
+          };
+          methodBadgeEl.textContent = icons[data.payment_method] || data.payment_method;
+        }
+
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (cardEl)    cardEl.style.display    = 'block';
+      })
+      .catch(() => {
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (cardEl) {
+          cardEl.style.display = 'block';
+          cardEl.innerHTML = `<div style="padding:40px;text-align:center;color:#dc2626;">
+            <div style="font-size:32px;margin-bottom:10px;">⚠️</div>
+            <p style="font-weight:600;">Could not load receipt data.</p>
+            <p style="font-size:12px;margin-top:6px;color:#9bbcb7;">Your payment was still processed successfully.</p>
+          </div>`;
+        }
+      });
+  }
 
   /* ================================================================
-     INIT
+     10. HELPERS
   ================================================================ */
-  // FIX: Run immediately — script is at end of body so DOM is ready.
-  // DOMContentLoaded as fallback only.
-  function init() {
-    filteredRows = Array.from(document.querySelectorAll('.ph-row'));
-    initSortHeaders();
-    renderPage();
+  function showSection(id) {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('hidden'); el.style.display = ''; }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  function hideSection(id) {
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
   }
+
+  function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  }
+
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  function setStep(n) {
+    document.querySelectorAll('.step').forEach((s, i) => {
+      s.classList.remove('active', 'done', 'todo');
+      if      (i + 1 < n)  s.classList.add('done');
+      else if (i + 1 === n) s.classList.add('active');
+      else                  s.classList.add('todo');
+    });
+    document.querySelectorAll('.step-line').forEach((line, i) => {
+      if (i + 1 < n) line.classList.add('done');
+      else           line.classList.remove('done');
+    });
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  window.printReceipt = function () { window.print(); };
 
   // Auto-dismiss flash messages
   setTimeout(() => {
-    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
+    document.querySelectorAll('.flash-msg').forEach(el => {
+      el.style.transition = 'opacity 0.4s';
+      el.style.opacity    = '0';
+      setTimeout(() => el.remove(), 400);
+    });
   }, 4000);
+
+  // Init
+  document.addEventListener('DOMContentLoaded', function () {
+    // Only init steps if not coming from success redirect
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') !== '1') {
+      hideSection('sectionStep2');
+      hideSection('sectionStep3');
+      hideSection('sectionStep5');
+      setStep(1);
+    }
+
+    // ── Loan card click — event delegation so QR btn doesn't block ──
+    document.querySelectorAll('.loan-select-card').forEach(function (card) {
+      card.addEventListener('click', function (e) {
+        // If QR token button was clicked, ignore — handled separately
+        if (e.target.closest('.btn-qr-token')) return;
+
+        const id     = card.dataset.loanId;
+        const ref    = card.dataset.loanRef;
+        const amount = parseFloat(card.dataset.loanAmount) || 0;
+        const type   = card.dataset.loanType;
+
+        selectedLoanData = { id, ref, amount, type };
+
+        const amtInput = document.getElementById('inputAmountToPay');
+        if (amtInput) amtInput.value = amount.toFixed(2);
+
+        const hint = document.getElementById('minAmountHint');
+        if (hint) hint.textContent = 'Minimum Monthly Due: ₱' + amount.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+
+        document.querySelectorAll('.loan-select-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+
+        setTimeout(function () {
+          hideSection('sectionSelectLoan');
+          showSection('sectionStep2');
+          setStep(2);
+        }, 280);
+      });
+    });
+
+    // ── QR Token button — separate clean handler ──
+    document.querySelectorAll('.btn-qr-token').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const loanRef = btn.dataset.loanRef;
+        downloadOfficialQR(loanRef);
+      });
+    });
+  });
 
 })();
