@@ -1,84 +1,101 @@
 /* ================================================================
-   O_BORROWERS.JS — Loan Officer Borrower Management
+   O_BORROWERS.JS — Borrowers Page
+   Core (sidebar/notif/dropdown) handled by hiraya_officer_core.js
    ================================================================ */
 
 (function () {
   'use strict';
 
-  /* ================================================================
-     PAGINATION
-     ================================================================ */
   const ROWS_PER_PAGE = 10;
-  const tableBody = document.getElementById('tableBody');
-  const paginationWrap = document.getElementById('paginationWrap');
-  const paginationInfo = document.getElementById('paginationInfo');
-  const paginationBtns = document.getElementById('paginationBtns');
-
-  let currentPage = 1;
-  let allRows = [];
 
   function initPagination() {
-    if (!tableBody) return;
-    allRows = Array.from(tableBody.querySelectorAll('tr')).filter(r => r.id !== 'emptyRow');
+    const tbody      = document.getElementById('tableBody');
+    const paginWrap  = document.getElementById('paginationWrap');
+    const paginInfo  = document.getElementById('paginationInfo');
+    const paginBtns  = document.getElementById('paginationBtns');
+
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(
+      r => !r.id || r.id !== 'emptyRow'
+    );
+
+    if (rows.length === 0 || rows.length <= ROWS_PER_PAGE) return;
+
+    if (paginWrap) paginWrap.style.display = 'flex';
+
+    let currentPage = 1;
+    const totalPages = Math.ceil(rows.length / ROWS_PER_PAGE);
+
+    function renderPage(page) {
+      currentPage = Math.min(Math.max(page, 1), totalPages);
+      const start = (currentPage - 1) * ROWS_PER_PAGE;
+      const end   = start + ROWS_PER_PAGE;
+
+      rows.forEach((row, i) => {
+        row.style.display = i >= start && i < end ? '' : 'none';
+      });
+
+      if (paginInfo) {
+        paginInfo.textContent = `Showing ${start + 1}–${Math.min(end, rows.length)} of ${rows.length} borrowers`;
+      }
+
+      if (!paginBtns) return;
+      paginBtns.innerHTML = '';
+
+      // Prev
+      const prev = document.createElement('button');
+      prev.textContent = '‹ Prev';
+      prev.className   = 'page-btn';
+      prev.type        = 'button';
+      prev.disabled    = currentPage === 1;
+      prev.onclick     = () => renderPage(currentPage - 1);
+      paginBtns.appendChild(prev);
+
+      // Page numbers
+      const maxV = 5;
+      let sp = Math.max(1, currentPage - Math.floor(maxV / 2));
+      let ep = Math.min(totalPages, sp + maxV - 1);
+      if (ep - sp < maxV - 1) sp = Math.max(1, ep - maxV + 1);
+
+      for (let p = sp; p <= ep; p++) {
+        const btn = document.createElement('button');
+        btn.textContent = p;
+        btn.className   = 'page-num' + (p === currentPage ? ' active' : '');
+        btn.type        = 'button';
+        btn.onclick     = () => renderPage(p);
+        paginBtns.appendChild(btn);
+      }
+
+      // Next
+      const next = document.createElement('button');
+      next.textContent = 'Next ›';
+      next.className   = 'page-btn';
+      next.type        = 'button';
+      next.disabled    = currentPage === totalPages;
+      next.onclick     = () => renderPage(currentPage + 1);
+      paginBtns.appendChild(next);
+    }
+
     renderPage(1);
   }
 
-  function renderPage(page) {
-    const total = allRows.length;
-    const totalPages = Math.ceil(total / ROWS_PER_PAGE) || 1;
-    currentPage = Math.min(page, totalPages);
-
-    const start = (currentPage - 1) * ROWS_PER_PAGE;
-    const end = start + ROWS_PER_PAGE;
-
-    allRows.forEach((row, idx) => {
-      row.style.display = (idx >= start && idx < end) ? '' : 'none';
+  /* ── SCORE BAR ENTRANCE ANIMATION ──────────────────────────── */
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.score-bar-fill').forEach(bar => {
+      const target = bar.style.width;
+      bar.style.width = '0';
+      requestAnimationFrame(() => {
+        bar.style.transition = 'width 0.6s cubic-bezier(0.4,0,0.2,1)';
+        bar.style.width = target;
+      });
     });
+  });
 
-    if (!paginationWrap) return;
-    paginationWrap.style.display = total > ROWS_PER_PAGE ? 'flex' : 'none';
-    if (total <= ROWS_PER_PAGE) return;
-
-    const from = start + 1;
-    const to = Math.min(end, total);
-    paginationInfo.textContent = `Showing ${from}–${to} of ${total} borrowers`;
-
-    paginationBtns.innerHTML = '';
-
-    // Prev button
-    const prev = document.createElement('button');
-    prev.className = 'page-btn';
-    prev.innerHTML = '‹ Prev';
-    prev.disabled = currentPage <= 1;
-    prev.addEventListener('click', () => renderPage(currentPage - 1));
-    paginationBtns.appendChild(prev);
-
-    // Page numbers
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-    if (endPage - startPage < maxVisible - 1) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let p = startPage; p <= endPage; p++) {
-      const btn = document.createElement('button');
-      btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
-      btn.textContent = p;
-      btn.addEventListener('click', () => renderPage(p));
-      paginationBtns.appendChild(btn);
-    }
-
-    // Next button
-    const next = document.createElement('button');
-    next.className = 'page-btn';
-    next.innerHTML = 'Next ›';
-    next.disabled = currentPage >= totalPages;
-    next.addEventListener('click', () => renderPage(currentPage + 1));
-    paginationBtns.appendChild(next);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPagination);
+  } else {
+    initPagination();
   }
 
-  initPagination();
-
 })();
-

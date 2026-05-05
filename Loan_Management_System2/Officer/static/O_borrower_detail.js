@@ -1,112 +1,127 @@
 /* ================================================================
-   O_BORROWER_DETAIL.JS — Loan Officer Borrower Detail
+   O_BORROWER_DETAIL.JS — Borrower Detail Page
+   Core (sidebar/notif/dropdown) handled by hiraya_officer_core.js
    ================================================================ */
 
 (function () {
   'use strict';
 
-  // Active nav highlight
-  const currentPath = window.location.pathname;
-  document.querySelectorAll('.nav-item[href]').forEach((el) => {
-    const href = el.getAttribute('href');
-    if (href && href !== '#' && currentPath.startsWith(href) && href !== '/') {
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      el.classList.add('active');
-    }
-  });
+  const ROWS_PER_PAGE = 8;
 
-  /* ================================================================
-     LOAN HISTORY PAGINATION - 5 rows per page
-     ================================================================ */
+  /* ── LOAN HISTORY PAGINATION ─────────────────────────────── */
   function initLoanPagination() {
-    const tbody = document.getElementById('loanHistoryBody');
+    const tbody      = document.getElementById('loanHistoryBody');
+    const paginWrap  = document.getElementById('loanPaginationContainer');
+    const paginInfo  = document.getElementById('loanPaginationInfo');
+    const paginBtns  = document.getElementById('loanPaginationButtons');
+
     if (!tbody) return;
-    
+
     const rows = Array.from(tbody.querySelectorAll('tr.loan-row'));
-    if (rows.length === 0) return;
-    
-    const ROWS_PER_PAGE = 5;
+    if (rows.length === 0 || rows.length <= ROWS_PER_PAGE) return;
+
+    if (paginWrap) paginWrap.style.display = 'flex';
+
     let currentPage = 1;
     const totalPages = Math.ceil(rows.length / ROWS_PER_PAGE);
-    
-    const container = document.getElementById('loanPaginationContainer');
-    const infoDiv = document.getElementById('loanPaginationInfo');
-    const btnsDiv = document.getElementById('loanPaginationButtons');
-    
-    if (!container || !infoDiv || !btnsDiv) return;
-    
+
+    // Update total count chip
+    const countChip = document.getElementById('loanTotalCount');
+    if (countChip) countChip.textContent = `${rows.length} loan(s)`;
+
     function renderPage(page) {
       currentPage = Math.min(Math.max(page, 1), totalPages);
       const start = (currentPage - 1) * ROWS_PER_PAGE;
-      const end = start + ROWS_PER_PAGE;
-      
-      // Show/hide rows
-      rows.forEach((row, index) => {
-        row.style.display = (index >= start && index < end) ? '' : 'none';
+      const end   = start + ROWS_PER_PAGE;
+
+      rows.forEach((row, i) => {
+        row.style.display = i >= start && i < end ? '' : 'none';
       });
-      
-      // Update info
-      const from = start + 1;
-      const to = Math.min(end, rows.length);
-      infoDiv.textContent = `Showing ${from}–${to} of ${rows.length} loans`;
-      
-      // Update buttons
-      btnsDiv.innerHTML = '';
-      
-      // Prev button
-      const prevBtn = document.createElement('button');
-      prevBtn.textContent = '‹ Prev';
-      prevBtn.className = 'page-btn';
-      prevBtn.disabled = currentPage === 1;
-      prevBtn.onclick = () => renderPage(currentPage - 1);
-      btnsDiv.appendChild(prevBtn);
-      
-      // Page numbers
-      const maxVisible = 3;
-      let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-      
-      if (endPage - startPage < maxVisible - 1) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
+
+      if (paginInfo) {
+        paginInfo.textContent =
+          `Showing ${start + 1}–${Math.min(end, rows.length)} of ${rows.length} loans`;
       }
-      
-      for (let p = startPage; p <= endPage; p++) {
+
+      if (!paginBtns) return;
+      paginBtns.innerHTML = '';
+
+      // Prev button
+      const prev = document.createElement('button');
+      prev.textContent = '‹ Prev';
+      prev.className   = 'page-btn';
+      prev.type        = 'button';
+      prev.disabled    = currentPage === 1;
+      prev.onclick     = () => renderPage(currentPage - 1);
+      paginBtns.appendChild(prev);
+
+      // Page numbers (window of 5)
+      const maxV = 5;
+      let sp = Math.max(1, currentPage - Math.floor(maxV / 2));
+      let ep = Math.min(totalPages, sp + maxV - 1);
+      if (ep - sp < maxV - 1) sp = Math.max(1, ep - maxV + 1);
+
+      for (let p = sp; p <= ep; p++) {
         const btn = document.createElement('button');
         btn.textContent = p;
-        btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
-        btn.onclick = () => renderPage(p);
-        btnsDiv.appendChild(btn);
+        btn.className   = 'page-num' + (p === currentPage ? ' active' : '');
+        btn.type        = 'button';
+        btn.onclick     = () => renderPage(p);
+        paginBtns.appendChild(btn);
       }
-      
+
       // Next button
-      const nextBtn = document.createElement('button');
-      nextBtn.textContent = 'Next ›';
-      nextBtn.className = 'page-btn';
-      nextBtn.disabled = currentPage === totalPages;
-      nextBtn.onclick = () => renderPage(currentPage + 1);
-      btnsDiv.appendChild(nextBtn);
-      
-      // Show/hide pagination container
-      if (rows.length <= ROWS_PER_PAGE) {
-        container.style.display = 'none';
-      } else {
-        container.style.display = 'flex';
-      }
+      const next = document.createElement('button');
+      next.textContent = 'Next ›';
+      next.className   = 'page-btn';
+      next.type        = 'button';
+      next.disabled    = currentPage === totalPages;
+      next.onclick     = () => renderPage(currentPage + 1);
+      paginBtns.appendChild(next);
     }
-    
+
     renderPage(1);
   }
-  
-  // Run pagination when page loads
+
+  /* ── SCORE BAR ANIMATION ─────────────────────────────────── */
+  function animateScoreBars() {
+    document.querySelectorAll('.score-bar-fill').forEach(bar => {
+      const target = bar.style.width;
+      bar.style.width = '0';
+      requestAnimationFrame(() => {
+        bar.style.transition = 'width 0.75s cubic-bezier(0.4,0,0.2,1)';
+        bar.style.width = target;
+      });
+    });
+  }
+
+  /* ── SAVE CONFIRM (update score form) ───────────────────── */
+  const updateForm = document.querySelector('.update-form');
+  updateForm?.addEventListener('submit', (e) => {
+    const scoreInput = updateForm.querySelector('input[name="credit_score"]');
+    const score      = parseInt(scoreInput?.value || 0);
+
+    if (score < 300 || score > 850) {
+      e.preventDefault();
+      alert('Credit score must be between 300 and 850.');
+      scoreInput?.focus();
+      return;
+    }
+
+    if (!confirm('Save changes to credit score and risk level?')) {
+      e.preventDefault();
+    }
+  });
+
+  /* ── INIT ────────────────────────────────────────────────── */
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initLoanPagination);
+    document.addEventListener('DOMContentLoaded', () => {
+      initLoanPagination();
+    });
   } else {
     initLoanPagination();
   }
 
-  // Auto-dismiss flash messages
-  setTimeout(() => {
-    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
-  }, 5000);
+  window.addEventListener('load', animateScoreBars);
 
 })();
