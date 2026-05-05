@@ -1,0 +1,210 @@
+/* ================================================================
+   OFFICER_ACTIVITY.CSS — Officer Activity Log Page
+   Extends dashboard_officer.css
+   ================================================================ */
+
+/* Stats Strip */
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-chip-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.stat-chip-icon.blue   { background: #dbeafe; }
+.stat-chip-icon.green  { background: var(--success-bg); }
+.stat-chip-icon.yellow { background: var(--warning-bg); }
+.stat-chip-icon.red    { background: var(--danger-bg); }
+
+.stat-chip-val {
+  font-family: var(--font-h);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1;
+}
+
+.stat-chip-label {
+  font-size: 12px;
+  color: var(--gray-400);
+  margin-top: 3px;
+}
+
+.text-green  { color: var(--success); }
+.text-yellow { color: var(--warning); }
+.text-red    { color: var(--danger); }
+
+/* Header Count */
+.header-count {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+/* Timeline */
+.timeline {
+  padding: 8px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 16px;
+  min-height: 60px;
+}
+
+.timeline-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 14px;
+  padding-top: 4px;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.timeline-dot--success { background: var(--success); box-shadow: 0 0 0 3px var(--success-bg); }
+.timeline-dot--danger  { background: var(--danger);  box-shadow: 0 0 0 3px var(--danger-bg); }
+.timeline-dot--info    { background: var(--info);    box-shadow: 0 0 0 3px var(--info-bg); }
+.timeline-dot--default { background: var(--gray-300); box-shadow: 0 0 0 3px var(--gray-100); }
+
+.timeline-connector {
+  flex: 1;
+  width: 2px;
+  background: var(--gray-200);
+  margin: 4px 0;
+}
+
+.timeline-item:last-child .timeline-connector {
+  display: none;
+}
+
+.timeline-content {
+  flex: 1;
+  padding-bottom: 20px;
+}
+
+.timeline-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-pill--success { background: var(--success-bg); color: var(--success); }
+.status-pill--failed  { background: var(--danger-bg);  color: var(--danger); }
+.status-pill--info    { background: var(--info-bg);    color: var(--info); }
+
+.timeline-details {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.timeline-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--gray-400);
+}
+
+.meta-dot {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  background: var(--gray-300);
+  border-radius: 50%;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+}
+
+.empty-icon-wrap {
+  font-size: 40px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.empty-state h4 {
+  font-family: var(--font-h);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 6px;
+}
+
+.empty-state p {
+  font-size: 13px;
+  color: var(--gray-400);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .stats-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-chip {
+    padding: 12px 14px;
+  }
+
+  .stat-chip-val {
+    font-size: 18px;
+  }
+}

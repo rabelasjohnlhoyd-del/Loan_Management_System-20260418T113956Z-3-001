@@ -6,341 +6,391 @@
   <title>Loan Detail — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_loan_detail.css') }}"/>
 </head>
 <body>
+
+<!-- MOBILE OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ════════ SIDEBAR ════════ -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
+  <!-- ═══════════════════════════════════════════════
+       TOPBAR
+  ════════════════════════════════════════════════ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
     </div>
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
-      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
-      <span class="s-chevron"></span>
+    <div class="topbar-center">
+      <span class="topbar-title">Loan: {{ loan.loan_no }}</span>
+      <span class="topbar-sub">{{ loan.borrower_name }} · {{ loan.type_name }} · {{ loan.plan_name }}</span>
     </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item"><span class="nav-icon nav-icon--verification"></span>ID Verification</a>
-      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>Applications</a>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item active"><span class="nav-icon nav-icon--loans"></span>Active Loans</a>
-      <a href="{{ url_for('officer.payment_list') }}" class="nav-item"><span class="nav-icon nav-icon--payments"></span>Payments</a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
-      </form>
-    </div>
-  </aside>
-
-  <!-- ════════ MAIN ════════ -->
-  <div class="main-content">
-    <header class="topbar">
-      <div>
-        <div class="topbar-heading">Loan: {{ loan.loan_no }}</div>
-        <div class="topbar-sub">{{ loan.borrower_name }} · {{ loan.type_name }} · {{ loan.plan_name }}</div>
-      </div>
+    <div class="topbar-right">
       <a href="{{ url_for('officer.officer_loans') }}" class="btn btn-ghost btn-sm">← Back to Loans</a>
-    </header>
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
+        {{ session.user_name[0]|upper if session.user_name else 'O' }}
+      </a>
+    </div>
+  </header>
 
-    <main class="page-body">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}<div class="flash-wrap">{% for c, m in messages %}<div class="alert alert-{{ c }}">{{ m }}</div>{% endfor %}</div>{% endif %}
-      {% endwith %}
+  <div class="body-row">
 
-      <!-- Overdue Warning -->
-      {% if loan.next_due_date and loan.next_due_date < today and loan.status == 'active' %}
-      <div class="overdue-alert">
-        <span>⚠ This loan has an overdue payment. Due date was {{ loan.next_due_date.strftime('%B %d, %Y') if loan.next_due_date.__class__.__name__ != 'str' else loan.next_due_date }}. Please follow up with the borrower.</span>
+    <!-- ═══════════════════════════════════════════════
+         SIDEBAR
+    ════════════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Loan Officer' }}</h4>
+          <div class="s-role-badge">LOAN OFFICER</div>
+        </div>
+        <span class="s-chevron"></span>
       </div>
-      {% endif %}
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--verification"></span><span class="nav-label">ID Verification</span>
+        </a>
+        <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('officer.officer_loans') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--loans"></span><span class="nav-label">Active Loans</span>
+        </a>
+        <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
+          <span class="nav-icon nav-icon--locked"></span>
+          <span class="nav-label">Locked Accounts</span>
+          {% if stats is defined and stats.locked_accounts > 0 %}
+          <span class="nav-badge">{{ stats.locked_accounts }}</span>
+          {% endif %}
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
 
-      <div class="detail-grid">
-        <!-- LEFT -->
-        <div class="detail-col">
+    <!-- ═══════════════════════════════════════════════
+         MAIN CONTENT
+    ════════════════════════════════════════════════ -->
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
 
-          <!-- Loan Overview -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Loan Overview</h3>
-              {% if loan.status == 'active' %}<span class="badge badge--active">Active</span>
-              {% elif loan.status == 'paid' %}<span class="badge badge--paid">Fully Paid</span>
-              {% elif loan.status == 'overdue' %}<span class="badge badge--overdue">Overdue</span>
-              {% elif loan.status == 'defaulted' %}<span class="badge badge--defaulted">Defaulted</span>
-              {% else %}<span class="badge badge--pending">{{ loan.status | title }}</span>{% endif %}
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
             </div>
-            <div class="card-body">
-              <!-- Progress Bar -->
-              {% set paid_pct = (((loan.principal_amount - loan.outstanding_balance) / loan.principal_amount * 100) | int) if loan.principal_amount > 0 else 0 %}
-              <div style="margin-bottom:20px;">
-                <div class="info-label">Repayment Progress</div>
-                <div class="progress-wrap">
+          {% endif %}
+        {% endwith %}
+
+        <!-- Overdue Warning -->
+        {% if loan.next_due_date and loan.next_due_date < today and loan.status == 'active' %}
+        <div class="overdue-alert">
+          <span class="overdue-alert-icon"></span>
+          <span>This loan has an overdue payment. Due date was <strong>{{ loan.next_due_date.strftime('%B %d, %Y') if loan.next_due_date.__class__.__name__ != 'str' else loan.next_due_date }}</strong>. Please follow up with the borrower.</span>
+        </div>
+        {% endif %}
+
+        <div class="detail-grid">
+          <!-- LEFT COLUMN -->
+          <div class="detail-col">
+
+            <!-- Loan Overview Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Loan Overview</h3>
+                {% if loan.status == 'active' %}<span class="badge badge--active">Active</span>
+                {% elif loan.status == 'paid' %}<span class="badge badge--paid">Fully Paid</span>
+                {% elif loan.status == 'overdue' %}<span class="badge badge--overdue">Overdue</span>
+                {% elif loan.status == 'defaulted' %}<span class="badge badge--defaulted">Defaulted</span>
+                {% else %}<span class="badge badge--pending">{{ loan.status | title }}</span>{% endif %}
+              </div>
+              <div class="card-body">
+                <!-- Progress Bar -->
+                {% set paid_pct = (((loan.principal_amount - loan.outstanding_balance) / loan.principal_amount * 100) | int) if loan.principal_amount > 0 else 0 %}
+                <div class="repayment-progress">
+                  <div class="info-label">Repayment Progress</div>
                   <div class="progress-labels">
                     <span>₱{{ "{:,.0f}".format(loan.principal_amount - loan.outstanding_balance) }} paid</span>
                     <span>₱{{ "{:,.0f}".format(loan.outstanding_balance) }} remaining</span>
                   </div>
                   <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width:{{ paid_pct }}%;background:{% if paid_pct >= 80 %}var(--green){% elif paid_pct >= 40 %}var(--accent){% else %}var(--yellow){% endif %};"></div>
+                    <div class="progress-bar-fill {% if paid_pct >= 80 %}fill-green{% elif paid_pct >= 40 %}fill-primary{% else %}fill-yellow{% endif %}" style="width:{{ paid_pct }}%;"></div>
                   </div>
-                  <div style="text-align:right;font-size:11px;color:var(--muted);margin-top:4px;">{{ paid_pct }}% complete</div>
+                  <div class="progress-pct">{{ paid_pct }}% complete</div>
                 </div>
-              </div>
 
-              <div class="info-grid" style="margin-bottom:16px;">
-                <div>
-                  <div class="info-label">Principal Amount</div>
-                  <div class="info-value" style="font-size:22px;color:var(--accent);">₱{{ "{:,.2f}".format(loan.principal_amount) }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Outstanding Balance</div>
-                  <div class="info-value" style="font-size:22px;{% if loan.outstanding_balance > loan.principal_amount * 0.5 %}color:var(--yellow);{% else %}color:var(--green);{% endif %}">₱{{ "{:,.2f}".format(loan.outstanding_balance) }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Monthly Payment</div>
-                  <div class="info-value">₱{{ "{:,.2f}".format(loan.monthly_payment) }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Processing Fee</div>
-                  <div class="info-value">₱{{ "{:,.2f}".format(loan.processing_fee) }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Disbursed Amount</div>
-                  <div class="info-value">₱{{ "{:,.2f}".format(loan.disbursed_amount) }}</div>
-                </div>
-                <div>
-                  <div class="info-label">Interest Rate</div>
-                  <div class="info-value">{{ loan.interest_rate }}% / month</div>
-                </div>
-                <div>
-                  <div class="info-label">Term</div>
-                  <div class="info-value">{{ loan.term_months }} months</div>
-                </div>
-                <div>
-                  <div class="info-label">Next Due Date</div>
-                  <div class="info-value {% if loan.next_due_date and loan.next_due_date < today %}style='color:var(--red);font-weight:700;'{% endif %}">
-                    {% if loan.next_due_date %}{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date.__class__.__name__ != 'str' else loan.next_due_date }}{% else %}—{% endif %}
+                <div class="info-grid-2">
+                  <div class="info-field">
+                    <div class="info-label">Principal Amount</div>
+                    <div class="info-value info-value--large info-value--accent">₱{{ "{:,.2f}".format(loan.principal_amount) }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Outstanding Balance</div>
+                    <div class="info-value info-value--large {% if loan.outstanding_balance > loan.principal_amount * 0.5 %}info-value--yellow{% else %}info-value--green{% endif %}">₱{{ "{:,.2f}".format(loan.outstanding_balance) }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Monthly Payment</div>
+                    <div class="info-value">₱{{ "{:,.2f}".format(loan.monthly_payment) }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Processing Fee</div>
+                    <div class="info-value">₱{{ "{:,.2f}".format(loan.processing_fee) }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Disbursed Amount</div>
+                    <div class="info-value">₱{{ "{:,.2f}".format(loan.disbursed_amount) }}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Interest Rate</div>
+                    <div class="info-value">{{ loan.interest_rate }}% / month</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Term</div>
+                    <div class="info-value">{{ loan.term_months }} months</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Next Due Date</div>
+                    <div class="info-value {% if loan.next_due_date and loan.next_due_date < today %}info-value--red info-value--bold{% endif %}">
+                      {% if loan.next_due_date %}{{ loan.next_due_date.strftime('%b %d, %Y') if loan.next_due_date.__class__.__name__ != 'str' else loan.next_due_date }}{% else %}—{% endif %}
+                    </div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Disbursed On</div>
+                    <div class="info-value">{% if loan.disbursed_at %}{{ loan.disbursed_at.strftime('%b %d, %Y') if loan.disbursed_at.__class__.__name__ != 'str' else loan.disbursed_at }}{% else %}—{% endif %}</div>
+                  </div>
+                  <div class="info-field">
+                    <div class="info-label">Maturity Date</div>
+                    <div class="info-value">{% if loan.maturity_date %}{{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date.__class__.__name__ != 'str' else loan.maturity_date }}{% else %}—{% endif %}</div>
                   </div>
                 </div>
-                <div>
-                  <div class="info-label">Disbursed On</div>
-                  <div class="info-value">{% if loan.disbursed_at %}{{ loan.disbursed_at.strftime('%b %d, %Y') if loan.disbursed_at.__class__.__name__ != 'str' else loan.disbursed_at }}{% else %}—{% endif %}</div>
-                </div>
-                <div>
-                  <div class="info-label">Maturity Date</div>
-                  <div class="info-value">{% if loan.maturity_date %}{{ loan.maturity_date.strftime('%b %d, %Y') if loan.maturity_date.__class__.__name__ != 'str' else loan.maturity_date }}{% else %}—{% endif %}</div>
-                </div>
-              </div>
 
-              <!-- Borrower Quick Info -->
-              <div style="padding-top:16px;border-top:1px solid var(--border);">
-                <div class="info-label" style="margin-bottom:10px;">Borrower</div>
-                <div style="display:flex;align-items:center;gap:12px;">
-                  <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">{{ loan.borrower_name[0]|upper }}</div>
-                  <div>
-                    <div style="font-weight:600;font-size:14px;">{{ loan.borrower_name }}</div>
-                    <div style="font-size:12px;color:var(--muted);">{{ loan.borrower_email }} · {{ loan.borrower_contact or 'No contact' }}</div>
+                <!-- Borrower Quick Info -->
+                <div class="borrower-strip">
+                  <div class="info-label">Borrower</div>
+                  <div class="borrower-row">
+                    <div class="borrower-avatar-sm">{{ loan.borrower_name[0]|upper }}</div>
+                    <div>
+                      <div class="borrower-name-lg">{{ loan.borrower_name }}</div>
+                      <div class="borrower-meta">{{ loan.borrower_email }} · {{ loan.borrower_contact or 'No contact' }}</div>
+                    </div>
+                    <a href="{{ url_for('officer.manage_borrowers') }}" class="btn btn-primary btn-sm ml-auto">View Profile →</a>
                   </div>
-                  <a href="{{ url_for('officer.manage_borrowers') }}" class="btn btn-ghost btn-sm" style="margin-left:auto;">View Profile →</a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Amortization Schedule -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Amortization Schedule</h3>
-              <span style="font-size:12px;color:var(--muted);">{{ schedule | length }} periods</span>
-            </div>
-            <div class="readonly-banner">📋 Read-only — payment recording is done through the Payments section.</div>
-            {% if schedule %}
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Due Date</th>
-                    <th>Principal</th>
-                    <th>Interest</th>
-                    <th>Total Due</th>
-                    <th>Balance After</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in schedule %}
-                  <tr class="{% if row.is_paid %}period-paid{% endif %}">
-                    <td style="color:var(--muted);font-size:12px;">{{ row.period_no }}</td>
-                    <td style="font-size:12px;">{% if row.due_date %}{{ row.due_date.strftime('%b %d, %Y') if row.due_date.__class__.__name__ != 'str' else row.due_date }}{% else %}—{% endif %}</td>
-                    <td>₱{{ "{:,.2f}".format(row.principal_due) }}</td>
-                    <td style="color:var(--muted);">₱{{ "{:,.2f}".format(row.interest_due) }}</td>
-                    <td style="font-weight:600;">₱{{ "{:,.2f}".format(row.total_due) }}</td>
-                    <td style="color:var(--muted);">₱{{ "{:,.2f}".format(row.balance_after) }}</td>
-                    <td>
-                      {% if row.is_paid %}
-                        <span class="badge" style="background:rgba(34,197,94,.1);color:var(--green);">Paid</span>
-                      {% else %}
-                        <span class="badge" style="background:rgba(245,158,11,.1);color:var(--yellow);">Upcoming</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% else %}
-            <div class="empty-state">No amortization schedule available.</div>
-            {% endif %}
-          </div>
-
-          <!-- Payment History -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Payment History</h3>
-              <a href="{{ url_for('officer.payment_list') }}" class="btn btn-ghost btn-sm">Verify Payments →</a>
-            </div>
-            {% if payment_history %}
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Method</th>
-                    <th>Reference</th>
-                    <th>Verified By</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for p in payment_history %}
-                  <tr>
-                    <td style="font-size:12px;color:var(--muted);">{% if p.payment_date %}{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date.__class__.__name__ != 'str' else p.payment_date }}{% else %}—{% endif %}</td>
-                    <td style="font-weight:700;color:var(--green);">₱{{ "{:,.2f}".format(p.amount_paid) }}</td>
-                    <td style="font-size:12px;">{{ p.payment_method or '—' }}</td>
-                    <td style="font-size:11px;font-family:monospace;color:var(--muted);">{{ p.reference_no or '—' }}</td>
-                    <td style="font-size:12px;color:var(--muted);">{{ p.verified_by_name or 'Pending' }}</td>
-                    <td>
-                      {% if p.status == 'approved' %}<span class="badge badge--approved">Approved</span>
-                      {% elif p.status == 'rejected' %}<span class="badge badge--rejected">Rejected</span>
-                      {% else %}<span class="badge badge--pending">Pending</span>{% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% else %}
-            <div class="empty-state">No payment records found.</div>
-            {% endif %}
-          </div>
-
-        </div>
-
-        <!-- RIGHT -->
-        <div class="detail-col">
-
-          <!-- Quick Stats -->
-          <div class="card">
-            <div class="card-header"><h3>Loan Summary</h3></div>
-            <div class="card-body">
-              <div class="summary-stats">
-                <div class="stat-mini">
-                  <div class="label">Total Paid</div>
-                  <div class="value green">₱{{ "{:,.0f}".format(loan.principal_amount - loan.outstanding_balance) }}</div>
-                </div>
-                <div class="stat-mini">
-                  <div class="label">Remaining</div>
-                  <div class="value {% if loan.outstanding_balance > 0 %}yellow{% else %}green{% endif %}">₱{{ "{:,.0f}".format(loan.outstanding_balance) }}</div>
-                </div>
-                <div class="stat-mini">
-                  <div class="label">Term</div>
-                  <div class="value blue">{{ loan.term_months }}mo</div>
-                </div>
-                <div class="stat-mini">
-                  <div class="label">Rate</div>
-                  <div class="value">{{ loan.interest_rate }}%</div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Penalties -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Penalties</h3>
-              {% if penalties %}<span style="font-size:12px;color:var(--red);font-weight:700;">{{ penalties | length }} total</span>{% endif %}
-            </div>
-            <div class="card-body">
-              {% if penalties %}
-                {% for pen in penalties %}
-                <div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-                  <div>
-                    <div style="font-size:13px;font-weight:600;color:var(--red);">₱{{ "{:,.2f}".format(pen.amount) }}</div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:2px;">{{ pen.days_overdue }} days overdue</div>
-                    <div style="font-size:11px;color:var(--muted);">{% if pen.created_at %}{{ pen.created_at.strftime('%b %d, %Y') if pen.created_at.__class__.__name__ != 'str' else pen.created_at }}{% endif %}</div>
-                  </div>
-                  <span class="penalty-badge {% if pen.status == 'waived' %}penalty-badge--waived{% else %}penalty-badge--active{% endif %}">
-                    {{ pen.status | title if pen.status else 'Active' }}
-                  </span>
-                </div>
-                {% endfor %}
-                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
-                  <div style="display:flex;justify-content:space-between;font-size:13px;">
-                    <span style="color:var(--muted);">Total Penalties</span>
-                    <span style="font-weight:700;color:var(--red);">₱{{ "{:,.2f}".format(penalties | sum(attribute='amount')) }}</span>
-                  </div>
-                </div>
+            <!-- Amortization Schedule -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Amortization Schedule</h3>
+                <span class="header-count">{{ schedule | length }} periods</span>
+              </div>
+              <div class="readonly-banner">
+                <span class="readonly-icon"></span>
+                Read-only — payment recording is done through the Payments section.
+              </div>
+              {% if schedule %}
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Due Date</th>
+                      <th>Principal</th>
+                      <th>Interest</th>
+                      <th>Total Due</th>
+                      <th>Balance After</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in schedule %}
+                    <tr class="{% if row.is_paid %}row-paid{% endif %}">
+                      <td data-label="#" class="muted-cell">{{ row.period_no }}</td>
+                      <td data-label="Due Date" class="date-cell">{% if row.due_date %}{{ row.due_date.strftime('%b %d, %Y') if row.due_date.__class__.__name__ != 'str' else row.due_date }}{% else %}—{% endif %}</td>
+                      <td data-label="Principal">₱{{ "{:,.2f}".format(row.principal_due) }}</td>
+                      <td data-label="Interest" class="muted-cell">₱{{ "{:,.2f}".format(row.interest_due) }}</td>
+                      <td data-label="Total Due" class="bold-cell">₱{{ "{:,.2f}".format(row.total_due) }}</td>
+                      <td data-label="Balance After" class="muted-cell">₱{{ "{:,.2f}".format(row.balance_after) }}</td>
+                      <td data-label="Status">
+                        {% if row.is_paid %}
+                          <span class="badge badge--paid">Paid</span>
+                        {% else %}
+                          <span class="badge badge--pending">Upcoming</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
               {% else %}
-                <div class="empty-state" style="padding:20px;">
-                  <p style="color:var(--green);font-size:13px;">✓ No penalties on record</p>
-                </div>
+              <div class="empty-state"><p>No amortization schedule available.</p></div>
               {% endif %}
             </div>
+
+            <!-- Payment History -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Payment History</h3>
+                <a href="{{ url_for('officer.payment_list') }}" class="btn btn-primary btn-sm">Verify Payments →</a>
+              </div>
+              {% if payment_history %}
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Reference</th>
+                      <th>Verified By</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for p in payment_history %}
+                    <tr>
+                      <td data-label="Date" class="date-cell">{% if p.payment_date %}{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date.__class__.__name__ != 'str' else p.payment_date }}{% else %}—{% endif %}</td>
+                      <td data-label="Amount" class="amount-green">₱{{ "{:,.2f}".format(p.amount_paid) }}</td>
+                      <td data-label="Method" class="date-cell">{{ p.payment_method or '—' }}</td>
+                      <td data-label="Reference" class="code-cell">{{ p.reference_no or '—' }}</td>
+                      <td data-label="Verified By" class="muted-cell">{{ p.verified_by_name or 'Pending' }}</td>
+                      <td data-label="Status">
+                        {% if p.status == 'approved' %}<span class="badge badge--approved">Approved</span>
+                        {% elif p.status == 'rejected' %}<span class="badge badge--rejected">Rejected</span>
+                        {% else %}<span class="badge badge--pending">Pending</span>{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="empty-state"><p>No payment records found.</p></div>
+              {% endif %}
+            </div>
+
           </div>
 
-          <!-- Loan Details -->
-          <div class="card">
-            <div class="card-header"><h3>Loan Details</h3></div>
-            <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">Loan No.</span>
-                <span style="font-size:12px;font-family:monospace;color:var(--text);">{{ loan.loan_no }}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">Type</span>
-                <span style="font-size:13px;font-weight:600;">{{ loan.type_name }}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">Plan</span>
-                <span style="font-size:12px;">{{ loan.plan_name }}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">Payments Made</span>
-                <span style="font-size:13px;font-weight:600;color:var(--green);">{{ payment_history | selectattr('status', 'equalto', 'approved') | list | length }}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">Periods Completed</span>
-                <span style="font-size:13px;font-weight:600;">{{ schedule | selectattr('is_paid') | list | length }} / {{ schedule | length }}</span>
+          <!-- RIGHT COLUMN -->
+          <div class="detail-col detail-col--right">
+
+            <!-- Summary Stats -->
+            <div class="card">
+              <div class="card-header"><h3>Loan Summary</h3></div>
+              <div class="card-body">
+                <div class="summary-stats">
+                  <div class="stat-mini">
+                    <div class="stat-mini-label">Total Paid</div>
+                    <div class="stat-mini-value text-green">₱{{ "{:,.0f}".format(loan.principal_amount - loan.outstanding_balance) }}</div>
+                  </div>
+                  <div class="stat-mini">
+                    <div class="stat-mini-label">Remaining</div>
+                    <div class="stat-mini-value {% if loan.outstanding_balance > 0 %}text-yellow{% else %}text-green{% endif %}">₱{{ "{:,.0f}".format(loan.outstanding_balance) }}</div>
+                  </div>
+                  <div class="stat-mini">
+                    <div class="stat-mini-label">Term</div>
+                    <div class="stat-mini-value text-blue">{{ loan.term_months }}mo</div>
+                  </div>
+                  <div class="stat-mini">
+                    <div class="stat-mini-label">Rate</div>
+                    <div class="stat-mini-value">{{ loan.interest_rate }}%</div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
+            <!-- Penalties -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Penalties</h3>
+                {% if penalties %}<span class="penalty-count">{{ penalties | length }} total</span>{% endif %}
+              </div>
+              <div class="card-body">
+                {% if penalties %}
+                  {% for pen in penalties %}
+                  <div class="penalty-row">
+                    <div>
+                      <div class="penalty-amount">₱{{ "{:,.2f}".format(pen.amount) }}</div>
+                      <div class="penalty-meta">{{ pen.days_overdue }} days overdue</div>
+                      <div class="penalty-meta">{% if pen.created_at %}{{ pen.created_at.strftime('%b %d, %Y') if pen.created_at.__class__.__name__ != 'str' else pen.created_at }}{% endif %}</div>
+                    </div>
+                    <span class="badge {% if pen.status == 'waived' %}badge--paid{% else %}badge--overdue{% endif %}">
+                      {{ pen.status | title if pen.status else 'Active' }}
+                    </span>
+                  </div>
+                  {% endfor %}
+                  <div class="penalty-total">
+                    <span>Total Penalties</span>
+                    <span class="penalty-total-amt">₱{{ "{:,.2f}".format(penalties | sum(attribute='amount')) }}</span>
+                  </div>
+                {% else %}
+                  <div class="empty-state" style="padding:20px;">
+                    <p style="color:var(--success);">✓ No penalties on record</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Loan Details -->
+            <div class="card">
+              <div class="card-header"><h3>Loan Details</h3></div>
+              <div class="card-body">
+                <div class="detail-rows">
+                  <div class="detail-row"><span>Loan No.</span><code class="loan-code-sm">{{ loan.loan_no }}</code></div>
+                  <div class="detail-row"><span>Type</span><strong>{{ loan.type_name }}</strong></div>
+                  <div class="detail-row"><span>Plan</span><span>{{ loan.plan_name }}</span></div>
+                  <div class="detail-row"><span>Payments Made</span><strong class="text-green">{{ payment_history | selectattr('status', 'equalto', 'approved') | list | length }}</strong></div>
+                  <div class="detail-row"><span>Periods Completed</span><strong>{{ schedule | selectattr('is_paid') | list | length }} / {{ schedule | length }}</strong></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
-      </div>
-    </main>
+
+      </main>
+    </div>
+
   </div>
 </div>
+
 <script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='O_loan_detail.js') }}"></script>
 </body>
 </html>

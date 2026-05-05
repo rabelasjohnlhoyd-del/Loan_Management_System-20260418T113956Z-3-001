@@ -8,140 +8,228 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_loans.css') }}"/>
 </head>
 <body>
+
+<!-- MOBILE OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
-      </div>
-    </div>
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
-      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
-      <span class="s-chevron"></span>
-    </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item"><span class="nav-icon nav-icon--verification"></span>ID Verification</a>
-      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>Applications</a>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item active"><span class="nav-icon nav-icon--loans"></span>Active Loans</a>
-      <a href="{{ url_for('officer.payment_list') }}" class="nav-item"><span class="nav-icon nav-icon--payments"></span>Payments</a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
-      </form>
-    </div>
-  </aside>
 
-  <div class="main-content">
-    <header class="topbar">
-      <div>
-        <div class="topbar-heading">Active Loans</div>
-        <div class="topbar-sub">Read-only monitoring — use Payments to process collections</div>
-      </div>
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
-    </header>
-
-    <main class="page-body">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}<div class="flash-wrap">{% for c, m in messages %}<div class="alert alert-{{ c }}">{{ m }}</div>{% endfor %}</div>{% endif %}
-      {% endwith %}
-
-      <div class="toolbar">
-        <form method="GET" action="{{ url_for('officer.officer_loans') }}" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;">
-          <div class="search-wrap">
-            <span class="search-icon"></span>
-            <input type="text" name="search" placeholder="Search borrower or loan no…" value="{{ search }}"/>
-          </div>
-          <div class="filter-tabs">
-            <a href="{{ url_for('officer.officer_loans', status='all') }}" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All <span class="tab-count">{{ counts.get('all', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_loans', status='active') }}" class="filter-tab {% if status_filter == 'active' %}active{% endif %}">Active <span class="tab-count">{{ counts.get('active', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_loans', status='overdue') }}" class="filter-tab {% if status_filter == 'overdue' %}active{% endif %}">Overdue <span class="tab-count">{{ counts.get('overdue', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_loans', status='paid') }}" class="filter-tab {% if status_filter == 'paid' %}active{% endif %}">Paid <span class="tab-count">{{ counts.get('paid', 0) }}</span></a>
-            <a href="{{ url_for('officer.officer_loans', status='defaulted') }}" class="filter-tab {% if status_filter == 'defaulted' %}active{% endif %}">Defaulted <span class="tab-count">{{ counts.get('defaulted', 0) }}</span></a>
-          </div>
-        </form>
-      </div>
-
-      <div class="card">
-        <div class="readonly-banner">🔍 Read-only view — officer cannot edit loan records. To verify a payment, go to the Payments section.</div>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Loan No.</th>
-                <th>Borrower</th>
-                <th>Type / Plan</th>
-                <th>Principal</th>
-                <th>Outstanding</th>
-                <th>Monthly</th>
-                <th>Next Due</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for l in loans %}
-              {% set is_overdue = l.next_due_date and l.next_due_date < today and l.status == 'active' %}
-              <tr>
-                <td style="font-size:11px;font-family:monospace;color:var(--muted);">{{ l.loan_no }}</td>
-                <td>
-                  <div class="borrower-name">{{ l.borrower_name }}</div>
-                  <div class="borrower-email">{{ l.borrower_email }}</div>
-                </td>
-                <td>
-                  <div style="font-size:13px;">{{ l.type_name }}</div>
-                  <div style="font-size:11px;color:var(--muted);">{{ l.plan_name }}</div>
-                </td>
-                <td style="font-weight:600;">₱{{ "{:,.0f}".format(l.principal_amount) }}</td>
-                <td>
-                  {% if l.principal_amount > 0 %}
-                    {% set pct = (l.outstanding_balance / l.principal_amount * 100) | int %}
-                  {% else %}
-                    {% set pct = 0 %}
-                  {% endif %}
-                  <div class="balance-wrap">
-                    <span style="font-size:13px;font-weight:600;{% if pct < 30 %}color:var(--green);{% elif pct < 70 %}color:var(--yellow);{% else %}color:var(--red);{% endif %}">₱{{ "{:,.0f}".format(l.outstanding_balance) }}</span>
-                    <div class="balance-bar-bg">
-                      <div class="balance-bar-fill" style="width:{{ pct }}%;background:{% if pct < 30 %}var(--green){% elif pct < 70 %}var(--yellow){% else %}var(--red){% endif %};"></div>
-                    </div>
-                  </div>
-                </td>
-                <td style="color:var(--muted);">₱{{ "{:,.0f}".format(l.monthly_payment) }}</td>
-                <td style="font-size:12px;{% if is_overdue %}color:var(--red);font-weight:600;{% else %}color:var(--muted);{% endif %}">
-                  {% if is_overdue %}<span class="overdue-dot"></span>{% endif %}
-                  {% if l.next_due_date %}{{ l.next_due_date.strftime('%b %d, %Y') if l.next_due_date.__class__.__name__ != 'str' else l.next_due_date }}{% else %}—{% endif %}
-                </td>
-                <td>
-                  {% if l.status == 'active' %}<span class="badge badge--active">Active</span>
-                  {% elif l.status == 'paid' %}<span class="badge badge--paid">Paid</span>
-                  {% elif l.status == 'overdue' %}<span class="badge badge--overdue">Overdue</span>
-                  {% elif l.status == 'defaulted' %}<span class="badge badge--defaulted">Defaulted</span>
-                  {% else %}<span class="badge badge--pending">{{ l.status | title }}</span>{% endif %}
-                </td>
-                <td>
-                  <a href="{{ url_for('officer.officer_loan_detail', loan_id=l.id) }}" class="tbl-btn tbl-btn--view">Details</a>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="9"><div class="empty-state">No loans found.</div></td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <!-- ═══════════════════════════════════════════════
+       TOPBAR
+  ════════════════════════════════════════════════ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
-    </main>
+    </div>
+    <div class="topbar-right">
+      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
+        {{ session.user_name[0]|upper if session.user_name else 'O' }}
+      </a>
+    </div>
+  </header>
+
+  <div class="body-row">
+
+    <!-- ═══════════════════════════════════════════════
+         SIDEBAR
+    ════════════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Loan Officer' }}</h4>
+          <div class="s-role-badge">LOAN OFFICER</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--verification"></span>
+          <span class="nav-label">ID Verification</span>
+        </a>
+        <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span>
+          <span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span>
+          <span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('officer.officer_loans') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--loans"></span>
+          <span class="nav-label">Active Loans</span>
+        </a>
+        <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
+          <span class="nav-icon nav-icon--locked"></span>
+          <span class="nav-label">Locked Accounts</span>
+          {% if stats is defined and stats.locked_accounts > 0 %}
+          <span class="nav-badge">{{ stats.locked_accounts }}</span>
+          {% endif %}
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════════
+         MAIN CONTENT
+    ════════════════════════════════════════════════ -->
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <div>
+              <div class="page-title">Active Loans</div>
+              <div class="page-sub">Monitoring {{ loans|length if loans else 0 }} loan records</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="filter-bar">
+          <form method="GET" action="{{ url_for('officer.officer_loans') }}" style="display:flex;gap:10px;flex-wrap:wrap;flex:1;align-items:center;">
+            <div class="search-wrap">
+              <span class="search-icon-inner"></span>
+              <input type="text" name="search" class="search-field" placeholder="Search borrower or loan no…" value="{{ search }}"/>
+            </div>
+            <div class="filter-tabs">
+              <a href="{{ url_for('officer.officer_loans', status='all') }}" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All <span class="tab-count">{{ counts.get('all', 0) }}</span></a>
+              <a href="{{ url_for('officer.officer_loans', status='active') }}" class="filter-tab {% if status_filter == 'active' %}active{% endif %}">Active <span class="tab-count">{{ counts.get('active', 0) }}</span></a>
+              <a href="{{ url_for('officer.officer_loans', status='overdue') }}" class="filter-tab {% if status_filter == 'overdue' %}active{% endif %}">Overdue <span class="tab-count">{{ counts.get('overdue', 0) }}</span></a>
+              <a href="{{ url_for('officer.officer_loans', status='paid') }}" class="filter-tab {% if status_filter == 'paid' %}active{% endif %}">Paid <span class="tab-count">{{ counts.get('paid', 0) }}</span></a>
+              <a href="{{ url_for('officer.officer_loans', status='defaulted') }}" class="filter-tab {% if status_filter == 'defaulted' %}active{% endif %}">Defaulted <span class="tab-count">{{ counts.get('defaulted', 0) }}</span></a>
+            </div>
+          </form>
+        </div>
+
+        <!-- Readonly Banner -->
+        <div class="readonly-banner">
+          <span class="readonly-icon"></span>
+          Read-only view — officer cannot edit loan records. To verify a payment, go to the Payments section.
+        </div>
+
+        <!-- Table Card -->
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Loan No.</th>
+                  <th>Borrower</th>
+                  <th>Type / Plan</th>
+                  <th>Principal</th>
+                  <th>Outstanding</th>
+                  <th>Monthly</th>
+                  <th>Next Due</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for l in loans %}
+                {% set is_overdue = l.next_due_date and l.next_due_date < today and l.status == 'active' %}
+                <tr class="{% if is_overdue %}row-overdue{% endif %}">
+                  <td data-label="Loan No."><code class="loan-code">{{ l.loan_no }}</code></td>
+                  <td data-label="Borrower">
+                    <div class="borrower-name">{{ l.borrower_name }}</div>
+                    <div class="borrower-email">{{ l.borrower_email }}</div>
+                  </td>
+                  <td data-label="Type / Plan">
+                    <div class="loan-type">{{ l.type_name }}</div>
+                    <div class="loan-plan">{{ l.plan_name }}</div>
+                  </td>
+                  <td data-label="Principal" class="amount-cell">₱{{ "{:,.0f}".format(l.principal_amount) }}</td>
+                  <td data-label="Outstanding">
+                    {% if l.principal_amount > 0 %}
+                      {% set pct = (l.outstanding_balance / l.principal_amount * 100) | int %}
+                    {% else %}
+                      {% set pct = 0 %}
+                    {% endif %}
+                    <div class="balance-wrap">
+                      <span class="balance-amt {% if pct < 30 %}text-green{% elif pct < 70 %}text-yellow{% else %}text-red{% endif %}">₱{{ "{:,.0f}".format(l.outstanding_balance) }}</span>
+                      <div class="balance-bar-bg">
+                        <div class="balance-bar-fill {% if pct < 30 %}fill-green{% elif pct < 70 %}fill-yellow{% else %}fill-red{% endif %}" style="width:{{ pct }}%;"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td data-label="Monthly" class="muted-cell">₱{{ "{:,.0f}".format(l.monthly_payment) }}</td>
+                  <td data-label="Next Due" class="{% if is_overdue %}overdue-date{% endif %}">
+                    {% if is_overdue %}<span class="overdue-dot"></span>{% endif %}
+                    {% if l.next_due_date %}{{ l.next_due_date.strftime('%b %d, %Y') if l.next_due_date.__class__.__name__ != 'str' else l.next_due_date }}{% else %}—{% endif %}
+                  </td>
+                  <td data-label="Status">
+                    {% if l.status == 'active' %}<span class="badge badge--active">Active</span>
+                    {% elif l.status == 'paid' %}<span class="badge badge--paid">Paid</span>
+                    {% elif l.status == 'overdue' %}<span class="badge badge--overdue">Overdue</span>
+                    {% elif l.status == 'defaulted' %}<span class="badge badge--defaulted">Defaulted</span>
+                    {% else %}<span class="badge badge--pending">{{ l.status | title }}</span>{% endif %}
+                  </td>
+                  <td data-label="Action">
+                    <a href="{{ url_for('officer.officer_loan_detail', loan_id=l.id) }}" class="tbl-btn tbl-btn--view">Details</a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="9">
+                    <div class="empty-state"><p>No loans found.</p></div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
   </div>
 </div>
+
 <script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='O_loans.js') }}"></script>
 </body>
 </html>

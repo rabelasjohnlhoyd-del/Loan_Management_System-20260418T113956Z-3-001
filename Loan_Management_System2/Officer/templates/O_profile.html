@@ -3,167 +3,188 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Profile — Hiraya</title>
+  <title>My Profile — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_profile.css') }}"/>
 </head>
 <body>
+
+<!-- MOBILE OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ════════════ SIDEBAR ════════════ -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
-      </div>
-    </div>
-
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
-      <div class="s-user-info">
-        <h4>{{ session.user_name }}</h4>
-        <div class="s-role-badge">LOAN OFFICER</div>
-      </div>
-      <span class="s-chevron"></span>
-    </div>
-
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('officer.profile') }}">
-        <span class="dd-icon dd-icon--profile"></span>My Profile
-      </a>
-      <a href="{{ url_for('officer.my_activity') }}">
-        <span class="dd-icon dd-icon--activity"></span>My Activity
-      </a>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
-        <span class="nav-icon nav-icon--dashboard"></span>Dashboard
-      </a>
-      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
-        <span class="nav-icon nav-icon--verification"></span>ID Verification
-      </a>
-      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
-        <span class="nav-icon nav-icon--applications"></span>Applications
-      </a>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
-        <span class="nav-icon nav-icon--borrowers"></span>Borrowers
-      </a>
-      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item">
-        <span class="nav-icon nav-icon--loans"></span>Active Loans
-      </a>
-      <a href="{{ url_for('officer.payment_list') }}" class="nav-item">
-        <span class="nav-icon nav-icon--payments"></span>Payments
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn">
-          <span class="nav-icon nav-icon--logout"></span>Sign Out
-        </button>
-      </form>
-    </div>
-  </aside>
-
-  <!-- ════════════ MAIN CONTENT ════════════ -->
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <div>
-          <div class="topbar-heading">My Profile</div>
-          <div class="topbar-sub">Account information</div>
+  <!-- ═══════════════════════════════════════════════
+       TOPBAR
+  ════════════════════════════════════════════════ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
-      <div class="topbar-right">
-        <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+    </div>
+    <div class="topbar-right">
+      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
+        {{ session.user_name[0]|upper if session.user_name else 'O' }}
+      </a>
+    </div>
+  </header>
+
+  <div class="body-row">
+
+    <!-- ═══════════════════════════════════════════════
+         SIDEBAR
+    ════════════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Loan Officer' }}</h4>
+          <div class="s-role-badge">LOAN OFFICER</div>
+        </div>
+        <span class="s-chevron"></span>
       </div>
-    </header>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--verification"></span><span class="nav-label">ID Verification</span>
+        </a>
+        <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('officer.officer_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--loans"></span><span class="nav-label">Active Loans</span>
+        </a>
+        <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
+          <span class="nav-icon nav-icon--locked"></span>
+          <span class="nav-label">Locked Accounts</span>
+          {% if stats is defined and stats.locked_accounts > 0 %}
+          <span class="nav-badge">{{ stats.locked_accounts }}</span>
+          {% endif %}
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
 
-    <main class="page-body">
+    <!-- ═══════════════════════════════════════════════
+         MAIN CONTENT
+    ════════════════════════════════════════════════ -->
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="flash-wrap">
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
 
-      <div class="profile-card">
-        <div class="profile-banner"></div>
+        <div class="profile-card">
+          <div class="profile-banner"></div>
 
-        <div class="profile-header">
-          <div class="profile-avatar-wrap">
-            <div class="profile-avatar-big">
-              {{ user.get('full_name', '?')[0]|upper if user else '?' }}
+          <div class="profile-header">
+            <div class="profile-avatar-wrap">
+              <div class="profile-avatar-big">
+                {{ user.get('full_name', '?')[0]|upper if user else '?' }}
+              </div>
+            </div>
+            <div class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</div>
+            <div class="profile-email">{{ user.get('email', '') if user else '' }}</div>
+            <div class="profile-meta">
+              <span class="badge badge--officer">Loan Officer</span>
+              {% set vstatus = user.get('id_verification_status', 'pending') if user else 'pending' %}
+              {% if vstatus == 'verified' %}
+                <span class="badge badge--active">✓ Verified</span>
+              {% elif vstatus == 'rejected' %}
+                <span class="badge badge--rejected">✗ Rejected</span>
+              {% else %}
+                <span class="badge badge--pending">⏳ {{ vstatus | title }}</span>
+              {% endif %}
             </div>
           </div>
-          <div class="profile-name">{{ user.get('full_name', 'N/A') if user else 'N/A' }}</div>
-          <div class="profile-email">{{ user.get('email', '') if user else '' }}</div>
-          <div class="profile-meta">
-            <span class="badge badge--officer">Loan Officer</span>
-            {% set vstatus = user.get('id_verification_status', 'pending') if user else 'pending' %}
-            {% if vstatus == 'verified' %}
-              <span class="badge badge--verified">✓ Verified</span>
-            {% elif vstatus == 'rejected' %}
-              <span class="badge badge--rejected">✗ Rejected</span>
-            {% else %}
-              <span class="badge badge--pending">⏳ {{ vstatus | title }}</span>
-            {% endif %}
+
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <div class="info-section-title">Personal Details</div>
+            <div class="info-grid">
+              <div class="info-field">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">{{ user.get('full_name', '—') if user else '—' }}</div>
+              </div>
+              <div class="info-field">
+                <div class="info-label">Email Address</div>
+                <div class="info-value">{{ user.get('email', '—') if user else '—' }}</div>
+              </div>
+              <div class="info-field">
+                <div class="info-label">Contact Number</div>
+                <div class="info-value {% if not (user and user.get('contact_number')) %}empty{% endif %}">
+                  {{ user.get('contact_number', '—') if user else '—' }}
+                </div>
+              </div>
+              <div class="info-field">
+                <div class="info-label">Date of Birth</div>
+                <div class="info-value {% if not (user and user.get('date_of_birth')) %}empty{% endif %}">
+                  {{ user.get('date_of_birth', '—') if user else '—' }}
+                </div>
+              </div>
+              <div class="info-field">
+                <div class="info-label">Age</div>
+                <div class="info-value">{{ user.get('age', '—') if user else '—' }}</div>
+              </div>
+              <div class="info-field">
+                <div class="info-label">Member Since</div>
+                <div class="info-value">
+                  {% if user and user.get('created_at') %}
+                    {{ user.get('created_at').strftime('%B %d, %Y') if user.get('created_at') and user.get('created_at').__class__.__name__ != 'str' else user.get('created_at') }}
+                  {% else %}—{% endif %}
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
 
-        <div class="divider"></div>
+      </main>
+    </div>
 
-        <div class="info-section">
-          <div class="info-section-title">Personal Details</div>
-          <div class="info-grid">
-            <div class="info-field">
-              <div class="info-label">Full Name</div>
-              <div class="info-value">{{ user.get('full_name', '—') if user else '—' }}</div>
-            </div>
-            <div class="info-field">
-              <div class="info-label">Email Address</div>
-              <div class="info-value">{{ user.get('email', '—') if user else '—' }}</div>
-            </div>
-            <div class="info-field">
-              <div class="info-label">Contact Number</div>
-              <div class="info-value {% if not (user and user.get('contact_number')) %}empty{% endif %}">
-                {{ user.get('contact_number', '—') if user else '—' }}
-              </div>
-            </div>
-            <div class="info-field">
-              <div class="info-label">Date of Birth</div>
-              <div class="info-value {% if not (user and user.get('date_of_birth')) %}empty{% endif %}">
-                {{ user.get('date_of_birth', '—') if user else '—' }}
-              </div>
-            </div>
-            <div class="info-field">
-              <div class="info-label">Age</div>
-              <div class="info-value">{{ user.get('age', '—') if user else '—' }}</div>
-            </div>
-            <div class="info-field">
-              <div class="info-label">Member Since</div>
-              <div class="info-value">
-                {% if user and user.get('created_at') %}
-                  {{ user.get('created_at').strftime('%B %d, %Y') if user.get('created_at') and user.get('created_at').__class__.__name__ != 'str' else user.get('created_at') }}
-                {% else %}—{% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </main>
   </div>
 </div>
 
 <script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='O_profile.js') }}"></script>
 </body>
 </html>

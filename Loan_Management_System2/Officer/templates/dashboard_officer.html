@@ -6,19 +6,18 @@
   <title>Officer Dashboard — Hiraya</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
 </head>
 <body>
 
-<!-- MOBILE OVERLAY -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
-       TOPBAR — Consistent with Admin
-  ════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════════
+       TOPBAR
+  ══════════════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -114,9 +113,7 @@
           </ul>
 
           <div class="notif-footer">
-            <a href="{{ url_for('officer.my_activity') }}" class="notif-see-all">
-              See all activity →
-            </a>
+            <a href="{{ url_for('officer.my_activity') }}" class="notif-see-all">See all activity →</a>
           </div>
         </div>
       </div>
@@ -130,11 +127,10 @@
 
   <div class="body-row">
 
-    <!-- ═══════════════════════════════════════════════
-         SIDEBAR — Consistent with Admin
-    ════════════════════════════════════════════════ -->
+    <!-- ══════════════════════════════════════════════════════════
+         SIDEBAR
+    ══════════════════════════════════════════════════════════ -->
     <aside class="sidebar" id="sidebar">
-
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
         <div class="s-user-info">
@@ -145,12 +141,8 @@
       </div>
 
       <div class="user-dropdown" id="userDropdown">
-        <a href="{{ url_for('officer.profile') }}">
-          <span class="dd-icon dd-icon--profile"></span>My Profile
-        </a>
-        <a href="{{ url_for('officer.my_activity') }}">
-          <span class="dd-icon dd-icon--activity"></span>My Activity
-        </a>
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
       </div>
 
       <nav class="sidebar-nav">
@@ -180,13 +172,6 @@
           <span class="nav-icon nav-icon--loans"></span>
           <span class="nav-label">Active Loans</span>
         </a>
-        <a href="{{ url_for('officer.payment_list') }}" class="nav-item">
-          <span class="nav-icon nav-icon--payments"></span>
-          <span class="nav-label">Payments</span>
-          {% if stats.pending_payments > 0 %}
-          <span class="nav-badge">{{ stats.pending_payments }}</span>
-          {% endif %}
-        </a>
         <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
           <span class="nav-icon nav-icon--locked"></span>
           <span class="nav-label">Locked Accounts</span>
@@ -204,12 +189,11 @@
           </button>
         </form>
       </div>
-
     </aside>
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          MAIN CONTENT
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <div class="main-content" id="mainContent">
       <main class="page-body">
 
@@ -259,7 +243,7 @@
               <div class="stat-label">Pending Payments</div>
               <div class="stat-change info">To Verify</div>
             </div>
-            <div class="stat-icon stat-icon--red"></div>
+            <div class="stat-icon stat-icon--teal"></div>
           </div>
           <div class="stat-card">
             <div class="stat-info">
@@ -271,10 +255,10 @@
           </div>
         </div>
 
-        <!-- Main Dashboard Grid -->
+        <!-- Dashboard Grid -->
         <div class="dash-grid">
 
-          <!-- LEFT: Applications Table -->
+          <!-- Applications Table -->
           <div class="card">
             <div class="card-header">
               <div>
@@ -301,7 +285,7 @@
                 <tbody id="appTableBody">
                   {% for app in recent_applications %}
                   <tr>
-                    <td data-label="Ref No."><code style="font-size:11px;">{{ app.reference_no }}</code></td>
+                    <td data-label="Ref No."><code class="ref-mono">{{ app.reference_no }}</code></td>
                     <td data-label="Borrower"><strong>{{ app.borrower_name }}</strong></td>
                     <td data-label="Type">{{ app.type_name }}</td>
                     <td data-label="Amount">₱{{ "{:,.2f}".format(app.amount_requested) }}</td>
@@ -321,7 +305,6 @@
               </table>
             </div>
 
-            <!-- Pagination -->
             <div class="pagination-wrap hidden" id="paginationWrap">
               <div class="pagination-info" id="paginationInfo"></div>
               <div class="pagination-controls">
@@ -332,7 +315,7 @@
             </div>
           </div>
 
-          <!-- RIGHT COLUMN -->
+          <!-- Right Column -->
           <div class="dash-col-right">
 
             <!-- Quick Actions -->
@@ -347,7 +330,7 @@
                 <div class="quick-actions">
                   <a href="{{ url_for('officer.list_verifications') }}" class="quick-action-btn">
                     <div class="qa-icon blue">
-                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z%22/%3E%3C/svg%3E')"></span>
+                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z%22/%3E%3C/svg%3E');-webkit-mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z%22/%3E%3C/svg%3E')"></span>
                     </div>
                     <div class="qa-label">
                       <strong>Verify IDs</strong>
@@ -355,19 +338,9 @@
                     </div>
                     <span class="qa-arrow">›</span>
                   </a>
-                  <a href="{{ url_for('officer.payment_list') }}" class="quick-action-btn">
-                    <div class="qa-icon green">
-                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cline x1=%2212%22 y1=%221%22 x2=%2212%22 y2=%2223%22/%3E%3Cpath d=%22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6%22/%3E%3C/svg%3E')"></span>
-                    </div>
-                    <div class="qa-label">
-                      <strong>Verify Payments</strong>
-                      <small>{{ stats.pending_payments if stats else 0 }} to review</small>
-                    </div>
-                    <span class="qa-arrow">›</span>
-                  </a>
                   <a href="{{ url_for('officer.officer_applications', status='submitted') }}" class="quick-action-btn">
                     <div class="qa-icon yellow">
-                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z%22/%3E%3Cpolyline points=%2214 2 14 8 20 8%22/%3E%3C/svg%3E')"></span>
+                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z%22/%3E%3Cpolyline points=%2214 2 14 8 20 8%22/%3E%3C/svg%3E');-webkit-mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z%22/%3E%3Cpolyline points=%2214 2 14 8 20 8%22/%3E%3C/svg%3E')"></span>
                     </div>
                     <div class="qa-label">
                       <strong>New Applications</strong>
@@ -377,7 +350,7 @@
                   </a>
                   <a href="{{ url_for('officer.manage_borrowers') }}" class="quick-action-btn">
                     <div class="qa-icon purple">
-                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2%22/%3E%3Ccircle cx=%229%22 cy=%227%22 r=%224%22/%3E%3C/svg%3E')"></span>
+                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2%22/%3E%3Ccircle cx=%229%22 cy=%227%22 r=%224%22/%3E%3C/svg%3E');-webkit-mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2%22/%3E%3Ccircle cx=%229%22 cy=%227%22 r=%224%22/%3E%3C/svg%3E')"></span>
                     </div>
                     <div class="qa-label">
                       <strong>Risk Management</strong>
@@ -387,7 +360,7 @@
                   </a>
                   <a href="{{ url_for('officer.locked_accounts') }}" class="quick-action-btn">
                     <div class="qa-icon red">
-                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Crect x=%223%22 y=%2211%22 width=%2218%22 height=%2211%22 rx=%222%22 ry=%222%22/%3E%3Cpath d=%22M7 11V7a5 5 0 0 1 10 0v4%22/%3E%3C/svg%3E')"></span>
+                      <span class="icon-inner" style="mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Crect x=%223%22 y=%2211%22 width=%2218%22 height=%2211%22 rx=%222%22 ry=%222%22/%3E%3Cpath d=%22M7 11V7a5 5 0 0 1 10 0v4%22/%3E%3C/svg%3E');-webkit-mask-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 viewBox=%220 0 24 24%22%3E%3Crect x=%223%22 y=%2211%22 width=%2218%22 height=%2211%22 rx=%222%22 ry=%222%22/%3E%3Cpath d=%22M7 11V7a5 5 0 0 1 10 0v4%22/%3E%3C/svg%3E')"></span>
                     </div>
                     <div class="qa-label">
                       <strong>Locked Accounts</strong>
@@ -442,6 +415,7 @@
   </div>
 </div>
 
+<script src="{{ url_for('officer.static', filename='hiraya_officer_core.js') }}"></script>
 <script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
 </body>
 </html>

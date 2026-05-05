@@ -8,143 +8,199 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='officer_activity.css') }}"/>
 </head>
 <body>
+
+<!-- MOBILE OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
-      </div>
-    </div>
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
-      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
-      <span class="s-chevron"></span>
-    </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item"><span class="nav-icon nav-icon--verification"></span>ID Verification</a>
-      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>Applications</a>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item"><span class="nav-icon nav-icon--loans"></span>Active Loans</a>
-      <a href="{{ url_for('officer.payment_list') }}" class="nav-item"><span class="nav-icon nav-icon--payments"></span>Payments</a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
-      </form>
-    </div>
-  </aside>
 
-  <div class="main-content">
-    <header class="topbar">
-      <div>
-        <div class="topbar-heading">My Activity Log</div>
-        <div class="topbar-sub">Showing your last {{ logs | length }} actions · Session audit trail</div>
+  <!-- ═══════════════════════════════════════════════
+       TOPBAR
+  ════════════════════════════════════════════════ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
+    </div>
+    <div class="topbar-right">
       <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
-    </header>
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
+        {{ session.user_name[0]|upper if session.user_name else 'O' }}
+      </a>
+    </div>
+  </header>
 
-    <main class="page-body">
+  <div class="body-row">
 
-      <!-- Stats Strip -->
-      {% set total       = logs | length %}
-      {% set successes   = logs | selectattr('status', 'equalto', 'success') | list | length %}
-      {% set failures    = logs | selectattr('status', 'equalto', 'failed')  | list | length %}
-      {% set locked      = logs | selectattr('status', 'equalto', 'locked')  | list | length %}
-      <div class="stats-strip">
-        <div class="stat-chip">
-          <div class="stat-chip-icon blue">📋</div>
-          <div><div class="stat-chip-val">{{ total }}</div><div class="stat-chip-label">Total Actions</div></div>
+    <!-- ═══════════════════════════════════════════════
+         SIDEBAR
+    ════════════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Loan Officer' }}</h4>
+          <div class="s-role-badge">LOAN OFFICER</div>
         </div>
-        <div class="stat-chip">
-          <div class="stat-chip-icon green">✅</div>
-          <div><div class="stat-chip-val" style="color:var(--green);">{{ successes }}</div><div class="stat-chip-label">Successful</div></div>
-        </div>
-        <div class="stat-chip">
-          <div class="stat-chip-icon yellow">⚠️</div>
-          <div><div class="stat-chip-val" style="color:var(--yellow);">{{ failures }}</div><div class="stat-chip-label">Failed</div></div>
-        </div>
-        <div class="stat-chip">
-          <div class="stat-chip-icon red">🔒</div>
-          <div><div class="stat-chip-val" style="color:var(--red);">{{ locked }}</div><div class="stat-chip-label">Locked Events</div></div>
-        </div>
+        <span class="s-chevron"></span>
       </div>
-
-      <!-- Activity Timeline -->
-      <div class="card">
-        <div class="card-header">
-          <h3>Activity Timeline</h3>
-          <span style="font-size:12px;color:var(--muted);">Last 100 records</span>
-        </div>
-
-        {% if logs %}
-        <div class="timeline">
-          {% for log in logs %}
-          {% set action_lower = log.action | lower %}
-          {% if 'approve' in action_lower or 'verify' in action_lower or 'success' in action_lower or log.status == 'success' %}
-            {% set dot_class = 'timeline-dot--success' %}
-            {% set pill_class = 'status-pill--success' %}
-          {% elif 'reject' in action_lower or 'fail' in action_lower or log.status == 'failed' %}
-            {% set dot_class = 'timeline-dot--danger' %}
-            {% set pill_class = 'status-pill--failed' %}
-          {% elif 'login' in action_lower or 'logout' in action_lower %}
-            {% set dot_class = 'timeline-dot--info' %}
-            {% set pill_class = 'status-pill--info' %}
-          {% elif log.status == 'locked' %}
-            {% set dot_class = 'timeline-dot--danger' %}
-            {% set pill_class = 'status-pill--failed' %}
-          {% else %}
-            {% set dot_class = 'timeline-dot--default' %}
-            {% set pill_class = 'status-pill--info' %}
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--verification"></span><span class="nav-label">ID Verification</span>
+        </a>
+        <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('officer.officer_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--loans"></span><span class="nav-label">Active Loans</span>
+        </a>
+        <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
+          <span class="nav-icon nav-icon--locked"></span>
+          <span class="nav-label">Locked Accounts</span>
+          {% if stats is defined and stats.locked_accounts > 0 %}
+          <span class="nav-badge">{{ stats.locked_accounts }}</span>
           {% endif %}
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
 
-          <div class="timeline-item">
-            <div class="timeline-line">
-              <div class="timeline-dot {{ dot_class }}"></div>
-              <div class="timeline-connector"></div>
-            </div>
-            <div class="timeline-content">
-              <div class="timeline-action">
-                {{ log.action | replace('_', ' ') | title }}
-                <span class="status-pill {{ pill_class }}">{{ log.status or 'success' }}</span>
-              </div>
-              {% if log.details %}
-              <div class="timeline-details">{{ log.details }}</div>
-              {% endif %}
-              <div class="timeline-meta">
-                <span>
-                  🕐 {% if log.created_at %}
-                    {{ log.created_at.strftime('%b %d, %Y · %I:%M %p') if log.created_at.__class__.__name__ != 'str' else log.created_at }}
-                  {% else %}—{% endif %}
-                </span>
-                {% if log.ip_address %}
-                <span><span class="meta-dot"></span>🌐 {{ log.ip_address }}</span>
-                {% endif %}
-              </div>
+    <!-- ═══════════════════════════════════════════════
+         MAIN CONTENT
+    ════════════════════════════════════════════════ -->
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
+
+        <!-- Stats Strip -->
+        {% set total     = logs | length %}
+        {% set successes = logs | selectattr('status', 'equalto', 'success') | list | length %}
+        {% set failures  = logs | selectattr('status', 'equalto', 'failed')  | list | length %}
+        {% set locked    = logs | selectattr('status', 'equalto', 'locked')  | list | length %}
+        <div class="stats-strip">
+          <div class="stat-chip">
+            <div class="stat-chip-icon blue">📋</div>
+            <div>
+              <div class="stat-chip-val">{{ total }}</div>
+              <div class="stat-chip-label">Total Actions</div>
             </div>
           </div>
-          {% endfor %}
+          <div class="stat-chip">
+            <div class="stat-chip-icon green">✅</div>
+            <div>
+              <div class="stat-chip-val text-green">{{ successes }}</div>
+              <div class="stat-chip-label">Successful</div>
+            </div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-chip-icon yellow">⚠️</div>
+            <div>
+              <div class="stat-chip-val text-yellow">{{ failures }}</div>
+              <div class="stat-chip-label">Failed</div>
+            </div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-chip-icon red">🔒</div>
+            <div>
+              <div class="stat-chip-val text-red">{{ locked }}</div>
+              <div class="stat-chip-label">Locked Events</div>
+            </div>
+          </div>
         </div>
-        {% else %}
-        <div class="empty-state">
-          <div class="empty-icon-wrap">📋</div>
-          <h4>No Activity Yet</h4>
-          <p>Your actions will appear here as you use the system.</p>
-        </div>
-        {% endif %}
-      </div>
 
-    </main>
+        <!-- Activity Timeline -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Activity Timeline</h3>
+            <span class="header-count">Last 100 records</span>
+          </div>
+
+          {% if logs %}
+          <div class="timeline">
+            {% for log in logs %}
+            {% set action_lower = log.action | lower %}
+            {% if 'approve' in action_lower or 'verify' in action_lower or 'success' in action_lower or log.status == 'success' %}
+              {% set dot_class = 'timeline-dot--success' %}
+              {% set pill_class = 'status-pill--success' %}
+            {% elif 'reject' in action_lower or 'fail' in action_lower or log.status == 'failed' %}
+              {% set dot_class = 'timeline-dot--danger' %}
+              {% set pill_class = 'status-pill--failed' %}
+            {% elif 'login' in action_lower or 'logout' in action_lower %}
+              {% set dot_class = 'timeline-dot--info' %}
+              {% set pill_class = 'status-pill--info' %}
+            {% elif log.status == 'locked' %}
+              {% set dot_class = 'timeline-dot--danger' %}
+              {% set pill_class = 'status-pill--failed' %}
+            {% else %}
+              {% set dot_class = 'timeline-dot--default' %}
+              {% set pill_class = 'status-pill--info' %}
+            {% endif %}
+
+            <div class="timeline-item">
+              <div class="timeline-line">
+                <div class="timeline-dot {{ dot_class }}"></div>
+                <div class="timeline-connector"></div>
+              </div>
+              <div class="timeline-content">
+                <div class="timeline-action">
+                  {{ log.action | replace('_', ' ') | title }}
+                  <span class="status-pill {{ pill_class }}">{{ log.status or 'success' }}</span>
+                </div>
+                {% if log.details %}
+                <div class="timeline-details">{{ log.details }}</div>
+                {% endif %}
+                <div class="timeline-meta">
+                  <span>🕐 {% if log.created_at %}{{ log.created_at.strftime('%b %d, %Y · %I:%M %p') if log.created_at.__class__.__name__ != 'str' else log.created_at }}{% else %}—{% endif %}</span>
+                  {% if log.ip_address %}
+                  <span><span class="meta-dot"></span>🌐 {{ log.ip_address }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <div class="empty-icon-wrap">📋</div>
+            <h4>No Activity Yet</h4>
+            <p>Your actions will appear here as you use the system.</p>
+          </div>
+          {% endif %}
+        </div>
+
+      </main>
+    </div>
+
   </div>
 </div>
-<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
 
+<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='officer_activity.js') }}"></script>
 </body>
 </html>

@@ -3,141 +3,196 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ID Verification — Hiraya</title>
+  <title>ID Verification — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_verify_list.css') }}"/>
 </head>
 <body>
+
+<!-- MOBILE OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrap">
 
-  <!-- ════════════ SIDEBAR ════════════ -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="s-logo"></div>
-        <div><h2>Hiraya</h2><span>Officer Panel</span></div>
+  <!-- ═══════════════════════════════════════════════
+       TOPBAR
+  ════════════════════════════════════════════════ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-brand">
+        <div class="topbar-logo">$</div>
+        <div class="topbar-brand-text">
+          <span class="topbar-brand-name">Hiraya</span>
+          <span class="topbar-brand-sub">Management System</span>
+        </div>
       </div>
     </div>
-    <div class="sidebar-user" id="userDropdownToggle">
-      <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
-      <div class="s-user-info"><h4>{{ session.user_name }}</h4><div class="s-role-badge">LOAN OFFICER</div></div>
-      <span class="s-chevron"></span>
-    </div>
-    <div class="user-dropdown" id="userDropdown">
-      <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
-      <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item"><span class="nav-icon nav-icon--dashboard"></span>Dashboard</a>
-      <a href="{{ url_for('officer.list_verifications') }}" class="nav-item active"><span class="nav-icon nav-icon--verification"></span>ID Verification</a>
-      <a href="{{ url_for('officer.officer_applications') }}" class="nav-item"><span class="nav-icon nav-icon--applications"></span>Applications</a>
-      <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item"><span class="nav-icon nav-icon--borrowers"></span>Borrowers</a>
-      <a href="{{ url_for('officer.officer_loans') }}" class="nav-item"><span class="nav-icon nav-icon--loans"></span>Active Loans</a>
-      <a href="{{ url_for('officer.payment_list') }}" class="nav-item"><span class="nav-icon nav-icon--payments"></span>Payments</a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit" class="nav-item sidebar-logout-btn"><span class="nav-icon nav-icon--logout"></span>Sign Out</button>
-      </form>
-    </div>
-  </aside>
-
-  <!-- ════════════ MAIN ════════════ -->
-  <div class="main-content">
-    <header class="topbar">
-      <div>
-        <div class="topbar-heading">ID Verification Queue</div>
-        <div class="topbar-sub">Manual biometric matching — compare ID portrait vs. live selfie</div>
-      </div>
+    <div class="topbar-right">
       <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
-    </header>
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
+        {{ session.user_name[0]|upper if session.user_name else 'O' }}
+      </a>
+    </div>
+  </header>
 
-    <main class="page-body">
+  <div class="body-row">
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}<div class="flash-wrap">{% for c, m in messages %}<div class="alert alert-{{ c }}">{{ m }}</div>{% endfor %}</div>{% endif %}
-      {% endwith %}
+    <!-- ═══════════════════════════════════════════════
+         SIDEBAR
+    ════════════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-user" id="userDropdownToggle">
+        <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
+        <div class="s-user-info">
+          <h4>{{ session.user_name if session.user_name else 'Loan Officer' }}</h4>
+          <div class="s-role-badge">LOAN OFFICER</div>
+        </div>
+        <span class="s-chevron"></span>
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
+        <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('officer.list_verifications') }}" class="nav-item active">
+          <span class="nav-icon nav-icon--verification"></span><span class="nav-label">ID Verification</span>
+          {% if users %}<span class="nav-badge">{{ users | length }}</span>{% endif %}
+        </a>
+        <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">Applications</span>
+        </a>
+        <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
+        </a>
+        <a href="{{ url_for('officer.officer_loans') }}" class="nav-item">
+          <span class="nav-icon nav-icon--loans"></span><span class="nav-label">Active Loans</span>
+        </a>
+        <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
+          <span class="nav-icon nav-icon--locked"></span>
+          <span class="nav-label">Locked Accounts</span>
+          {% if stats is defined and stats.locked_accounts > 0 %}
+          <span class="nav-badge">{{ stats.locked_accounts }}</span>
+          {% endif %}
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <button type="submit" class="nav-item sidebar-logout-btn">
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
 
-      {% if users %}
-      <div class="verif-grid">
-        {% for u in users %}
-        <div class="verif-card">
-          <div class="verif-header">
-            <div class="verif-avatar">{{ u.full_name[0]|upper }}</div>
-            <div class="verif-user-info">
-              <h4>{{ u.full_name }}</h4>
-              <p>{{ u.email }}</p>
+    <!-- ═══════════════════════════════════════════════
+         MAIN CONTENT
+    ════════════════════════════════════════════════ -->
+    <div class="main-content" id="mainContent">
+      <main class="page-body">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
             </div>
-            <div class="verif-badge">
+          {% endif %}
+        {% endwith %}
+
+        {% if users %}
+        <div class="verif-grid">
+          {% for u in users %}
+          <div class="verif-card">
+            <div class="verif-card-header">
+              <div class="verif-avatar">{{ u.full_name[0]|upper }}</div>
+              <div class="verif-user-info">
+                <h4>{{ u.full_name }}</h4>
+                <p>{{ u.email }}</p>
+              </div>
               <span class="badge badge--pending">⏳ Pending Verification</span>
             </div>
-          </div>
 
-          <div class="verif-body">
-            <!-- Photos -->
-            <div class="verif-photos">
-              <div class="photo-block">
-                <div class="photo-label">📄 ID Document</div>
-                <div class="photo-frame">
-                  {% if u.id_document_path %}
-                    <img src="{{ url_for('static', filename='uploads/' + u.id_document_path) }}" alt="ID Document" onerror="this.parentNode.innerHTML='<span class=photo-missing>Image not available</span>'"/>
-                  {% else %}
-                    <span class="photo-missing">No ID uploaded</span>
-                  {% endif %}
+            <div class="verif-body">
+              <!-- Photos -->
+              <div class="verif-photos">
+                <div class="photo-block">
+                  <div class="photo-label">📄 ID Document</div>
+                  <div class="photo-frame">
+                    {% if u.id_document_path %}
+                      <img src="{{ url_for('static', filename='uploads/' + u.id_document_path) }}" alt="ID Document" onerror="this.parentNode.innerHTML='<span class=photo-missing>Image not available</span>'"/>
+                    {% else %}
+                      <span class="photo-missing">No ID uploaded</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="photo-block">
+                  <div class="photo-label">🤳 Live Selfie</div>
+                  <div class="photo-frame">
+                    {% if u.selfie_path %}
+                      <img src="{{ url_for('static', filename='uploads/' + u.selfie_path) }}" alt="Selfie" onerror="this.parentNode.innerHTML='<span class=photo-missing>Image not available</span>'"/>
+                    {% else %}
+                      <span class="photo-missing">No selfie uploaded</span>
+                    {% endif %}
+                  </div>
                 </div>
               </div>
-              <div class="photo-block">
-                <div class="photo-label">🤳 Live Selfie</div>
-                <div class="photo-frame">
-                  {% if u.selfie_path %}
-                    <img src="{{ url_for('static', filename='uploads/' + u.selfie_path) }}" alt="Selfie" onerror="this.parentNode.innerHTML='<span class=photo-missing>Image not available</span>'"/>
-                  {% else %}
-                    <span class="photo-missing">No selfie uploaded</span>
-                  {% endif %}
-                </div>
+
+              <!-- Action Panel -->
+              <div class="verif-action">
+                <form action="{{ url_for('officer.verify_user', user_id=u.id) }}" method="POST">
+                  <div class="action-title">Assign Risk Level</div>
+                  <select name="risk_level" class="risk-select" required>
+                    <option value="low">🟢 Low Risk</option>
+                    <option value="medium" selected>🟡 Medium Risk</option>
+                    <option value="high">🔴 High Risk</option>
+                  </select>
+
+                  <div class="action-title" style="margin-top:16px;">Decision</div>
+                  <button type="submit" name="status" value="verified" class="btn-approve">
+                    <span class="btn-icon-check"></span> Approve Identity
+                  </button>
+                  <button type="submit" name="status" value="rejected" class="btn-reject">
+                    <span class="btn-icon-x"></span> Reject / Request Retake
+                  </button>
+                  <p class="action-note">Carefully compare the face in the selfie with the ID portrait before deciding.</p>
+                </form>
               </div>
             </div>
-
-            <!-- Action Panel -->
-            <div class="verif-action">
-              <form action="{{ url_for('officer.verify_user', user_id=u.id) }}" method="POST">
-                <div class="action-title">Assign Risk Level</div>
-                <select name="risk_level" class="risk-select" required>
-                  <option value="low">🟢 Low Risk</option>
-                  <option value="medium" selected>🟡 Medium Risk</option>
-                  <option value="high">🔴 High Risk</option>
-                </select>
-                <br><br>
-                <div class="action-title">Decision</div>
-                <button type="submit" name="status" value="verified" class="btn-approve">
-                  ✓ Approve Identity
-                </button>
-                <br style="margin:6px 0;display:block;"/>
-                <button type="submit" name="status" value="rejected" class="btn-reject">
-                  ✗ Reject / Request Retake
-                </button>
-                <p class="action-note">Carefully compare the face in the selfie with the ID portrait before deciding.</p>
-              </form>
-            </div>
           </div>
+          {% endfor %}
         </div>
-        {% endfor %}
-      </div>
 
-      {% else %}
-      <div class="empty-card">
-        <div class="empty-icon"><div class="empty-icon-inner"></div></div>
-        <div class="empty-title">All Clear!</div>
-        <div class="empty-sub">No pending ID verifications in the queue.</div>
-      </div>
-      {% endif %}
+        {% else %}
+        <div class="empty-card">
+          <div class="empty-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          </div>
+          <div class="empty-title">All Clear!</div>
+          <div class="empty-sub">No pending ID verifications in the queue.</div>
+        </div>
+        {% endif %}
 
-    </main>
+      </main>
+    </div>
+
   </div>
 </div>
 
-<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>t>
+<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='O_verify_list.js') }}"></script>
 </body>
 </html>
