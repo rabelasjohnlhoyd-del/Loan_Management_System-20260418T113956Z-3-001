@@ -2565,3 +2565,75 @@ def api_default_analytics():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+# ─────────────────────────────────────────────
+# API: CHECK EMAIL UNIQUENESS
+# ─────────────────────────────────────────────
+@super_admin_bp.route('/api/check-email')
+@login_required
+@role_required('super_admin')
+def api_check_email():
+    """
+    GET /admin/api/check-email?email=juan@example.com
+    Returns: { "available": true/false }
+    Called by create_user.js for real-time uniqueness validation.
+    """
+    email = request.args.get('email', '').strip().lower()
+
+    if not email:
+        return jsonify({'available': False, 'error': 'No email provided'}), 400
+
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT id FROM users WHERE LOWER(email) = %s LIMIT 1",
+            (email,)
+        )
+        exists = cursor.fetchone() is not None
+        cursor.close()
+        conn.close()
+        return jsonify({'available': not exists})
+    except Exception as e:
+        return jsonify({'available': True, 'error': str(e)}), 500  # allow on error; backend catches on submit
+
+
+# ─────────────────────────────────────────────
+# API: CHECK CONTACT NUMBER UNIQUENESS
+# ─────────────────────────────────────────────
+@super_admin_bp.route('/api/check-contact')
+@login_required
+@role_required('super_admin')
+def api_check_contact():
+    """
+    GET /admin/api/check-contact?contact=09XXXXXXXXX
+    Returns: { "available": true/false }
+    Called by create_user.js for real-time uniqueness validation.
+    """
+    contact = request.args.get('contact', '').strip()
+
+    if not contact:
+        return jsonify({'available': True})  # empty = optional, pass
+
+    # Normalize: strip non-digits except leading +
+    import re
+    digits = re.sub(r'[\s\-().+]', '', contact)
+    if digits.startswith('63') and len(digits) == 12:
+        digits = '0' + digits[2:]
+
+    try:
+        conn   = get_db()
+        cursor = conn.cursor(dictionary=True)
+        # Check both raw and normalized forms
+        cursor.execute(
+            """SELECT id FROM users
+               WHERE REPLACE(REPLACE(REPLACE(contact_number, '-', ''), ' ', ''), '+63', '09') = %s
+               LIMIT 1""",
+            (digits,)
+        )
+        exists = cursor.fetchone() is not None
+        cursor.close()
+        conn.close()
+        return jsonify({'available': not exists})
+    except Exception as e:
+        return jsonify({'available': True, 'error': str(e)}), 500

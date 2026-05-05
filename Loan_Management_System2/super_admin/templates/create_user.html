@@ -9,6 +9,105 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='dashboard_admin.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('super_admin.static', filename='create_user.css') }}"/>
+
+  <style>
+    /* ── Validation UI ── */
+    .form-group { position: relative; }
+
+    .form-input.is-valid   { border-color: #16a34a !important; background: #f0fdf4; }
+    .form-input.is-invalid { border-color: #dc2626 !important; background: #fef2f2; }
+
+    .field-msg {
+      font-size: 11.5px;
+      font-weight: 500;
+      margin-top: 4px;
+      min-height: 16px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: opacity .2s;
+    }
+    .field-msg.error { color: #dc2626; }
+    .field-msg.ok    { color: #16a34a; }
+    .field-msg.warn  { color: #d97706; }
+    .field-msg.info  { color: #64748b; }
+
+    /* strength bar */
+    .pw-strength-wrap {
+      margin-top: 6px;
+      display: none;
+    }
+    .pw-strength-wrap.visible { display: block; }
+    .pw-strength-bar {
+      height: 4px;
+      border-radius: 4px;
+      background: #e5e9ed;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .pw-strength-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 4px;
+      transition: width .35s ease, background .35s ease;
+    }
+    .pw-strength-label { font-size: 11px; font-weight: 600; color: #64748b; }
+
+    /* checklist */
+    .pw-checklist {
+      list-style: none;
+      padding: 0;
+      margin: 6px 0 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px 12px;
+    }
+    .pw-checklist li {
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color .2s;
+    }
+    .pw-checklist li.pass { color: #16a34a; }
+    .pw-checklist li::before {
+      content: '✗';
+      font-size: 10px;
+      font-weight: 700;
+      color: #dc2626;
+      flex-shrink: 0;
+    }
+    .pw-checklist li.pass::before { content: '✓'; color: #16a34a; }
+
+    /* spinner for async checks */
+    .field-spinner {
+      position: absolute;
+      right: 44px;
+      top: 38px;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #e5e9ed;
+      border-top-color: #3aa7b5;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: none;
+    }
+    .field-spinner.visible { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* submit btn states */
+    .btn-primary-action:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .form-footer .submit-note {
+      font-size: 11px;
+      color: #94a3b8;
+      align-self: center;
+    }
+  </style>
 </head>
 <body>
 
@@ -37,14 +136,11 @@
     </div>
 
     <div class="topbar-right">
-
-      <!-- Notification Bell -->
       <div class="notif-wrap" id="notifWrap">
         <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
           <span class="topbar-icon topbar-icon--notif"></span>
           <span class="notif-dot hidden" id="notifDot"></span>
         </button>
-
         <div class="notif-dropdown" id="notifDropdown">
           <div class="notif-header">
             <span class="notif-header-title">Notifications</span>
@@ -54,14 +150,10 @@
             <div class="notif-loading">Loading...</div>
           </div>
           <div class="notif-footer">
-            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">
-              See all notifications →
-            </a>
+            <a href="{{ url_for('super_admin.notifications_page') }}" class="notif-see-all">See all notifications →</a>
           </div>
         </div>
       </div>
-
-      <!-- Avatar -->
       <a href="{{ url_for('super_admin.SA_profile') }}" class="topbar-avatar"
          title="{{ session.user_name if session.user_name else 'Admin' }}">
         {{ session.user_name[0]|upper if session.user_name else 'A' }}
@@ -136,7 +228,6 @@
     <div class="main-content" id="mainContent">
       <main class="page-body">
 
-        <!-- Page Header -->
         <div class="page-header-actions">
           <div class="header-left-side">
             <a href="{{ url_for('super_admin.manage_users') }}" class="back-btn">
@@ -150,7 +241,6 @@
           </div>
         </div>
 
-        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             <div class="flash-stack">
@@ -164,7 +254,6 @@
           {% endif %}
         {% endwith %}
 
-        <!-- Form Card -->
         <div class="form-container-centered">
           <div class="card card--form">
             <div class="card-header-styled">
@@ -172,69 +261,134 @@
               <p>Fields marked with * are required</p>
             </div>
             <div class="card-body">
-              <form method="POST" action="{{ url_for('super_admin.create_user') }}" class="staff-create-form">
+              <form method="POST"
+                    action="{{ url_for('super_admin.create_user') }}"
+                    class="staff-create-form"
+                    id="createUserForm"
+                    novalidate>
+
                 <div class="form-grid">
 
+                  <!-- FULL NAME -->
                   <div class="form-group">
-                    <label class="form-label">Full Name <span class="req">*</span></label>
-                    <input type="text" name="full_name" class="form-input"
-                           placeholder="e.g. Juan dela Cruz" required/>
+                    <label class="form-label" for="full_name">Full Name <span class="req">*</span></label>
+                    <input type="text"
+                           id="full_name"
+                           name="full_name"
+                           class="form-input"
+                           placeholder="e.g. Juan dela Cruz"
+                           autocomplete="name"
+                           maxlength="50"
+                           required/>
+                    <div class="field-msg" id="msg-full_name"></div>
                   </div>
 
+                  <!-- EMAIL -->
                   <div class="form-group">
-                    <label class="form-label">Email Address <span class="req">*</span></label>
-                    <input type="email" name="email" class="form-input"
-                           placeholder="e.g. juan@example.com" required/>
+                    <label class="form-label" for="email">Email Address <span class="req">*</span></label>
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           class="form-input"
+                           placeholder="e.g. juan@example.com"
+                           autocomplete="email"
+                           maxlength="50"
+                           required/>
+                    <div class="field-spinner" id="spinner-email"></div>
+                    <div class="field-msg" id="msg-email"></div>
                   </div>
 
+                  <!-- CONTACT NUMBER -->
                   <div class="form-group">
-                    <label class="form-label">Contact Number</label>
-                    <input type="text" name="contact_number" class="form-input"
-                           placeholder="e.g. 09XX-XXX-XXXX"/>
+                    <label class="form-label" for="contact_number">Contact Number</label>
+                    <input type="text"
+                           id="contact_number"
+                           name="contact_number"
+                           class="form-input"
+                           placeholder="e.g. 09XXXXXXXXX"
+                           autocomplete="tel"
+                           maxlength="11"/>
+                    <div class="field-spinner" id="spinner-contact_number"></div>
+                    <div class="field-msg" id="msg-contact_number"></div>
                   </div>
 
+                  <!-- ROLE -->
                   <div class="form-group">
-                    <label class="form-label">Role <span class="req">*</span></label>
-                    <select name="role" class="form-input" required>
+                    <label class="form-label" for="role">Role <span class="req">*</span></label>
+                    <select id="role" name="role" class="form-input" required>
                       <option value="">-- Select Role --</option>
                       <option value="admin">Admin</option>
                       <option value="loan_officer">Loan Officer</option>
                       <option value="auditor">Auditor</option>
                       <option value="super_admin">Super Admin</option>
                     </select>
+                    <div class="field-msg" id="msg-role"></div>
                   </div>
 
+                  <!-- PASSWORD -->
                   <div class="form-group">
-                    <label class="form-label">Password <span class="req">*</span></label>
+                    <label class="form-label" for="pw">Password <span class="req">*</span></label>
                     <div class="pw-field-wrap">
-                      <input type="password" name="password" id="pw" class="form-input"
-                             placeholder="Min. 8 characters" required minlength="8"/>
-                      <button type="button" class="pw-show-toggle"
-                              onclick="togglePw('pw', this)">Show</button>
+                      <input type="password"
+                             id="pw"
+                             name="password"
+                             class="form-input"
+                             placeholder="Min. 8 characters"
+                             autocomplete="new-password"
+                             maxlength="128"
+                             required/>
+                      <button type="button" class="pw-show-toggle" onclick="togglePw('pw', this)">Show</button>
                     </div>
+                    <!-- Strength bar -->
+                    <div class="pw-strength-wrap" id="pw-strength-wrap">
+                      <div class="pw-strength-bar">
+                        <div class="pw-strength-fill" id="pw-strength-fill"></div>
+                      </div>
+                      <span class="pw-strength-label" id="pw-strength-label">Too short</span>
+                    </div>
+                    <!-- Checklist -->
+                    <ul class="pw-checklist" id="pw-checklist">
+                      <li id="chk-len">At least 8 characters</li>
+                      <li id="chk-upper">Uppercase letter (A–Z)</li>
+                      <li id="chk-lower">Lowercase letter (a–z)</li>
+                      <li id="chk-digit">Number (0–9)</li>
+                      <li id="chk-special">Special character (!@#$…)</li>
+                      <li id="chk-no-repeat">No 4+ repeated chars</li>
+                    </ul>
+                    <div class="field-msg" id="msg-pw"></div>
                   </div>
 
+                  <!-- CONFIRM PASSWORD -->
                   <div class="form-group">
-                    <label class="form-label">Confirm Password <span class="req">*</span></label>
+                    <label class="form-label" for="pw2">Confirm Password <span class="req">*</span></label>
                     <div class="pw-field-wrap">
-                      <input type="password" id="pw2" class="form-input"
-                             placeholder="Re-enter password" required/>
-                      <button type="button" class="pw-show-toggle"
-                              onclick="togglePw('pw2', this)">Show</button>
+                      <input type="password"
+                             id="pw2"
+                             name="confirm_password"
+                             class="form-input"
+                             placeholder="Re-enter password"
+                             autocomplete="new-password"
+                             maxlength="128"
+                             required/>
+                      <button type="button" class="pw-show-toggle" onclick="togglePw('pw2', this)">Show</button>
                     </div>
+                    <div class="field-msg" id="msg-pw2"></div>
                   </div>
 
-                </div>
+                </div><!-- /form-grid -->
 
+                <!-- Role info helper -->
                 <div class="role-helper-box" id="roleInfo" style="display:none;">
                   <span class="info-icon">ℹ</span>
                   <div id="roleInfoText" style="font-size:13px;"></div>
                 </div>
 
                 <div class="form-footer">
+                  <span class="submit-note" id="submitNote"></span>
                   <a href="{{ url_for('super_admin.manage_users') }}" class="btn-cancel">Cancel</a>
-                  <button type="submit" class="btn-primary-action">Create Account</button>
+                  <button type="submit" class="btn-primary-action" id="submitBtn" disabled>Create Account</button>
                 </div>
+
               </form>
             </div>
           </div>
