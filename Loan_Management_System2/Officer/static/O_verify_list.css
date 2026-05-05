@@ -3,7 +3,27 @@
    Extends dashboard_officer.css
    ================================================================ */
 
-/* Verification Grid */
+/* ── PAGE BACK BAR ──────────────────────────────────────────── */
+.page-back-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-back-name {
+  font-family: var(--font-h);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1.2;
+}
+
+.page-back-sub {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+/* ── VERIFICATION GRID ──────────────────────────────────────── */
 .verif-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
@@ -276,7 +296,7 @@
   color: var(--gray-400);
 }
 
-/* Responsive */
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .verif-grid {
     grid-template-columns: 1fr;

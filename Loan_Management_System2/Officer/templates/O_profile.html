@@ -33,6 +33,30 @@
       </div>
     </div>
     <div class="topbar-right">
+      <!-- Notification Bell -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-empty-item">
+              <span class="notif-empty-icon-img"></span>
+              <p>You're all caught up!</p>
+              <small>No new notifications</small>
+            </li>
+          </ul>
+          <div class="notif-footer">
+            <a href="{{ url_for('officer.my_activity') }}" class="notif-see-all">See all activity →</a>
+          </div>
+        </div>
+      </div>
+      <!-- Avatar -->
       <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
         {{ session.user_name[0]|upper if session.user_name else 'O' }}
       </a>

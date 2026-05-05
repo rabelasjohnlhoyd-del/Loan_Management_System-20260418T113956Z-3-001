@@ -6,20 +6,19 @@
   <title>Loan Detail — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_loan_detail.css') }}"/>
 </head>
 <body>
 
-<!-- MOBILE OVERLAY -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════════════════
        TOPBAR
-  ════════════════════════════════════════════════ -->
+  ══════════════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -33,12 +32,29 @@
         </div>
       </div>
     </div>
-    <div class="topbar-center">
-      <span class="topbar-title">Loan: {{ loan.loan_no }}</span>
-      <span class="topbar-sub">{{ loan.borrower_name }} · {{ loan.type_name }} · {{ loan.plan_name }}</span>
-    </div>
     <div class="topbar-right">
-      <a href="{{ url_for('officer.officer_loans') }}" class="btn btn-ghost btn-sm">← Back to Loans</a>
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-empty-item">
+              <span class="notif-empty-icon-img"></span>
+              <p>You're all caught up!</p>
+              <small>No new notifications</small>
+            </li>
+          </ul>
+          <div class="notif-footer">
+            <a href="{{ url_for('officer.my_activity') }}" class="notif-see-all">See all activity →</a>
+          </div>
+        </div>
+      </div>
       <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
         {{ session.user_name[0]|upper if session.user_name else 'O' }}
       </a>
@@ -47,9 +63,9 @@
 
   <div class="body-row">
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          SIDEBAR
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
@@ -96,13 +112,23 @@
       </div>
     </aside>
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          MAIN CONTENT
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <div class="main-content" id="mainContent">
+
+      <div class="page-back-bar">
+        <a href="{{ url_for('officer.officer_loans') }}" class="btn-back">
+          <span class="btn-back-icon"></span> Active Loans
+        </a>
+        <div class="page-back-title">
+          <span class="page-back-name">{{ loan.loan_no }}</span>
+          <span class="page-back-sub">{{ loan.borrower_name }} · {{ loan.type_name }} · {{ loan.plan_name }}</span>
+        </div>
+      </div>
+
       <main class="page-body">
 
-        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             <div class="flash-stack">
@@ -131,7 +157,10 @@
             <!-- Loan Overview Card -->
             <div class="card">
               <div class="card-header">
-                <h3>Loan Overview</h3>
+                <div>
+                  <h3>Loan Overview</h3>
+                  <p>Full breakdown of this loan</p>
+                </div>
                 {% if loan.status == 'active' %}<span class="badge badge--active">Active</span>
                 {% elif loan.status == 'paid' %}<span class="badge badge--paid">Fully Paid</span>
                 {% elif loan.status == 'overdue' %}<span class="badge badge--overdue">Overdue</span>
@@ -139,7 +168,6 @@
                 {% else %}<span class="badge badge--pending">{{ loan.status | title }}</span>{% endif %}
               </div>
               <div class="card-body">
-                <!-- Progress Bar -->
                 {% set paid_pct = (((loan.principal_amount - loan.outstanding_balance) / loan.principal_amount * 100) | int) if loan.principal_amount > 0 else 0 %}
                 <div class="repayment-progress">
                   <div class="info-label">Repayment Progress</div>
@@ -198,7 +226,6 @@
                   </div>
                 </div>
 
-                <!-- Borrower Quick Info -->
                 <div class="borrower-strip">
                   <div class="info-label">Borrower</div>
                   <div class="borrower-row">
@@ -216,7 +243,10 @@
             <!-- Amortization Schedule -->
             <div class="card">
               <div class="card-header">
-                <h3>Amortization Schedule</h3>
+                <div>
+                  <h3>Amortization Schedule</h3>
+                  <p>Payment breakdown per period</p>
+                </div>
                 <span class="header-count">{{ schedule | length }} periods</span>
               </div>
               <div class="readonly-banner">
@@ -247,11 +277,8 @@
                       <td data-label="Total Due" class="bold-cell">₱{{ "{:,.2f}".format(row.total_due) }}</td>
                       <td data-label="Balance After" class="muted-cell">₱{{ "{:,.2f}".format(row.balance_after) }}</td>
                       <td data-label="Status">
-                        {% if row.is_paid %}
-                          <span class="badge badge--paid">Paid</span>
-                        {% else %}
-                          <span class="badge badge--pending">Upcoming</span>
-                        {% endif %}
+                        {% if row.is_paid %}<span class="badge badge--paid">Paid</span>
+                        {% else %}<span class="badge badge--pending">Upcoming</span>{% endif %}
                       </td>
                     </tr>
                     {% endfor %}
@@ -268,9 +295,10 @@
           <!-- RIGHT COLUMN -->
           <div class="detail-col detail-col--right">
 
-            <!-- Summary Stats -->
             <div class="card">
-              <div class="card-header"><h3>Loan Summary</h3></div>
+              <div class="card-header">
+                <div><h3>Loan Summary</h3><p>Quick stats</p></div>
+              </div>
               <div class="card-body">
                 <div class="summary-stats">
                   <div class="stat-mini">
@@ -293,10 +321,9 @@
               </div>
             </div>
 
-            <!-- Penalties -->
             <div class="card">
               <div class="card-header">
-                <h3>Penalties</h3>
+                <div><h3>Penalties</h3><p>Overdue charges</p></div>
                 {% if penalties %}<span class="penalty-count">{{ penalties | length }} total</span>{% endif %}
               </div>
               <div class="card-body">
@@ -325,9 +352,10 @@
               </div>
             </div>
 
-            <!-- Loan Details -->
             <div class="card">
-              <div class="card-header"><h3>Loan Details</h3></div>
+              <div class="card-header">
+                <div><h3>Loan Details</h3><p>Reference information</p></div>
+              </div>
               <div class="card-body">
                 <div class="detail-rows">
                   <div class="detail-row"><span>Loan No.</span><code class="loan-code-sm">{{ loan.loan_no }}</code></div>
@@ -348,7 +376,7 @@
   </div>
 </div>
 
-<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='hiraya_officer_core.js') }}"></script>
 <script src="{{ url_for('officer.static', filename='O_loan_detail.js') }}"></script>
 </body>
 </html>

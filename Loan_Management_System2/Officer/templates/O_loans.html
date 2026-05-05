@@ -6,20 +6,19 @@
   <title>Active Loans — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_loans.css') }}"/>
 </head>
 <body>
 
-<!-- MOBILE OVERLAY -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════════════════
        TOPBAR
-  ════════════════════════════════════════════════ -->
+  ══════════════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -34,7 +33,28 @@
       </div>
     </div>
     <div class="topbar-right">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
+          <span class="topbar-icon topbar-icon--notif"></span>
+          <span class="notif-dot hidden" id="notifDot"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span class="notif-header-title">Notifications</span>
+            <button class="notif-mark-all" id="notifMarkAll" type="button">Mark all as read</button>
+          </div>
+          <ul class="notif-list" id="notifList">
+            <li class="notif-empty-item">
+              <span class="notif-empty-icon-img"></span>
+              <p>You're all caught up!</p>
+              <small>No new notifications</small>
+            </li>
+          </ul>
+          <div class="notif-footer">
+            <a href="{{ url_for('officer.my_activity') }}" class="notif-see-all">See all activity →</a>
+          </div>
+        </div>
+      </div>
       <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
         {{ session.user_name[0]|upper if session.user_name else 'O' }}
       </a>
@@ -43,9 +63,9 @@
 
   <div class="body-row">
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          SIDEBAR
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
@@ -61,24 +81,19 @@
       </div>
       <nav class="sidebar-nav">
         <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
-          <span class="nav-icon nav-icon--dashboard"></span>
-          <span class="nav-label">Dashboard</span>
+          <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
         </a>
         <a href="{{ url_for('officer.list_verifications') }}" class="nav-item">
-          <span class="nav-icon nav-icon--verification"></span>
-          <span class="nav-label">ID Verification</span>
+          <span class="nav-icon nav-icon--verification"></span><span class="nav-label">ID Verification</span>
         </a>
         <a href="{{ url_for('officer.officer_applications') }}" class="nav-item">
-          <span class="nav-icon nav-icon--applications"></span>
-          <span class="nav-label">Applications</span>
+          <span class="nav-icon nav-icon--applications"></span><span class="nav-label">Applications</span>
         </a>
         <a href="{{ url_for('officer.manage_borrowers') }}" class="nav-item">
-          <span class="nav-icon nav-icon--borrowers"></span>
-          <span class="nav-label">Borrowers</span>
+          <span class="nav-icon nav-icon--borrowers"></span><span class="nav-label">Borrowers</span>
         </a>
         <a href="{{ url_for('officer.officer_loans') }}" class="nav-item active">
-          <span class="nav-icon nav-icon--loans"></span>
-          <span class="nav-label">Active Loans</span>
+          <span class="nav-icon nav-icon--loans"></span><span class="nav-label">Active Loans</span>
         </a>
         <a href="{{ url_for('officer.locked_accounts') }}" class="nav-item">
           <span class="nav-icon nav-icon--locked"></span>
@@ -91,20 +106,29 @@
       <div class="sidebar-footer">
         <form method="POST" action="{{ url_for('auth.logout') }}">
           <button type="submit" class="nav-item sidebar-logout-btn">
-            <span class="nav-icon nav-icon--logout"></span>
-            <span class="nav-label">Sign Out</span>
+            <span class="nav-icon nav-icon--logout"></span><span class="nav-label">Sign Out</span>
           </button>
         </form>
       </div>
     </aside>
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          MAIN CONTENT
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <div class="main-content" id="mainContent">
+
+      <div class="page-back-bar">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="btn-back">
+          <span class="btn-back-icon"></span> Dashboard
+        </a>
+        <div class="page-back-title">
+          <span class="page-back-name">Active Loans</span>
+          <span class="page-back-sub">Monitoring {{ loans|length if loans else 0 }} loan records</span>
+        </div>
+      </div>
+
       <main class="page-body">
 
-        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             <div class="flash-stack">
@@ -117,16 +141,6 @@
             </div>
           {% endif %}
         {% endwith %}
-
-        <!-- Page Header -->
-        <div class="page-header">
-          <div class="page-header-left">
-            <div>
-              <div class="page-title">Active Loans</div>
-              <div class="page-sub">Monitoring {{ loans|length if loans else 0 }} loan records</div>
-            </div>
-          </div>
-        </div>
 
         <!-- Filter & Search Bar -->
         <div class="filter-bar">
@@ -213,9 +227,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                  <td colspan="9">
-                    <div class="empty-state"><p>No loans found.</p></div>
-                  </td>
+                  <td colspan="9"><div class="empty-state"><p>No loans found.</p></div></td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -229,7 +241,7 @@
   </div>
 </div>
 
-<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='hiraya_officer_core.js') }}"></script>
 <script src="{{ url_for('officer.static', filename='O_loans.js') }}"></script>
 </body>
 </html>
