@@ -97,9 +97,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (id === 'email_input') {
-            const emailRegex = /^[a-z0-9]([a-z0-9._%+\-]){0,63}@[a-z0-9][a-z0-9\-]{0,62}\.[a-z]{2,}$/;
-            const localP = val.split('@')[0];
-if (localP.length >= 3 && emailRegex.test(val) && !isDisposableEmail(val) && !/\.{2,}/.test(val)) showValid(el);
+            const atIndex = val.indexOf('@');
+            const localP = atIndex >= 0 ? val.substring(0, atIndex) : val;
+            const domainP = atIndex >= 0 ? val.substring(atIndex + 1) : '';
+            const domainParts = domainP.split('.');
+            const tld = domainParts[domainParts.length - 1];
+            const strictEmailRegex = /^[a-z][a-z0-9.]{4,29}@[a-z0-9][a-z0-9\-]{3,62}\.[a-z]{2,10}$/;
+            if (
+                localP.length >= 6 &&
+                strictEmailRegex.test(val) &&
+                !isDisposableEmail(val) &&
+                !/\.{2,}/.test(val) &&
+                domainParts.length >= 2 &&
+                domainParts.length <= 4 &&
+                !domainParts.some(p => p.length === 0) &&
+                tld.length >= 2 &&
+                tld.length <= 10 &&
+                /^[a-z]+$/.test(tld)
+            ) showValid(el);
             return;
         }
         if (id === 'contact_input') {
@@ -233,7 +248,15 @@ if (localP.length >= 3 && emailRegex.test(val) && !isDisposableEmail(val) && !/\
         }
     });
 
-    // --- VALIDATION HELPERS ---
+    const ALLOWED_DOMAINS = [
+    'gmail.com', 'yahoo.com', 'yahoo.com.ph', 'outlook.com', 'hotmail.com',
+    'live.com', 'icloud.com', 'me.com', 'protonmail.com', 'proton.me',
+    'aol.com', 'zoho.com', 'mail.com', 'gmx.com', 'tutanota.com',
+    'deped.gov.ph', 'doh.gov.ph', 'up.edu.ph', 'dlsu.edu.ph', 'ateneo.edu.ph',
+    'ust.edu.ph', 'pup.edu.ph', 'mapua.edu.ph', 'tip.edu.ph', 'feu.edu.ph'
+];
+
+  
     const DISPOSABLE_DOMAINS = [
         'mailinator.com','guerrillamail.com','tempmail.com','throwam.com',
         'yopmail.com','sharklasers.com','guerrillamailblock.com','grr.la',
@@ -267,10 +290,11 @@ if (localP.length >= 3 && emailRegex.test(val) && !isDisposableEmail(val) && !/\
         return null;
     }
 
+    // FIX 2: Address max length changed from 100 to 70
     function validateHouseStreet(val) {
         const trimmed = val.trim();
         if (trimmed.length < 5) return "Address must be at least 5 characters.";
-        if (trimmed.length > 100) return "Address is too long (max 100 characters).";
+        if (trimmed.length > 70) return "Address is too long (max 70 characters).";
         const hasNumber = /\d/.test(trimmed);
         const hasKeyword = /\b(lot|blk|block|unit|phase|purok|sitio|st|street|ave|avenue|road|rd|drive|dr|village|vill|subd|subdivision|brgy|barangay|bldg|building|floor|flr|compound|cpd|zone|no\.?)\b/i.test(trimmed);
         if (!hasNumber && !hasKeyword) return "Enter a valid address (e.g. house no., street, village).";
@@ -296,12 +320,17 @@ if (localP.length >= 3 && emailRegex.test(val) && !isDisposableEmail(val) && !/\
         if (input && ['f_name', 'm_name', 'l_name'].includes(id)) input.maxLength = 50;
     });
 
+    // FIX 1: updateSequence now respects no_middle — hindi na ma-re-enable ang m_name kapag naka-check
     function updateSequence() {
         const isNoMiddle = document.getElementById('no_middle')?.checked;
         for (let i = 0; i < inputSequence.length - 1; i++) {
             const current = document.getElementById(inputSequence[i]);
             const next = document.getElementById(inputSequence[i + 1]);
             if (!current || !next) continue;
+
+            // Never re-enable m_name if no_middle is checked
+            if (next.id === 'm_name' && isNoMiddle) continue;
+
             const currentValid = current.classList.contains('is-valid') ||
                                  (current.id === 'm_name' && isNoMiddle);
             if (currentValid) {
@@ -354,26 +383,53 @@ if (localP.length >= 3 && emailRegex.test(val) && !isDisposableEmail(val) && !/\
                 }
             }
 
-             if (id === 'email_input') {
-    val = val.toLowerCase().trim();
-    e.target.value = val;
-    const emailRegex = /^[a-z0-9]([a-z0-9._%+\-]){0,63}@[a-z0-9][a-z0-9\-]{0,62}\.[a-z]{2,}$/;
-    const localPart = val.split('@')[0];
-    const domainPart = val.split('@')[1] || '';
-    if (!val.includes('@')) showError(input, "Enter a valid email address.");
-    else if (localPart.length < 6) showError(input, "Email username must be at least 6 characters.");
-    else if (localPart.length > 30) showError(input, "Email username must not exceed 30 characters.");
-    else if (!/^[a-z]/.test(localPart)) showError(input, "Email username must start with a letter.");
-    else if (!/^[a-z0-9.]+$/.test(localPart)) showError(input, "Only letters, numbers, and dots are allowed.");
-    else if (/\.{2,}/.test(localPart)) showError(input, "Email cannot have consecutive dots.");
-    else if (localPart.startsWith('.') || localPart.endsWith('.')) showError(input, "Email cannot start or end with a dot.");
-    else if (localPart.length > 1 && !/[a-z0-9]$/.test(localPart)) showError(input, "Email username must end with a letter or number.");
-    else if (!emailRegex.test(val)) showError(input, "Enter a valid email address (e.g. juan@gmail.com).");
-    else if (isDisposableEmail(val)) showError(input, "Disposable/temporary email addresses are not allowed.");
-    else if (!domainPart.includes('.')) showError(input, "Invalid email domain.");
-    else if (domainPart.split('.').pop().length < 2) showError(input, "Invalid email domain extension.");
-    else showValid(input);
-}
+            // FIX 3: Stricter email validation — hindi na mapapasok ang loydrabelas@gma.l.com at similar
+            if (id === 'email_input') {
+                val = val.toLowerCase().trim();
+                e.target.value = val;
+
+                const atIndex = val.indexOf('@');
+                const localPart = atIndex >= 0 ? val.substring(0, atIndex) : val;
+                const domainPart = atIndex >= 0 ? val.substring(atIndex + 1) : '';
+                const domainParts = domainPart.split('.');
+                const tld = domainParts[domainParts.length - 1];
+
+                // Strict regex: local part 5-30 chars starting with letter, domain max 63 chars, TLD 2-10 letters only
+                const strictEmailRegex = /^[a-z][a-z0-9.]{4,29}@[a-z0-9][a-z0-9\-]{0,62}\.[a-z]{2,10}$/;
+
+                if (!val.includes('@'))
+                    showError(input, "Enter a valid email address.");
+                else if (localPart.length < 6)
+                    showError(input, "Email username must be at least 6 characters.");
+                else if (localPart.length > 30)
+                    showError(input, "Email username must not exceed 30 characters.");
+                else if (!/^[a-z]/.test(localPart))
+                    showError(input, "Email username must start with a letter.");
+                else if (!/^[a-z0-9.]+$/.test(localPart))
+                    showError(input, "Only letters, numbers, and dots are allowed.");
+                else if (/\.{2,}/.test(localPart))
+                    showError(input, "Email cannot have consecutive dots.");
+                else if (localPart.startsWith('.') || localPart.endsWith('.'))
+                    showError(input, "Email cannot start or end with a dot.");
+                else if (domainParts.length < 2 || domainParts.length > 4)
+                    showError(input, "Invalid email domain.");
+                else if (domainParts.some(p => p.length === 0))
+                    showError(input, "Invalid email domain (empty part detected).");
+                else if (tld.length < 2 || tld.length > 10 || !/^[a-z]+$/.test(tld))
+                    showError(input, "Invalid domain extension (e.g. .com, .net, .ph).");
+                else if (!domainPart.includes('.') || domainPart.startsWith('.') || domainPart.endsWith('.'))
+                    showError(input, "Enter a valid domain (e.g. gmail.com).");
+                else if (!/^[a-z0-9]/.test(domainPart))
+                    showError(input, "Domain must start with a letter or number.");
+                else if (!strictEmailRegex.test(val))
+                    showError(input, "Enter a valid email address (e.g. juan@gmail.com).");
+                else if (isDisposableEmail(val))
+                    showError(input, "Disposable/temporary email addresses are not allowed.");
+                else if (!ALLOWED_DOMAINS.includes(domainPart))
+                    showError(input, "Please use a valid email provider (e.g. Gmail, Yahoo, Outlook).");
+                else
+                showValid(input);
+            }
 
             if (id === 'contact_input') {
                 val = val.replace(/\D/g, '').substring(0, 11);
@@ -423,6 +479,8 @@ if (localP.length >= 3 && emailRegex.test(val) && !isDisposableEmail(val) && !/\
     // --- HOUSE / STREET ---
     const houseStreet = document.getElementById('house_street');
     if (houseStreet) {
+        // FIX 2: Also enforce maxLength 70 via JS as a safeguard
+        houseStreet.maxLength = 70;
         houseStreet.addEventListener('input', (e) => {
             const err = validateHouseStreet(e.target.value);
             if (err) showError(houseStreet, err);
@@ -664,17 +722,18 @@ if (localP.length >= 3 && emailRegex.test(val) && !isDisposableEmail(val) && !/\
         });
     }
 
-    // --- NO MIDDLE NAME CHECKBOX ---
+    // FIX 1: No middle name checkbox — correctly disables/enables m_name field
     document.getElementById('no_middle')?.addEventListener('change', function() {
         const mName = document.getElementById('m_name');
-        mName.disabled = this.checked;
         if (this.checked) {
-            mName.value = "";
+            mName.disabled = true;
+            mName.value = '';
             mName.classList.remove('is-invalid');
             mName.classList.add('is-valid');
             const errorDisplay = mName.parentElement.querySelector('.inline-error');
             if (errorDisplay) errorDisplay.style.display = 'none';
         } else {
+            mName.disabled = false;
             clearValidation(mName);
         }
         updateSequence();
