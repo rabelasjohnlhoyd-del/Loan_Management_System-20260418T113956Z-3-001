@@ -580,10 +580,19 @@ def validate_id_api():
             result['rejection_reasons'] = rejection_reasons
             result['overall_reason'] = " | ".join(rejection_reasons)
 
+        # --- UPDATED VERSION ---
         session['gemini_approved'] = (result['action'] == 'approve')
         session['gemini_result'] = result['action']
      
-        session['extracted_id_number'] = result.get('extracted_id_number', None)
+       
+        raw_id = result.get('extracted_id_number')
+        if raw_id:
+            clean_id = re.sub(r'[^a-zA-Z0-9]', '', str(raw_id))
+            session['extracted_id_number'] = clean_id
+            result['extracted_id_number'] = clean_id 
+        else:
+            session['extracted_id_number'] = None
+
         return jsonify(result)
 
     except Exception as e:
@@ -622,19 +631,19 @@ def upload_id():
         id_file = request.files.get('valid_id')
         selfie_b64 = request.form.get('selfie_base64', '')
 
-       
-        id_number = session.get('extracted_id_number', '') or ''
+        # --- UPDATED PART: Kuhanin ang ID number mula sa Form (JS) o Session ---
+        # Nilagyan din ng regex para linisin ang spaces o dashes
+        raw_id = request.form.get('extracted_id_number') or session.get('extracted_id_number', '')
+        id_number = re.sub(r'[^a-zA-Z0-9]', '', str(raw_id)) if raw_id else ''
 
         if not id_file or not selfie_b64:
             flash("Please provide both ID and Selfie.", "warning")
             return render_template('upload_id.html')
 
-     
         if not id_number:
             flash("Could not extract ID number from your ID. Please upload a clearer photo.", "danger")
             return render_template('upload_id.html')
 
-    
         if id_number:
             conn = get_db(); cursor = conn.cursor()
             cursor.execute("SELECT id FROM users WHERE id_number = %s", (id_number,))
@@ -670,7 +679,6 @@ def upload_id():
             with open(os.path.join(UPLOAD_FOLDER, selfie_fn), 'wb') as f:
                 f.write(selfie_data)
 
-        
             target_email = session.get('otp_email') or session.get('reg_data', {}).get('email')
 
             gemini_result = session.get('gemini_result', 'pending')
@@ -682,7 +690,6 @@ def upload_id():
             else:
                 final_status = 'pending'
 
-            # 4. ONE execute lang
             # 4. ONE execute lang
             conn = get_db(); cursor = conn.cursor()
             query = """
@@ -704,7 +711,6 @@ def upload_id():
         except Exception as e:
             flash(f"Database error: {str(e)}", "danger")
 
-    # Kapag GET request (Load the page)
     return render_template('upload_id.html')
 
 # ================================================================
