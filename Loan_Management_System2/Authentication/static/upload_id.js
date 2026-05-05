@@ -197,6 +197,14 @@ if (appState === 'review') {
     const result = await response.json();
     showAnalyzingOverlay(false);
 
+    // --- BAGONG DAGDAG: I-save ang ID number na nakuha ng AI ---
+    if (result.extracted_id_number) {
+        const idHiddenField = document.getElementById('extracted_id_number');
+        if (idHiddenField) {
+            idHiddenField.value = result.extracted_id_number;
+        }
+    }
+
     if (result.action === 'approve') {
       setState('approved');
       document.getElementById('verification_status').value = 'verified';
@@ -207,7 +215,9 @@ if (appState === 'review') {
     } else if (result.action === 'review') {
       setState('review');
       document.getElementById('verification_status').value = 'pending';
-      showValidationResult('warning', 'Manual Review Required', result.overall_reason);
+      // Optional: Ipakita ang nakuha na ID number sa warning message para alam ng user
+      const reviewMsg = result.extracted_id_number ? `(ID: ${result.extracted_id_number}) ${result.overall_reason}` : result.overall_reason;
+      showValidationResult('warning', 'Manual Review Required', reviewMsg);
       btn.disabled = false;
       btn.innerHTML = 'SUBMIT FOR REVIEW';
 
