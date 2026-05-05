@@ -68,13 +68,13 @@
   });
 
   /* ── NOTIFICATIONS ───────────────────────────────────────── */
-  const NOTIF_KEY  = 'hiraya_officer_read_notifs';
-  const notifBtn    = document.getElementById('notifBtn');
-  const notifDrop   = document.getElementById('notifDropdown');
-  const notifDot    = document.getElementById('notifDot');
+  const NOTIF_KEY    = 'hiraya_officer_read_notifs';
+  const notifBtn     = document.getElementById('notifBtn');
+  const notifDrop    = document.getElementById('notifDropdown');
+  const notifDot     = document.getElementById('notifDot');
   const notifMarkAll = document.getElementById('notifMarkAll');
-  const notifWrap   = document.getElementById('notifWrap');
-  const notifList   = document.getElementById('notifList');
+  const notifWrap    = document.getElementById('notifWrap');
+  const notifList    = document.getElementById('notifList');
 
   function getReadSet() {
     try { return new Set(JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]')); }
@@ -93,7 +93,67 @@
     notifDot?.classList.toggle('hidden', n === 0);
   }
 
-  // Apply persisted reads
+  // ── BUILD NOTIFICATION LIST FROM INJECTED DATA ──────────────
+  function buildNotifList() {
+    const logs = window.HIRAYA_ACTIVITY_LOGS || [];
+    if (!notifList) return;
+
+    if (!logs.length) {
+      // Keep the hardcoded empty state as-is
+      return;
+    }
+
+    const readSet = getReadSet();
+    notifList.innerHTML = ''; // clear hardcoded empty state
+
+    logs.forEach(log => {
+      const id      = String(log.id);
+      const isRead  = readSet.has(id);
+      const action  = (log.action || '')
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, c => c.toUpperCase());
+      const details = log.details || '';
+      const actor   = log.actor_name || '';
+      const time    = log.created_at || '';
+
+      // Format time
+      let timeStr = time;
+      try {
+        const d = new Date(time);
+        if (!isNaN(d)) {
+          timeStr = d.toLocaleString('en-PH', {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+        }
+      } catch {}
+
+      // Truncate details to keep UI clean
+      let detailText = details;
+      if (detailText.length > 60) detailText = detailText.substring(0, 60) + '…';
+      if (actor) detailText = [detailText, `by ${actor}`].filter(Boolean).join(' · ');
+
+      const li = document.createElement('li');
+      li.className = `notif-item ${isRead ? 'read-local' : 'unread'}`;
+      li.dataset.notifId = id;
+      li.innerHTML = `
+        <span class="notif-icon-wrap">
+          <span class="topbar-icon" style="display:inline-flex;width:28px;height:28px;background:var(--surface-2,#f0f4f8);border-radius:50%;align-items:center;justify-content:center;font-size:13px;">🕐</span>
+          ${!isRead ? '<span class="notif-unread-dot" style="position:absolute;top:10px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--primary,#0d9488);"></span>' : ''}
+        </span>
+        <div class="notif-body" style="flex:1;min-width:0;">
+          <div class="notif-action" style="font-weight:600;font-size:13px;color:var(--text-primary,#1e293b);">${action}</div>
+          ${detailText ? `<div class="notif-detail" style="font-size:12px;color:var(--text-muted,#64748b);margin-top:2px;word-break:break-word;">${detailText}</div>` : ''}
+          <div class="notif-time" style="font-size:11px;color:var(--text-muted,#94a3b8);margin-top:4px;">${timeStr}</div>
+        </div>
+      `;
+      notifList.appendChild(li);
+    });
+  }
+
+  buildNotifList();
+
+  // Re-apply persisted reads after building
   const readSet = getReadSet();
   document.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
     if (readSet.has(item.dataset.notifId)) markRead(item);
@@ -104,7 +164,6 @@
   notifBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
     const open = notifDrop?.classList.toggle('open');
-    // close user dropdown if open
     if (open) {
       userDropdown?.classList.remove('open');
       userToggle?.classList.remove('open');
@@ -126,7 +185,7 @@
     refreshDot();
   });
 
-  // Mark all
+  // Mark all as read
   notifMarkAll?.addEventListener('click', () => {
     document.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
       markRead(item);

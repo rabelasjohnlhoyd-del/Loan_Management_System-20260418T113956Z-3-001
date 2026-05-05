@@ -220,6 +220,19 @@
   </div>
 </div>
 
+<script>
+window.HIRAYA_ACTIVITY_LOGS = [
+  {% for log in stats.activity_logs %}
+  {
+    id: {{ log.id }},
+    action: {{ log.action | tojson }},
+    details: {{ (log.details or '') | tojson }},
+    actor_name: {{ (log.actor_name or '') | tojson }},
+    created_at: {{ log.created_at.isoformat() | tojson if log.created_at and log.created_at.__class__.__name__ != 'str' else (log.created_at or '') | tojson }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+</script>
 <script src="{{ url_for('officer.static', filename='hiraya_officer_core.js') }}"></script>
 <script src="{{ url_for('officer.static', filename='O_locked_accounts.js') }}"></script>
 </body>

@@ -66,48 +66,43 @@ def log_activity(action, details='', status='success'):
 
 
 def get_sidebar_stats():
-    """
-    Returns the stats dict needed by ALL officer templates for
-    sidebar nav badges. Call this in every render_template().
-    """
     stats = {
         'pending_applications': 0,
         'pending_verifications': 0,
         'active_loans': 0,
         'pending_payments': 0,
         'locked_accounts': 0,
+        'activity_logs': [],  # ← DAGDAG
     }
     try:
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute(
-            "SELECT COUNT(*) AS cnt FROM loan_applications "
-            "WHERE status IN ('submitted', 'under_review')"
-        )
+        cursor.execute("SELECT COUNT(*) AS cnt FROM loan_applications WHERE status IN ('submitted', 'under_review')")
         stats['pending_applications'] = cursor.fetchone()['cnt']
 
-        cursor.execute(
-            "SELECT COUNT(*) AS cnt FROM users "
-            "WHERE id_verification_status = 'pending'"
-        )
+        cursor.execute("SELECT COUNT(*) AS cnt FROM users WHERE id_verification_status = 'pending'")
         stats['pending_verifications'] = cursor.fetchone()['cnt']
 
-        cursor.execute(
-            "SELECT COUNT(*) AS cnt FROM loans WHERE status = 'active'"
-        )
+        cursor.execute("SELECT COUNT(*) AS cnt FROM loans WHERE status = 'active'")
         stats['active_loans'] = cursor.fetchone()['cnt']
 
-        cursor.execute(
-            "SELECT COUNT(*) AS cnt FROM payments WHERE status = 'pending'"
-        )
+        cursor.execute("SELECT COUNT(*) AS cnt FROM payments WHERE status = 'pending'")
         stats['pending_payments'] = cursor.fetchone()['cnt']
 
-        cursor.execute(
-            "SELECT COUNT(*) AS cnt FROM users "
-            "WHERE failed_attempts >= 5 AND role = 'borrower'"
-        )
+        cursor.execute("SELECT COUNT(*) AS cnt FROM users WHERE failed_attempts >= 5 AND role = 'borrower'")
         stats['locked_accounts'] = cursor.fetchone()['cnt']
+
+        # ← DAGDAG: activity logs para sa notification dropdown
+        cursor.execute("""
+            SELECT al.id, al.action, al.details, al.created_at,
+                   u.full_name AS actor_name
+            FROM audit_logs al
+            LEFT JOIN users u ON al.user_id = u.id
+            ORDER BY al.created_at DESC
+            LIMIT 5
+        """)
+        stats['activity_logs'] = cursor.fetchall()
 
         cursor.close()
         conn.close()
@@ -116,7 +111,6 @@ def get_sidebar_stats():
 
     return stats
 
-
 # ================================================================
 # SECTION 2: OFFICER DASHBOARD
 # ================================================================
@@ -124,16 +118,14 @@ def get_sidebar_stats():
 @login_required
 @role_required('loan_officer')
 def officer_dashboard():
-    stats = get_sidebar_stats()          # single source of truth
+    stats = get_sidebar_stats()
     recent_applications = []
     verification_queue  = []
-    activity_logs       = []
 
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # Recent pending applications for the table
         cursor.execute("""
             SELECT la.id, la.reference_no, u.full_name AS borrower_name,
                    lt.name AS type_name, la.amount_requested,
@@ -147,7 +139,6 @@ def officer_dashboard():
         """)
         recent_applications = cursor.fetchall()
 
-        # ID verification queue preview
         cursor.execute("""
             SELECT id, full_name, email
             FROM users
@@ -156,17 +147,6 @@ def officer_dashboard():
             LIMIT 5
         """)
         verification_queue = cursor.fetchall()
-
-        # Recent activity logs for notification dropdown
-        cursor.execute("""
-            SELECT al.id, al.action, al.details, al.created_at,
-                   u.full_name AS actor_name
-            FROM audit_logs al
-            LEFT JOIN users u ON al.user_id = u.id
-            ORDER BY al.created_at DESC
-            LIMIT 5
-        """)
-        activity_logs = cursor.fetchall()
 
         cursor.close()
         conn.close()
@@ -177,7 +157,7 @@ def officer_dashboard():
                            stats=stats,
                            recent_applications=recent_applications,
                            verification_queue=verification_queue,
-                           activity_logs=activity_logs,
+                           activity_logs=stats['activity_logs'],  # ← galing na sa stats
                            pending_applications_notif=recent_applications)
 
 
