@@ -97,26 +97,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (id === 'email_input') {
-            const atIndex = val.indexOf('@');
-            const localP = atIndex >= 0 ? val.substring(0, atIndex) : val;
-            const domainP = atIndex >= 0 ? val.substring(atIndex + 1) : '';
-            const domainParts = domainP.split('.');
-            const tld = domainParts[domainParts.length - 1];
-            const strictEmailRegex = /^[a-z][a-z0-9.]{4,29}@[a-z0-9][a-z0-9\-]{3,62}\.[a-z]{2,10}$/;
-            if (
-                localP.length >= 6 &&
-                strictEmailRegex.test(val) &&
-                !isDisposableEmail(val) &&
-                !/\.{2,}/.test(val) &&
-                domainParts.length >= 2 &&
-                domainParts.length <= 4 &&
-                !domainParts.some(p => p.length === 0) &&
-                tld.length >= 2 &&
-                tld.length <= 10 &&
-                /^[a-z]+$/.test(tld)
-            ) showValid(el);
-            return;
-        }
+    const atIndex = val.indexOf('@');
+    const localP = atIndex >= 0 ? val.substring(0, atIndex) : val;
+    const domainP = atIndex >= 0 ? val.substring(atIndex + 1) : '';
+    const domainParts = domainP.split('.');
+    const tld = domainParts[domainParts.length - 1];
+    const strictEmailRegex = /^[a-z][a-z0-9.]{4,29}@[a-z0-9][a-z0-9\-]{3,62}\.[a-z]{2,10}$/;
+    if (
+        localP.length >= 6 &&
+        strictEmailRegex.test(val) &&
+        !isDisposableEmail(val) &&
+        ALLOWED_DOMAINS.includes(domainP) &&
+        !/\.{2,}/.test(val) &&
+        domainParts.length >= 2 &&
+        domainParts.length <= 4 &&
+        !domainParts.some(p => p.length === 0) &&
+        tld.length >= 2 &&
+        tld.length <= 10 &&
+        /^[a-z]+$/.test(tld)
+    ) showValid(el);
+    return;
+}
         if (id === 'contact_input') {
             if (/^09\d{9}$/.test(val) && !hasSequentialDigits(val) && !/(.)\1{5,}/.test(val)) showValid(el);
             return;
