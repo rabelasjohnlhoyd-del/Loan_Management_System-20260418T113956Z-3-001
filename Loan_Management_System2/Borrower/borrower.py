@@ -97,7 +97,16 @@ def borrower_dashboard():
     try:
         conn   = get_db()
         cursor = conn.cursor(dictionary=True)
+        
+        # --- ISINGIT MO ITO DITO (Refresh verification status in session) ---
+        cursor.execute("SELECT id_verification_status FROM users WHERE id = %s", (session['user_id'],))
+        u_status = cursor.fetchone()
+        if u_status:
+            session['verified'] = u_status['id_verification_status']
+        # --------------------------------------------------------------------
+
         today  = datetime.date.today()
+        
  
         # ── 1. RECENT LOANS (with progress + standing) ────────────────────
         # loans.status valid values: 'active','paid','defaulted','restructured','written_off'

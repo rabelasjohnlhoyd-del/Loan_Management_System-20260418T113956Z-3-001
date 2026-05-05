@@ -8,18 +8,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('borrower.static', filename='dashboard_borrower.css') }}"/>
-  <style>
-  .dash-pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid var(--gray-200,#e5e7eb);flex-wrap:wrap;gap:8px}
-  .dash-pag-info{font-size:12px;color:var(--gray-400,#9ca3af)}
-  .dash-pag-btns{display:flex;align-items:center;gap:4px}
-  .dash-pag-btn{width:28px;height:28px;border:1px solid var(--gray-200,#e5e7eb);border-radius:6px;background:#fff;color:var(--gray-600,#4b5563);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
-  .dash-pag-btn:hover:not(:disabled){background:var(--mint-50,#f0fdf4);border-color:var(--green-400,#4ade80)}
-  .dash-pag-btn:disabled{opacity:.35;cursor:default}
-  .dash-pag-pages{display:flex;gap:3px}
-  .dash-pag-page{width:28px;height:28px;border:1px solid var(--gray-200,#e5e7eb);border-radius:6px;background:#fff;color:var(--gray-600,#4b5563);font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
-  .dash-pag-page:hover{background:var(--mint-50,#f0fdf4)}
-  .dash-pag-page.active{background:var(--green-600,#16a34a);border-color:var(--green-600,#16a34a);color:#fff}
-  </style>
 </head>
 <body>
 
@@ -213,7 +201,11 @@
             <p>Manage your loans, track payments, and view your account summary here.</p>
           </div>
           <div class="wb-actions">
-            <a href="{{ url_for('loans.apply') }}" class="wb-btn wb-btn-white">Apply for Loan</a>
+            {% if session.verified == 'verified' %}
+              <a href="{{ url_for('loans.apply') }}" class="wb-btn wb-btn-white">Apply for Loan</a>
+            {% else %}
+              <a href="javascript:void(0)" class="wb-btn wb-btn-white" onclick="handleApplyClick('{{ session.verified }}')">Apply for Loan</a>
+            {% endif %}
             <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="wb-btn wb-btn-outline">Make Payment</a>
           </div>
         </div>
@@ -363,7 +355,11 @@
                 <div class="loans-empty-icon"></div>
                 <p class="empty-title">No loans yet</p>
                 <p class="empty-sub">Apply for your first loan to get started.</p>
-                <a href="{{ url_for('loans.apply') }}" class="btn btn-outline btn-sm" style="margin-top:14px;display:inline-block;">Apply for Loan</a>
+                {% if session.verified == 'verified' %}
+                  <a href="{{ url_for('loans.apply') }}" class="btn btn-outline btn-sm" style="margin-top:14px;display:inline-block;">Apply for Loan</a>
+                {% else %}
+                  <a href="javascript:void(0)" class="btn btn-outline btn-sm" style="margin-top:14px;display:inline-block;" onclick="handleApplyClick('{{ session.verified }}')">Apply for Loan</a>
+                {% endif %}
               </div>
             </div>
             {% endif %}
@@ -423,7 +419,11 @@
             {% endif %}
 
             <div style="display:flex; gap:8px; padding:14px 20px; border-top:1px solid var(--gray-200); flex-wrap:wrap;">
-              <a href="{{ url_for('loans.apply') }}" class="btn btn-outline btn-sm">+ Apply for Loan</a>
+              {% if session.verified == 'verified' %}
+                <a href="{{ url_for('loans.apply') }}" class="btn btn-outline btn-sm">+ Apply for Loan</a>
+              {% else %}
+                <a href="javascript:void(0)" class="btn btn-outline btn-sm" onclick="handleApplyClick('{{ session.verified }}')">+ Apply for Loan</a>
+              {% endif %}
               <a href="{{ url_for('borrower.select_loan_to_pay') }}" class="btn btn-outline btn-sm">Make Payment</a>
               <a href="{{ url_for('borrower.profile') }}" class="btn btn-outline btn-sm">My Profile</a>
             </div>
@@ -438,6 +438,14 @@
 
 <script src="{{ url_for('borrower.static', filename='dashboard_borrower.js') }}"></script>
 <script>
+function handleApplyClick(status) {
+    if (status === 'pending') {
+        alert("Verification In Progress: Your account is currently under review by our team. Please wait for verification before applying for a loan. Thank you!");
+    } else {
+        alert("Action Required: Your identity has not been verified yet. Please go to the 'Documents' section to upload a valid ID to enable loan applications.");
+    }
+}
+
 function makePaginator(opts){
   var rows=function(){return Array.from(document.querySelectorAll(opts.rowSelector))};
   var btnPrev=document.getElementById(opts.prevId);

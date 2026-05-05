@@ -70,10 +70,7 @@ def is_logged_in():
     return session.get('logged_in', False)
 
 def no_cache(response):
-    """
-    Adds strict no-cache headers so pressing the browser back/forward
-    arrow NEVER shows a cached (logged-in) page after logout.
-    """
+    
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
     response.headers['Pragma']        = 'no-cache'
     response.headers['Expires']       = '-1'
@@ -208,7 +205,7 @@ def request_unlock():
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
 
-        # Check if user exists and is actually locked
+      
         cursor.execute("""
             SELECT id, full_name, failed_attempts
             FROM users WHERE email = %s AND role = 'borrower'
@@ -216,12 +213,12 @@ def request_unlock():
         user = cursor.fetchone()
 
         if not user or user['failed_attempts'] < 5:
-            # Vague response para hindi ma-enumerate ang accounts
+            
             flash('If your account is locked, a request has been sent to our team.', 'info')
             cursor.close(); conn.close()
             return redirect(url_for('auth.login'))
 
-        # Check kung may existing pending request na para hindi mag-spam
+        
         cursor.execute("""
             SELECT id FROM unlock_requests
             WHERE user_id = %s AND status = 'pending'
@@ -631,8 +628,7 @@ def upload_id():
         id_file = request.files.get('valid_id')
         selfie_b64 = request.form.get('selfie_base64', '')
 
-        # --- UPDATED PART: Kuhanin ang ID number mula sa Form (JS) o Session ---
-        # Nilagyan din ng regex para linisin ang spaces o dashes
+      
         raw_id = request.form.get('extracted_id_number') or session.get('extracted_id_number', '')
         id_number = re.sub(r'[^a-zA-Z0-9]', '', str(raw_id)) if raw_id else ''
 
@@ -640,7 +636,8 @@ def upload_id():
             flash("Please provide both ID and Selfie.", "warning")
             return render_template('upload_id.html')
 
-        if not id_number:
+        gemini_result = session.get('gemini_result', 'pending')
+        if not id_number and gemini_result not in ('review', 'pending'):
             flash("Could not extract ID number from your ID. Please upload a clearer photo.", "danger")
             return render_template('upload_id.html')
 
