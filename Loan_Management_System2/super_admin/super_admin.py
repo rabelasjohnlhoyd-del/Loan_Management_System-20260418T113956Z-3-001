@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, send_file, make_response
 import datetime
 import os
 import io
@@ -19,12 +19,23 @@ def get_db():
 def is_logged_in():
     return session.get('logged_in', False)
 
+def no_cache(response):
+    """
+    Adds strict no-cache headers so pressing the browser back/forward
+    arrow NEVER shows a cached (logged-in) page after logout.
+    """
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma']        = 'no-cache'
+    response.headers['Expires']       = '-1'
+    return response
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not is_logged_in():
             flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login'))
+            response = make_response(redirect(url_for('auth.login')))
+            return no_cache(response)
         return f(*args, **kwargs)
     return decorated
 
@@ -33,10 +44,12 @@ def role_required(*roles):
         @wraps(f)
         def decorated(*args, **kwargs):
             if not is_logged_in():
-                return redirect(url_for('auth.login'))
+                response = make_response(redirect(url_for('auth.login')))
+                return no_cache(response)
             if session.get('role') not in roles:
                 flash('Access denied. Insufficient permissions.', 'danger')
-                return redirect(url_for('auth.dashboard'))
+                response = make_response(redirect(url_for('auth.dashboard')))
+                return no_cache(response)
             return f(*args, **kwargs)
         return decorated
     return decorator
@@ -173,12 +186,13 @@ def admin_dashboard():
         print(f"CRITICAL DASHBOARD ERROR: {e}")
         flash(f'Dashboard partially loaded. Error: {str(e)}', 'warning')
 
-    return render_template('dashboard_admin.html',
+    response = make_response(render_template('dashboard_admin.html',
         stats=stats,
         recent_applications=recent_applications,
         activity_logs=activity_logs,
         pending_applications_notif=pending_applications_notif,
-        user_name=session.get('user_name'))
+        user_name=session.get('user_name')))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -188,7 +202,8 @@ def admin_dashboard():
 @login_required
 @role_required('loan_officer')
 def officer_dashboard():
-    return render_template('dashboard_officer.html', user_name=session.get('user_name'))
+    response = make_response(render_template('dashboard_officer.html', user_name=session.get('user_name')))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -203,7 +218,8 @@ def auditor_dashboard():
         'total_applicants': 30,
         'pending_reviews': 10
     }
-    return render_template('AU_dashboard.html', user_name=session.get('user_name'), stats=stats)
+    response = make_response(render_template('AU_dashboard.html', user_name=session.get('user_name'), stats=stats))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -295,7 +311,7 @@ def admin_applications():
         flash(f'Error: {str(e)}', 'danger')
         applications, counts, types = [], {}, []
 
-    return render_template('admin_applications.html',
+    response = make_response(render_template('admin_applications.html',
                            applications=applications,
                            counts=counts,
                            types=types,
@@ -304,7 +320,8 @@ def admin_applications():
                            search=search,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -386,13 +403,14 @@ def application_detail(app_id):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('super_admin.admin_applications'))
 
-    return render_template('SA_application_detail.html',
+    response = make_response(render_template('SA_application_detail.html',
                            app=app,
                            docs=docs,
                            monthly_payment=monthly,
                            stats=stats,
                            pending_applications_notif=pending_applications_notif,
-                           activity_logs=activity_logs)
+                           activity_logs=activity_logs))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -505,7 +523,7 @@ def all_loans():
         flash(f'Error: {str(e)}', 'danger')
         loan_list, counts, types = [], {}, []
 
-    return render_template('all_loans.html',
+    response = make_response(render_template('all_loans.html',
                            loans=loan_list,
                            counts=counts,
                            types=types,
@@ -514,7 +532,8 @@ def all_loans():
                            search=search,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -616,14 +635,15 @@ def borrowers():
         borrowers_list, total, active, high_risk = [], 0, 0, 0
         pending_applications_notif, activity_logs, stats = [], [], {'pending_applications': 0}
 
-    return render_template('borrowers.html',
+    response = make_response(render_template('borrowers.html',
                            borrowers=borrowers_list,
                            total=total, active=active, high_risk=high_risk,
                            search=search, risk_filter=risk_filter,
                            status_filter=status_filter,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -726,13 +746,14 @@ def borrower_detail(borrower_id):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('super_admin.borrowers'))
 
-    return render_template('borrower_detail.html',
+    response = make_response(render_template('borrower_detail.html',
                            borrower=borrower,
                            loan_history=loan_history,
                            active_applications=active_applications,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -849,7 +870,7 @@ def loan_detail(loan_id):
         flash(f'Error loading loan details: {str(e)}', 'danger')
         return redirect(url_for('super_admin.all_loans'))
 
-    return render_template('loan_detail.html',
+    response = make_response(render_template('loan_detail.html',
                            loan=loan,
                            schedule=schedule,
                            payment_history=payment_history,
@@ -857,7 +878,8 @@ def loan_detail(loan_id):
                            documents=documents,
                            stats=stats,
                            pending_applications_notif=pending_applications_notif,
-                           activity_logs=activity_logs)
+                           activity_logs=activity_logs))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -1099,12 +1121,13 @@ def manage_users():
         users         = []
         archived_count = 0
  
-    return render_template('manage_users.html',
+    response = make_response(render_template('manage_users.html',
                            users=users,
                            role_filter=role_filter,
                            status_filter=status_filter,
                            search=search,
-                           archived_count=archived_count)
+                           archived_count=archived_count))
+    return no_cache(response)
 
 
 @super_admin_bp.route('/users/create', methods=['GET', 'POST'])
@@ -1142,7 +1165,8 @@ def create_user():
         except Exception as e:
             flash(f'Error: {str(e)}', 'danger')
 
-    return render_template('create_user.html')
+    response = make_response(render_template('create_user.html'))
+    return no_cache(response)
 
 
 @super_admin_bp.route('/users/<int:user_id>/archive', methods=['POST'])
@@ -1223,10 +1247,11 @@ def archived_users():
         flash(f'Error: {str(e)}', 'danger')
         users = []
  
-    return render_template('archived_users.html',
+    response = make_response(render_template('archived_users.html',
                            users=users,
                            role_filter=role_filter,
-                           search=search)
+                           search=search))
+    return no_cache(response)
     
 # ─────────────────────────────────────────────
 # NEW: Restore archived user
@@ -1416,11 +1441,12 @@ def penalties_page():
         penalties = []
         pending_applications_notif, activity_logs, stats = [], [], {'pending_applications': 0}
 
-    return render_template('penalties.html',
+    response = make_response(render_template('penalties.html',
                            penalties=penalties,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 
 @super_admin_bp.route('/penalties/compute', methods=['POST'])
@@ -1571,14 +1597,15 @@ def activity_logs():
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
  
-    return render_template('activity_logs.html',
+    response = make_response(render_template('activity_logs.html',
                            logs=logs,
                            search=search,
                            date_from=date_from,
                            date_to=date_to,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs_notif,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 
 # ═════════════════════════════════════════════
@@ -1639,10 +1666,11 @@ def notifications_page():
     except Exception as e:
         flash(f'Error loading notifications: {str(e)}', 'warning')
 
-    return render_template('notification_admin.html',
+    response = make_response(render_template('notification_admin.html',
         pending_applications_notif=pending_applications_notif,
         all_activity_logs=all_activity_logs,
-        stats=stats)
+        stats=stats))
+    return no_cache(response)
 
 
 @super_admin_bp.route('/notifications/mark-all-read', methods=['POST'])
@@ -1733,12 +1761,13 @@ def reports_page():
     except Exception as e:
         pass
  
-    return render_template('reports.html',
+    response = make_response(render_template('reports.html',
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs_notif,
                            stats=stats,
                            borrowers_ref=borrowers_ref,
-                           loans_ref=loans_ref)
+                           loans_ref=loans_ref))
+    return no_cache(response)
 
 
 @super_admin_bp.route('/reports/amortization/<int:loan_id>')
@@ -1827,12 +1856,13 @@ def report_amortization(loan_id):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('super_admin.reports_page'))
  
-    return render_template('report_amortization.html',
+    response = make_response(render_template('report_amortization.html',
                            loan=loan,
                            schedule=schedule,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 
 @super_admin_bp.route('/reports/loan-performance')
@@ -2000,14 +2030,15 @@ def report_borrower_history(borrower_id):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('super_admin.reports_page'))
  
-    return render_template('report_borrower_history.html',
+    response = make_response(render_template('report_borrower_history.html',
                            borrower=borrower,
                            payments=payments,
                            loans=loans,
                            total_paid_computed=total_paid_computed,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 @super_admin_bp.route('/reports/paid-loans')
 @login_required
@@ -2096,7 +2127,7 @@ def report_paid_loans():
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
  
-    return render_template('report_paid_loans.html',
+    response = make_response(render_template('report_paid_loans.html',
                            paid_loans=paid_loans,
                            total_principal=total_principal,
                            total_interest=total_interest,
@@ -2104,7 +2135,8 @@ def report_paid_loans():
                            date_to=date_to,
                            pending_applications_notif=pending_applications_notif,
                            activity_logs=activity_logs_notif,
-                           stats=stats)
+                           stats=stats))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────
@@ -2149,7 +2181,8 @@ def SA_profile():
         flash(f'Error loading profile: {str(e)}', 'danger')
         user = None
 
-    return render_template('SA_profile.html', user=user, stats=stats)
+    response = make_response(render_template('SA_profile.html', user=user, stats=stats))
+    return no_cache(response)
 
 
 # ─────────────────────────────────────────────

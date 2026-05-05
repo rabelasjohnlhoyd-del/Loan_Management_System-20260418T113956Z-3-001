@@ -5,7 +5,7 @@
 # ================================================================
 # SECTION 1: IMPORTS & CONFIGURATION
 # ================================================================
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 import datetime
 import random
 import os
@@ -69,12 +69,23 @@ def get_db():
 def is_logged_in():
     return session.get('logged_in', False)
 
+def no_cache(response):
+    """
+    Adds strict no-cache headers so pressing the browser back/forward
+    arrow NEVER shows a cached (logged-in) page after logout.
+    """
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma']        = 'no-cache'
+    response.headers['Expires']       = '-1'
+    return response
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not is_logged_in():
             flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login'))
+            response = make_response(redirect(url_for('auth.login')))
+            return no_cache(response)
         return f(*args, **kwargs)
     return decorated
 
@@ -165,7 +176,8 @@ def login():
         except:
             flash("System busy. Please try again later.", 'danger')
 
-    return render_template('login.html')
+    response = make_response(render_template('login.html'))
+    return no_cache(response)
 
 @auth.route('/logout', methods=['GET', 'POST'])
 def logout():
@@ -175,7 +187,8 @@ def logout():
         log_activity(user_id, 'logout', 'success', {"message": "User logged out"})
     session.clear()
     flash('You have been logged out successfully.', 'info')
-    return redirect(url_for('auth.login'))
+    response = make_response(redirect(url_for('auth.login')))
+    return no_cache(response)
 
 
 
@@ -455,7 +468,7 @@ def validate_id_api():
     if 'reg_data' not in session or not session.get('otp_verified'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    gemini_key = 'AIzaSyDvZpu3PGaicEmY4HNZM7FPUzQa7kzD6Lg'
+    gemini_key = ''
     data = request.json or {}
     id_b64 = data.get('id_image')
     selfie_b64 = data.get('selfie_image')

@@ -37,8 +37,7 @@
       {% endif %}
     {% endwith %}
 
-    
-<form id="regForm" method="POST" action="{{ url_for('auth.register') }}" novalidate autocomplete="off">
+    <form id="regForm" method="POST" action="{{ url_for('auth.register') }}" novalidate autocomplete="off">
       
       <!-- STEP 1: PERSONAL INFORMATION -->
       <div class="step-content active" id="step1">
@@ -51,7 +50,6 @@
         <div class="field-row">
             <div class="field"><input class="field-input" type="email" name="email" id="email_input" placeholder="Email Address" required></div>
             <div class="field">
-              <!-- ✅ SECURITY: PH Pattern 09XXXXXXXXX -->
               <input class="field-input" type="tel" name="contact_number" id="contact_input" placeholder="Contact Number (09...)" pattern="09[0-9]{9}" maxlength="11" required>
             </div>
         </div>
@@ -82,7 +80,6 @@
             </select>
           </div>
           <div class="field" style="position:relative;">
-            <!-- ✅ SECURITY: Max date set to ensure 18+ years old -->
             <input class="field-input" type="date" name="dob" id="dob" max="2007-01-01" required>
             <span class="security-hint">Must be 18+ years old to apply.</span>
           </div>
@@ -187,13 +184,16 @@
         </div>
         <div class="form-section-title" style="margin-top: 25px;">Account Security</div>
         <div class="field-row">
-          <!-- ✅ SECURITY: Minimum length enforced -->
           <div class="field"><input class="field-input" type="password" name="password" placeholder="Create Password" minlength="8" required></div>
           <div class="field"><input class="field-input" type="password" name="confirm_password" placeholder="Confirm Password" minlength="8" required></div>
         </div>
         <span class="security-hint">Password must be at least 8 characters.</span>
         
-        <label class="m-check" style="margin-top: 10px;"><input type="checkbox" name="terms" required> I agree to the Terms & Conditions</label>
+        <label class="m-check" style="margin-top: 10px;">
+            <input type="checkbox" name="terms" id="termsCheckbox" required> 
+            I agree to the <a href="javascript:void(0)" id="openTerms" style="color: #2a9080; text-decoration: underline; margin-left: 3px; font-weight: 600;">Terms & Conditions</a>
+        </label>
+
         <div class="field-row">
           <button type="button" class="btn-register btn-prev" style="background:#64748b;">Back</button>
           <button type="submit" class="btn-register">Submit & Verify Email</button>
@@ -203,9 +203,74 @@
   </div>
 </div>
 
+<!-- TERMS AND CONDITIONS MODAL -->
+<div id="termsModal" class="custom-modal">
+    <div class="modal-overlay"></div> <!-- Inalis ang click listener dito -->
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3>Terms and Conditions</h3>
+            <button type="button" class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <h4>1. Acceptance of Terms</h4>
+            <p>By applying for a loan through Hiraya Loan Management System, you agree to provide true and accurate information. Any fraudulent information may lead to the disapproval of your application.</p>
+            
+            <h4>2. Data Privacy</h4>
+            <p>We value your privacy. Your data will be processed in accordance with the Data Privacy Act of 2012. We use your information solely for credit evaluation and loan processing purposes.</p>
+            
+            <h4>3. Loan Repayment</h4>
+            <p>Borrowers are expected to pay their installments on or before the due date. Late payments may incur additional interest or penalties as specified in your individual loan contract.</p>
+            
+            <h4>4. Verification</h4>
+            <p>You authorize Hiraya to verify the information provided with your employer, government agencies, and other financial institutions to ensure eligibility.</p>
+
+            <h4>5. Account Security</h4>
+            <p>You are responsible for maintaining the confidentiality of your account credentials. Any activity performed under your account is your responsibility.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" id="agreeModalBtn" class="btn-register" style="width: auto; padding: 10px 30px;">I Agree</button>
+        </div>
+    </div>
+</div>
+
 <script>
-    
     const backendStep = {{ active_step|default('null') }};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('termsModal');
+        const openBtn = document.getElementById('openTerms');
+        const closeBtn = document.querySelector('.close-modal');
+        const agreeBtn = document.getElementById('agreeModalBtn');
+        const termsCheckbox = document.getElementById('termsCheckbox');
+
+        if (openBtn) {
+            openBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                modal.style.display = 'flex';
+            });
+        }
+
+        const closeModal = () => { modal.style.display = 'none'; };
+
+        // Pwedeng isara gamit ang X button
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+        // O gamit ang Agree button
+        if (agreeBtn) {
+            agreeBtn.addEventListener('click', () => {
+                if (termsCheckbox) {
+                    termsCheckbox.checked = true;
+                    termsCheckbox.classList.remove('is-invalid');
+                    termsCheckbox.classList.add('is-valid');
+                    const errorDisplay = termsCheckbox.parentElement.querySelector('.inline-error');
+                    if (errorDisplay) errorDisplay.style.display = 'none';
+                }
+                closeModal();
+            });
+        }
+        
+  
+    });
 </script>
 <script src="{{ url_for('auth.static', filename='register.js') }}"></script>
 </body>

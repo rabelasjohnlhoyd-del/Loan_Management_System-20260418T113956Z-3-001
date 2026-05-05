@@ -5,7 +5,7 @@
 # ================================================================
 # SECTION 1: IMPORTS & CONFIGURATION
 # ================================================================
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 import datetime
 import os
 import base64 as _base64
@@ -42,12 +42,23 @@ def get_db():
 def is_logged_in():
     return session.get('logged_in', False)
 
+def no_cache(response):
+    """
+    Adds strict no-cache headers to a response so that pressing the
+    browser back/forward arrow NEVER shows a cached (logged-in) page.
+    """
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma']        = 'no-cache'
+    response.headers['Expires']       = '-1'
+    return response
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not is_logged_in():
             flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login'))
+            response = make_response(redirect(url_for('auth.login')))
+            return no_cache(response)
         return f(*args, **kwargs)
     return decorated
 
@@ -56,10 +67,12 @@ def role_required(*roles):
         @wraps(f)
         def decorated(*args, **kwargs):
             if not is_logged_in():
-                return redirect(url_for('auth.login'))
+                response = make_response(redirect(url_for('auth.login')))
+                return no_cache(response)
             if session.get('role') not in roles:
                 flash('Access denied. Insufficient permissions.', 'danger')
-                return redirect(url_for('auth.dashboard'))
+                response = make_response(redirect(url_for('auth.dashboard')))
+                return no_cache(response)
             return f(*args, **kwargs)
         return decorated
     return decorator
@@ -297,7 +310,7 @@ def borrower_dashboard():
     except Exception as e:
         print(f"[borrower_dashboard ERROR] {e}")
  
-    return render_template(
+    response = make_response(render_template(
         'dashboard_borrower.html',
         recent_loans    = recent_loans,
         stats           = stats,
@@ -306,7 +319,8 @@ def borrower_dashboard():
         overdue_loans   = overdue_loans,
         due_soon_loans  = due_soon_loans,
         recent_activity = recent_activity,
-    )
+    ))
+    return no_cache(response)
 
 
 # ================================================================
@@ -370,11 +384,12 @@ def profile():
         credit_factors = {'on_time_payments': 0, 'paid_loans': 0, 'overdue_count': 0, 'active_loans': 0}
 
     # 3. I-PASS ANG interest_saved SA HTML
-    return render_template('B_profile.html',
+    response = make_response(render_template('B_profile.html',
                            user=user,
                            credit_score=credit_score,
                            credit_factors=credit_factors,
-                           interest_saved=interest_saved) # <--- Importante ito!
+                           interest_saved=interest_saved)) # <--- Importante ito!
+    return no_cache(response)
 
 
 # ================================================================
@@ -415,10 +430,11 @@ def select_loan_to_pay():
         flash(f'Error loading payment data: {str(e)}', 'danger')
         return redirect(url_for('borrower.borrower_dashboard'))
 
-    return render_template('make_payment.html',
+    response = make_response(render_template('make_payment.html',
                            active_loans=active_loans,
                            wallets=wallets, 
-                           today=datetime.date.today())
+                           today=datetime.date.today()))
+    return no_cache(response)
 
 def build_amortization(principal, annual_rate, months, start_date, starting_period=1):
     from decimal import Decimal
@@ -802,7 +818,8 @@ def payment_history():
         flash(f'Error: {str(e)}', 'danger')
         payments = []
 
-    return render_template('payment_history.html', payments=payments)
+    response = make_response(render_template('payment_history.html', payments=payments))
+    return no_cache(response)
 
 
 # ================================================================
@@ -854,12 +871,13 @@ def my_documents():
         user_data = {}
         app_docs, loans, payments = [], [], []
 
-    return render_template('documents.html',
+    response = make_response(render_template('documents.html',
                            user=user_data,
                            documents=app_docs,
                            loans=loans,
                            payments=payments,
-                           generated_docs=loans)
+                           generated_docs=loans))
+    return no_cache(response)
 
 
 # 6.2 UPLOAD DOCUMENT
@@ -1064,7 +1082,8 @@ def view_receipt_page(pay_no):
         flash(f'Error: {str(e)}', 'danger')
         return redirect(url_for('borrower.payment_history'))
 
-    return render_template('e_receipt_page.html', payment=payment)
+    response = make_response(render_template('e_receipt_page.html', payment=payment))
+    return no_cache(response)
 
 def recalculate_borrower_metrics(user_id):
     conn = get_db()

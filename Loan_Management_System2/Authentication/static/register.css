@@ -1,11 +1,4 @@
-/* ================================================================
-   REGISTER.CSS — Loan Management System Register Page
-   Color scheme: Mint + White (matches login.css)
-   ================================================================ */
 
-/* ================================================================
-   IMPORTS & GLOBAL RESET
-   ================================================================ */
 *,
 *::before,
 *::after {
@@ -14,9 +7,6 @@
   padding: 0;
 }
 
-/* ================================================================
-   ROOT VARIABLES
-   ================================================================ */
 :root {
   --mint: #3ab5a0;
   --mint-dark: #2a9080;
@@ -34,9 +24,6 @@
   --radius-sm: 8px;
 }
 
-/* ================================================================
-   PAGE
-   ================================================================ */
 body {
   font-family: 'DM Sans', sans-serif;
   background: linear-gradient(145deg, #d4f0eb 0%, #edfaf7 40%, #f0faf8 70%, #c8ece5 100%);
@@ -55,9 +42,6 @@ body {
   width: 100%;
 }
 
-/* ================================================================
-   CARD
-   ================================================================ */
 .card {
   background: var(--white);
   border-radius: 20px;
@@ -80,9 +64,6 @@ body {
   }
 }
 
-/* ================================================================
-   LOGO
-   ================================================================ */
 .logo-wrap {
   display: flex;
   justify-content: center;
@@ -153,9 +134,7 @@ body {
   z-index: 1;
 }
 
-/* ================================================================
-   TITLE
-   ================================================================ */
+
 .site-title {
   font-family: 'Sora', sans-serif;
   font-size: 18px;
@@ -167,9 +146,7 @@ body {
   margin-bottom: 20px;
 }
 
-/* ================================================================
-   STEP INDICATOR
-   ================================================================ */
+
 .steps {
   display: flex;
   align-items: center;
@@ -225,9 +202,7 @@ body {
   margin-bottom: 18px;
 }
 
-/* ================================================================
-   FORM HEADING
-   ================================================================ */
+
 .form-heading {
   font-family: 'Sora', sans-serif;
   font-size: 14px;
@@ -236,9 +211,7 @@ body {
   margin-bottom: 16px;
 }
 
-/* ================================================================
-   FIELDS
-   ================================================================ */
+
 .field {
   position: relative;
   margin-bottom: 12px;
@@ -313,9 +286,7 @@ body {
   box-shadow: 0 0 0 3px rgba(58, 181, 160, 0.12);
 }
 
-/* ================================================================
-   PASSWORD TOGGLE
-   ================================================================ */
+
 .pw-toggle {
   position: absolute;
   right: 12px;
@@ -339,9 +310,7 @@ body {
   background: var(--mint);
 }
 
-/* ================================================================
-   PASSWORD STRENGTH METER
-   ================================================================ */
+
 .pw-meter {
   display: flex;
   align-items: center;
@@ -373,9 +342,7 @@ body {
   text-align: right;
 }
 
-/* ================================================================
-   FIELD ERROR
-   ================================================================ */
+
 .field-error {
   font-size: 12px;
   color: var(--red);
@@ -390,9 +357,7 @@ body {
   display: block;
 }
 
-/* ================================================================
-   TERMS
-   ================================================================ */
+
 .terms-row {
   margin-bottom: 18px;
 }
@@ -427,9 +392,7 @@ body {
   color: var(--mint);
 }
 
-/* ================================================================
-   REGISTER BUTTON
-   ================================================================ */
+
 .btn-register {
   width: 100%;
   padding: 14px;
@@ -456,9 +419,7 @@ body {
   transform: translateY(0);
 }
 
-/* ================================================================
-   AUTH FOOT & COPYRIGHT
-   ================================================================ */
+
 .auth-foot {
   text-align: center;
   margin-top: 20px;
@@ -482,9 +443,7 @@ body {
   opacity: 0.8;
 }
 
-/* ================================================================
-   FIELD VALIDATION STATES
-   ================================================================ */
+
 .field-input.is-valid {
   border-color: var(--mint);
   background: var(--mint-light);
@@ -495,7 +454,7 @@ body {
   background: var(--red-light);
 }
 
-/* Email hint */
+
 #email-hint {
   display: none;
   font-size: 12px;
@@ -504,14 +463,12 @@ body {
   padding-left: 2px;
 }
 
-/* pw-toggle visible state */
+
 .pw-toggle.is-visible {
   opacity: 0.5;
 }
 
-/* ================================================================
-   FLASH STACK
-   ================================================================ */
+
 .flash-stack {
   display: flex;
   flex-direction: column;
@@ -571,9 +528,6 @@ body {
   opacity: 1;
 }
 
-/* ================================================================
-   INLINE FIELD ERRORS
-   ================================================================ */
 .inline-error {
   display: none;
   font-size: 11px;
@@ -620,3 +574,78 @@ body {
     .others-input { margin-top: 5px; display: none; }
     .review-label { font-size: 11px; color: #64748b; margin-bottom: 4px; display: block; font-weight: 600; margin-left: 2px; }
     .security-hint { font-size: 10px; color: #64748b; margin-top: -8px; margin-bottom: 10px; display: block; padding-left: 2px; }
+
+
+.custom-modal {
+        display: none; 
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-overlay {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7); /* Mas madilim para focus sa box */
+        backdrop-filter: blur(4px);
+    }
+    .modal-container {
+        position: relative;
+        background: white;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        animation: modalSlide 0.3s ease-out;
+        z-index: 10001;
+    }
+    @keyframes modalSlide {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid #e2eeec;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h3 {
+        color: #2a9080;
+        margin: 0;
+        font-family: 'Sora', sans-serif;
+        font-size: 18px;
+    }
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #9bbcb7;
+        line-height: 1;
+    }
+    .modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #5a7a76;
+    }
+    .modal-body h4 {
+        color: #2c4a47;
+        margin: 15px 0 5px;
+        font-size: 15px;
+    }
+    .modal-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #e2eeec;
+        text-align: right;
+    }
