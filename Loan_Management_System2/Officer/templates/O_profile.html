@@ -189,16 +189,6 @@
                 </div>
               </div>
               <div class="info-field">
-                <div class="info-label">Date of Birth</div>
-                <div class="info-value {% if not (user and user.get('date_of_birth')) %}empty{% endif %}">
-                  {{ user.get('date_of_birth', '—') if user else '—' }}
-                </div>
-              </div>
-              <div class="info-field">
-                <div class="info-label">Age</div>
-                <div class="info-value">{{ user.get('age', '—') if user else '—' }}</div>
-              </div>
-              <div class="info-field">
                 <div class="info-label">Member Since</div>
                 <div class="info-value">
                   {% if user and user.get('created_at') %}
