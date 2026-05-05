@@ -263,48 +263,6 @@
               {% endif %}
             </div>
 
-            <!-- Payment History -->
-            <div class="card">
-              <div class="card-header">
-                <h3>Payment History</h3>
-                <a href="{{ url_for('officer.payment_list') }}" class="btn btn-primary btn-sm">Verify Payments →</a>
-              </div>
-              {% if payment_history %}
-              <div class="table-wrap">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Method</th>
-                      <th>Reference</th>
-                      <th>Verified By</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for p in payment_history %}
-                    <tr>
-                      <td data-label="Date" class="date-cell">{% if p.payment_date %}{{ p.payment_date.strftime('%b %d, %Y') if p.payment_date.__class__.__name__ != 'str' else p.payment_date }}{% else %}—{% endif %}</td>
-                      <td data-label="Amount" class="amount-green">₱{{ "{:,.2f}".format(p.amount_paid) }}</td>
-                      <td data-label="Method" class="date-cell">{{ p.payment_method or '—' }}</td>
-                      <td data-label="Reference" class="code-cell">{{ p.reference_no or '—' }}</td>
-                      <td data-label="Verified By" class="muted-cell">{{ p.verified_by_name or 'Pending' }}</td>
-                      <td data-label="Status">
-                        {% if p.status == 'approved' %}<span class="badge badge--approved">Approved</span>
-                        {% elif p.status == 'rejected' %}<span class="badge badge--rejected">Rejected</span>
-                        {% else %}<span class="badge badge--pending">Pending</span>{% endif %}
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-              {% else %}
-              <div class="empty-state"><p>No payment records found.</p></div>
-              {% endif %}
-            </div>
-
           </div>
 
           <!-- RIGHT COLUMN -->

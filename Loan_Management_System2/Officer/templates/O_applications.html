@@ -16,7 +16,9 @@
 
 <div class="app-wrap">
 
-  <!-- TOPBAR -->
+  <!-- ══════════════════════════════════════════════════════════
+       TOPBAR
+  ══════════════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -32,6 +34,7 @@
     </div>
 
     <div class="topbar-right">
+      <!-- Notification Bell -->
       <div class="notif-wrap" id="notifWrap">
         <button class="topbar-icon-btn" id="notifBtn" title="Notifications" type="button">
           <span class="topbar-icon topbar-icon--notif"></span>
@@ -54,7 +57,8 @@
           </div>
         </div>
       </div>
-      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar">
+      <!-- Avatar -->
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
         {{ session.user_name[0]|upper if session.user_name else 'O' }}
       </a>
     </div>
@@ -62,7 +66,9 @@
 
   <div class="body-row">
 
-    <!-- SIDEBAR -->
+    <!-- ══════════════════════════════════════════════════════════
+         SIDEBAR
+    ══════════════════════════════════════════════════════════ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
@@ -72,12 +78,10 @@
         </div>
         <span class="s-chevron"></span>
       </div>
-
       <div class="user-dropdown" id="userDropdown">
         <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
         <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
       </div>
-
       <nav class="sidebar-nav">
         <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
           <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
@@ -98,7 +102,6 @@
           <span class="nav-icon nav-icon--locked"></span><span class="nav-label">Locked Accounts</span>
         </a>
       </nav>
-
       <div class="sidebar-footer">
         <form method="POST" action="{{ url_for('auth.logout') }}">
           <button type="submit" class="nav-item sidebar-logout-btn">
@@ -108,22 +111,23 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-      <main class="page-body">
+    <!-- ══════════════════════════════════════════════════════════
+         MAIN CONTENT
+    ══════════════════════════════════════════════════════════ -->
+    <div class="main-content" id="mainContent">
 
-        <!-- PAGE HEADER -->
-        <div class="page-header">
-          <div class="page-header-left">
-            <a href="{{ url_for('officer.officer_dashboard') }}" class="btn-back">
-              <span class="btn-back-icon"></span> Dashboard
-            </a>
-            <div>
-              <h2 class="page-title">Loan Applications</h2>
-              <p class="page-sub">Review and recommend applications for admin approval</p>
-            </div>
-          </div>
+      <!-- BACK BAR — consistent placement across all pages -->
+      <div class="page-back-bar">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="btn-back">
+          <span class="btn-back-icon"></span> Dashboard
+        </a>
+        <div class="page-back-title">
+          <span class="page-back-name">Loan Applications</span>
+          <span class="page-back-sub">Review &amp; recommend applications for admin approval</span>
         </div>
+      </div>
+
+      <main class="page-body">
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -155,7 +159,8 @@
           <input type="hidden" name="status" value="{{ status_filter }}"/>
           <div class="search-wrap">
             <span class="search-icon"></span>
-            <input type="text" class="search-input" name="search" placeholder="Search by name, email or reference no..." value="{{ search }}"/>
+            <input type="text" class="search-input-light" name="search"
+                   placeholder="Search by name, email or reference no…" value="{{ search }}"/>
           </div>
           <button type="submit" class="btn-filter">Filter</button>
           {% if search %}
@@ -165,9 +170,9 @@
 
         <!-- Applications Table -->
         <div class="card">
-          <div class="card-info">
-            <span>Showing <span id="resultCount">{{ applications|length }}</span> application(s)</span>
-            <span style="font-size:11px; color:var(--warning);">⚠ Officer can recommend only — admin makes final approval</span>
+          <div class="card-info-bar">
+            <span>Showing <strong id="resultCount">{{ applications|length }}</strong> application(s)</span>
+            <span class="readonly-note">⚠ Officer can recommend only — admin makes final approval</span>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -203,10 +208,10 @@
                     <span class="score-text {% if score >= 700 %}score-high{% elif score >= 550 %}score-med{% else %}score-low{% endif %}">{{ score }}</span>
                   </td>
                   <td data-label="Risk">
-                    {% set r = app.risk_level | lower %}
+                    {% set r = app.risk_level | lower if app.risk_level else 'medium' %}
                     {% if r == 'low' %}<span class="risk-low">Low</span>
                     {% elif r == 'high' %}<span class="risk-high">High</span>
-                    {% else %}<span class="risk-medium">{{ app.risk_level }}</span>{% endif %}
+                    {% else %}<span class="risk-medium">{{ app.risk_level or 'Medium' }}</span>{% endif %}
                   </td>
                   <td data-label="Status">
                     {% if app.status == 'submitted' %}<span class="badge badge--submitted">Submitted</span>
@@ -229,17 +234,21 @@
                 </tr>
                 {% else %}
                 <tr id="emptyRow">
-                  <td colspan="11"><div class="empty-state">No applications found matching your filters.</div></td>
+                  <td colspan="11">
+                    <div class="empty-state">No applications found matching your filters.</div>
+                  </td>
                 </tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
 
-          <!-- Pagination Container -->
-          <div id="appPaginationContainer" class="pagination-container">
+          <!-- Pagination -->
+          <div id="appPaginationContainer" class="pagination-wrap" style="display:none;">
             <div id="appPaginationInfo" class="pagination-info"></div>
-            <div id="appPaginationButtons" class="pagination-buttons"></div>
+            <div class="pagination-controls">
+              <div id="appPaginationButtons" class="page-numbers"></div>
+            </div>
           </div>
         </div>
 
@@ -249,7 +258,7 @@
   </div>
 </div>
 
-<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='hiraya_officer_core.js') }}"></script>
 <script src="{{ url_for('officer.static', filename='O_applications.js') }}"></script>
 </body>
 </html>

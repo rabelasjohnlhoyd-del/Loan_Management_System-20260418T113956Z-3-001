@@ -6,20 +6,19 @@
   <title>My Activity — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='officer_activity.css') }}"/>
 </head>
 <body>
 
-<!-- MOBILE OVERLAY -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════════════════
        TOPBAR
-  ════════════════════════════════════════════════ -->
+  ══════════════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -34,7 +33,6 @@
       </div>
     </div>
     <div class="topbar-right">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
       <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
         {{ session.user_name[0]|upper if session.user_name else 'O' }}
       </a>
@@ -43,9 +41,9 @@
 
   <div class="body-row">
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          SIDEBAR
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
@@ -92,11 +90,36 @@
       </div>
     </aside>
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          MAIN CONTENT
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <div class="main-content" id="mainContent">
+
+      <div class="page-back-bar">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="btn-back">
+          <span class="btn-back-icon"></span> Dashboard
+        </a>
+        <div class="page-back-title">
+          <span class="page-back-name">My Activity</span>
+          <span class="page-back-sub">Your recent actions and system events</span>
+        </div>
+      </div>
+
       <main class="page-body">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-msg {{ category }}">
+                  <span>{{ message }}</span>
+                  <button class="f-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
 
         <!-- Stats Strip -->
         {% set total     = logs | length %}
@@ -137,7 +160,10 @@
         <!-- Activity Timeline -->
         <div class="card">
           <div class="card-header">
-            <h3>Activity Timeline</h3>
+            <div>
+              <h3>Activity Timeline</h3>
+              <p>Your recent actions and system events</p>
+            </div>
             <span class="header-count">Last 100 records</span>
           </div>
 
@@ -200,7 +226,7 @@
   </div>
 </div>
 
-<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='hiraya_officer_core.js') }}"></script>
 <script src="{{ url_for('officer.static', filename='officer_activity.js') }}"></script>
 </body>
 </html>

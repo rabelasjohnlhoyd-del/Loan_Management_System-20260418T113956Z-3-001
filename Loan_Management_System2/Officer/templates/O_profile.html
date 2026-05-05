@@ -6,20 +6,19 @@
   <title>My Profile — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_profile.css') }}"/>
 </head>
 <body>
 
-<!-- MOBILE OVERLAY -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="app-wrap">
 
-  <!-- ═══════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════════════════
        TOPBAR
-  ════════════════════════════════════════════════ -->
+  ══════════════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -34,7 +33,6 @@
       </div>
     </div>
     <div class="topbar-right">
-      <a href="{{ url_for('officer.officer_dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
       <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
         {{ session.user_name[0]|upper if session.user_name else 'O' }}
       </a>
@@ -43,9 +41,9 @@
 
   <div class="body-row">
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          SIDEBAR
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
@@ -92,10 +90,21 @@
       </div>
     </aside>
 
-    <!-- ═══════════════════════════════════════════════
+    <!-- ══════════════════════════════════════════════════════════
          MAIN CONTENT
-    ════════════════════════════════════════════════ -->
+    ══════════════════════════════════════════════════════════ -->
     <div class="main-content" id="mainContent">
+
+      <div class="page-back-bar">
+        <a href="{{ url_for('officer.officer_dashboard') }}" class="btn-back">
+          <span class="btn-back-icon"></span> Dashboard
+        </a>
+        <div class="page-back-title">
+          <span class="page-back-name">My Profile</span>
+          <span class="page-back-sub">View your account information</span>
+        </div>
+      </div>
+
       <main class="page-body">
 
         <!-- Flash Messages -->
@@ -184,7 +193,7 @@
   </div>
 </div>
 
-<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='hiraya_officer_core.js') }}"></script>
 <script src="{{ url_for('officer.static', filename='O_profile.js') }}"></script>
 </body>
 </html>

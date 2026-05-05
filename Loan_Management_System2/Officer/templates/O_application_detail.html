@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Application Detail — Hiraya Officer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='dashboard_officer.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('officer.static', filename='O_application_detail.css') }}"/>
 </head>
@@ -16,7 +16,9 @@
 
 <div class="app-wrap">
 
-  <!-- TOPBAR -->
+  <!-- ══════════════════════════════════════════════════════════
+       TOPBAR
+  ══════════════════════════════════════════════════════════ -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
       <button class="burger-btn" id="burgerBtn" type="button" aria-label="Toggle sidebar">
@@ -29,11 +31,6 @@
           <span class="topbar-brand-sub">Management System</span>
         </div>
       </div>
-    </div>
-
-    <div class="topbar-center">
-      <h1 class="topbar-title">Application Details</h1>
-      <p class="topbar-sub">{{ app.reference_no }} · {{ app.borrower_name }}</p>
     </div>
 
     <div class="topbar-right">
@@ -59,7 +56,7 @@
           </div>
         </div>
       </div>
-      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar">
+      <a href="{{ url_for('officer.profile') }}" class="topbar-avatar" title="{{ session.user_name if session.user_name else 'Officer' }}">
         {{ session.user_name[0]|upper if session.user_name else 'O' }}
       </a>
     </div>
@@ -67,7 +64,9 @@
 
   <div class="body-row">
 
-    <!-- SIDEBAR -->
+    <!-- ══════════════════════════════════════════════════════════
+         SIDEBAR
+    ══════════════════════════════════════════════════════════ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-user" id="userDropdownToggle">
         <div class="s-avatar">{{ session.user_name[0]|upper if session.user_name else 'O' }}</div>
@@ -77,12 +76,10 @@
         </div>
         <span class="s-chevron"></span>
       </div>
-
       <div class="user-dropdown" id="userDropdown">
         <a href="{{ url_for('officer.profile') }}"><span class="dd-icon dd-icon--profile"></span>My Profile</a>
         <a href="{{ url_for('officer.my_activity') }}"><span class="dd-icon dd-icon--activity"></span>My Activity</a>
       </div>
-
       <nav class="sidebar-nav">
         <a href="{{ url_for('officer.officer_dashboard') }}" class="nav-item">
           <span class="nav-icon nav-icon--dashboard"></span><span class="nav-label">Dashboard</span>
@@ -103,7 +100,6 @@
           <span class="nav-icon nav-icon--locked"></span><span class="nav-label">Locked Accounts</span>
         </a>
       </nav>
-
       <div class="sidebar-footer">
         <form method="POST" action="{{ url_for('auth.logout') }}">
           <button type="submit" class="nav-item sidebar-logout-btn">
@@ -113,35 +109,31 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-      <main class="page-body">
+    <!-- ══════════════════════════════════════════════════════════
+         MAIN CONTENT
+    ══════════════════════════════════════════════════════════ -->
+    <div class="main-content" id="mainContent">
 
-        <!-- PAGE HEADER -->
-        <div class="page-header">
-          <div class="page-header-left">
-            <a href="{{ url_for('officer.officer_applications') }}" class="btn-back">
-              <span class="btn-back-icon"></span> Applications
-            </a>
-            <div>
-              <h2 class="page-title">{{ app.reference_no }}</h2>
-              <p class="page-sub">{{ app.borrower_name }} · {{ app.type_name }}</p>
-            </div>
-          </div>
-          <div>
-            {% if app.status == 'submitted' %}
-              <span class="badge badge--submitted">Submitted</span>
-            {% elif app.status == 'under_review' %}
-              <span class="badge badge--under_review">Under Review</span>
-            {% elif app.status == 'approved' %}
-              <span class="badge badge--approved">Approved</span>
-            {% elif app.status == 'rejected' %}
-              <span class="badge badge--rejected">Rejected</span>
-            {% elif app.status == 'flagged' %}
-              <span class="badge badge--flagged">Flagged</span>
+      <!-- BACK BAR -->
+      <div class="page-back-bar">
+        <a href="{{ url_for('officer.officer_applications') }}" class="btn-back">
+          <span class="btn-back-icon"></span> Applications
+        </a>
+        <div class="page-back-title">
+          <div class="page-back-title-row">
+            <span class="page-back-name">{{ app.reference_no }}</span>
+            {% if app.status == 'submitted' %}<span class="badge badge--submitted">Submitted</span>
+            {% elif app.status == 'under_review' %}<span class="badge badge--under_review">Under Review</span>
+            {% elif app.status == 'approved' %}<span class="badge badge--approved">Approved</span>
+            {% elif app.status == 'rejected' %}<span class="badge badge--rejected">Rejected</span>
+            {% elif app.status == 'flagged' %}<span class="badge badge--flagged">Flagged</span>
             {% endif %}
           </div>
+          <span class="page-back-sub">{{ app.borrower_name }} · {{ app.type_name }}</span>
         </div>
+      </div>
+
+      <main class="page-body">
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -157,25 +149,25 @@
           {% endif %}
         {% endwith %}
 
-        <!-- DETAIL GRID -->
+        <!-- Detail Grid -->
         <div class="detail-grid">
 
-          <!-- LEFT COLUMN -->
+          <!-- ── LEFT COLUMN ─────────────────────────────── -->
           <div class="detail-col">
 
-            <!-- Application Info Card -->
+            <!-- Application Info -->
             <div class="card">
               <div class="card-header"><h3>Application Details</h3></div>
               <div class="card-body">
                 <div class="info-grid">
                   <div class="info-field">
                     <div class="info-label">Amount Requested</div>
-                    <div class="info-value" style="font-size:22px; color:var(--primary);">₱{{ "{:,.2f}".format(app.amount_requested) }}</div>
+                    <div class="info-value info-value--hero">₱{{ "{:,.2f}".format(app.amount_requested) }}</div>
                   </div>
                   <div class="info-field">
                     <div class="info-label">Loan Type / Plan</div>
                     <div class="info-value">{{ app.type_name }}</div>
-                    <div style="font-size:12px; color:var(--gray-400);">{{ app.plan_name }}</div>
+                    <div class="info-note">{{ app.plan_name }}</div>
                   </div>
                   <div class="info-field">
                     <div class="info-label">Interest Rate</div>
@@ -195,35 +187,35 @@
                   </div>
                 </div>
                 {% if app.purpose %}
-                <div class="info-field" style="margin-top:12px;">
+                <div class="info-field" style="margin-top:14px;">
                   <div class="info-label">Loan Purpose</div>
-                  <div class="info-value muted" style="font-size:13px;">{{ app.purpose }}</div>
+                  <div class="info-value info-value--muted">{{ app.purpose }}</div>
                 </div>
                 {% endif %}
                 {% if app.officer_notes %}
-                <div style="margin-top:16px; padding:12px; background:var(--primary-light); border:1px solid var(--primary-mid); border-radius:8px;">
+                <div class="officer-notes-box">
                   <div class="info-label">Officer Notes</div>
-                  <div style="font-size:13px; color:var(--gray-800); margin-top:4px;">{{ app.officer_notes }}</div>
+                  <div class="officer-notes-text">{{ app.officer_notes }}</div>
                 </div>
                 {% endif %}
               </div>
             </div>
 
-            <!-- Borrower Info Card -->
+            <!-- Borrower Profile -->
             <div class="card">
               <div class="card-header">
                 <h3>Borrower Profile</h3>
-                <a href="{{ url_for('officer.borrower_detail', borrower_id=app.borrower_id) }}" class="btn-link">Full Profile →</a>
+                <a href="{{ url_for('officer.borrower_detail', borrower_id=app.borrower_id) }}" class="btn btn-ghost btn-sm">Full Profile →</a>
               </div>
               <div class="card-body">
-                <div class="info-grid-3">
+                <div class="info-grid info-grid--3">
                   <div class="info-field">
                     <div class="info-label">Full Name</div>
                     <div class="info-value">{{ app.borrower_name }}</div>
                   </div>
                   <div class="info-field">
                     <div class="info-label">Email</div>
-                    <div class="info-value" style="font-size:12px;">{{ app.borrower_email }}</div>
+                    <div class="info-value info-value--sm">{{ app.borrower_email }}</div>
                   </div>
                   <div class="info-field">
                     <div class="info-label">Contact</div>
@@ -239,30 +231,33 @@
                   </div>
                   <div class="info-field">
                     <div class="info-label">Active Loans</div>
-                    <div class="info-value" style="{% if app.active_loans > 0 %}color:var(--warning);{% else %}color:var(--success);{% endif %}">{{ app.active_loans }}</div>
+                    <div class="info-value {% if app.active_loans > 0 %}info-value--warn{% else %}info-value--ok{% endif %}">{{ app.active_loans }}</div>
                   </div>
                 </div>
 
-                <!-- Credit Score -->
-                <div class="info-field" style="margin-top:12px;">
+                <!-- Credit Score Bar -->
+                <div class="score-section">
                   <div class="info-label">Credit Score</div>
                   {% set score = app.credit_score | int %}
                   {% set pct = [((score - 300) / 550 * 100), 0] | max | int %}
+                  {% if score >= 700 %}{% set sc = 'high' %}{% elif score >= 550 %}{% set sc = 'med' %}{% else %}{% set sc = 'low' %}{% endif %}
                   <div class="score-wrap">
-                    <span class="score-number" style="{% if score >= 700 %}color:var(--success);{% elif score >= 550 %}color:var(--warning);{% else %}color:var(--danger);{% endif %}">{{ score }}</span>
+                    <span class="score-number score-{{ sc }}">{{ score }}</span>
                     <div class="score-bar-bg">
-                      <div class="score-bar-fill" style="width:{{ pct }}%; background:{% if score >= 700 %}var(--success){% elif score >= 550 %}var(--warning){% else %}var(--danger){% endif %};"></div>
+                      <div class="score-bar-fill score-fill-{{ sc }}" style="width:{{ pct }}%;"></div>
                     </div>
-                    {% set r = app.risk_level | lower %}
-                    {% if r == 'low' %}<span class="badge risk-low">Low Risk</span>
-                    {% elif r == 'high' %}<span class="badge risk-high">High Risk</span>
-                    {% else %}<span class="badge risk-medium">{{ app.risk_level }}</span>{% endif %}
+                    {% if app.risk_level %}
+                      {% set r = app.risk_level | lower %}
+                      {% if r == 'low' %}<span class="badge risk-low">Low Risk</span>
+                      {% elif r == 'high' %}<span class="badge risk-high">High Risk</span>
+                      {% else %}<span class="badge risk-medium">{{ app.risk_level }} Risk</span>{% endif %}
+                    {% endif %}
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Loan History Card -->
+            <!-- Loan History -->
             <div class="card">
               <div class="card-header"><h3>Borrower Loan History</h3></div>
               <div class="card-body" style="padding:0;">
@@ -270,12 +265,18 @@
                 <div class="table-wrap">
                   <table class="data-table">
                     <thead>
-                      <td><th>Loan No.</th><th>Type</th><th>Principal</th><th>Balance</th><th>Status</th></tr>
+                      <tr>
+                        <th>Loan No.</th>
+                        <th>Type</th>
+                        <th>Principal</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {% for l in loan_history %}
                       <tr>
-                        <td data-label="Loan No." style="font-size:11px; font-family:monospace; color:var(--gray-400);">{{ l.loan_no }}</td>
+                        <td data-label="Loan No." class="mono-cell">{{ l.loan_no }}</td>
                         <td data-label="Type">{{ l.type_name }}</td>
                         <td data-label="Principal">₱{{ "{:,.0f}".format(l.principal_amount) }}</td>
                         <td data-label="Balance">₱{{ "{:,.0f}".format(l.outstanding_balance) }}</td>
@@ -296,100 +297,107 @@
               </div>
             </div>
 
-            <!-- Documents Card -->
+            <!-- Documents -->
             {% if docs %}
             <div class="card">
               <div class="card-header"><h3>Submitted Documents</h3></div>
               <div class="card-body">
-                {% for doc in docs %}
-                <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--gray-200);">
-                  <span style="font-size:13px; flex:1; color:var(--gray-800);">{{ doc.document_type or doc.file_name or 'Document' }}</span>
-                  <span style="font-size:11px; color:var(--gray-400);">Uploaded</span>
+                <div class="doc-list">
+                  {% for doc in docs %}
+                  <div class="doc-item">
+                    <div class="doc-icon"></div>
+                    <span class="doc-name">{{ doc.document_type or doc.file_name or 'Document' }}</span>
+                    <span class="doc-status">Uploaded</span>
+                  </div>
+                  {% endfor %}
                 </div>
-                {% endfor %}
               </div>
             </div>
             {% endif %}
 
           </div>
 
-          <!-- RIGHT COLUMN -->
+          <!-- ── RIGHT COLUMN ─────────────────────────────── -->
           <div class="detail-col">
 
-            <!-- Officer Action Card -->
+            <!-- Officer Recommendation -->
             <div class="card">
               <div class="card-header"><h3>Officer Recommendation</h3></div>
               <div class="card-body">
                 {% if app.status == 'submitted' %}
-                <p style="font-size:12px; color:var(--gray-400); margin-bottom:16px;">Review the application and set your recommendation. The admin will make the final approval decision.</p>
+                <p class="action-hint">Review the application and set your recommendation. The admin will make the final approval decision.</p>
                 <form method="POST" action="{{ url_for('officer.recommend_application', app_id=app.id) }}" class="recommend-form">
-                  <div>
+                  <div class="form-group">
                     <div class="info-label">Recommendation</div>
                     <div class="radio-group">
                       <label class="radio-option">
                         <input type="radio" name="recommendation" value="under_review" required/>
-                        <div class="radio-option-label">
+                        <div class="radio-body">
                           <strong>Mark for Review</strong>
                           <small>Tag as under review — requires further evaluation before admin decides.</small>
                         </div>
                       </label>
                       <label class="radio-option">
                         <input type="radio" name="recommendation" value="flagged"/>
-                        <div class="radio-option-label">
+                        <div class="radio-body">
                           <strong>Flag for Attention</strong>
                           <small>Flag concerns for admin — risk issue, incomplete docs, suspicious data.</small>
                         </div>
                       </label>
                     </div>
                   </div>
-                  <div>
+                  <div class="form-group">
                     <div class="info-label">Notes / Remarks</div>
-                    <textarea name="notes" placeholder="Add your assessment, observations, or concerns here…"></textarea>
+                    <textarea name="notes" class="form-textarea" rows="4" placeholder="Add your assessment, observations, or concerns here…"></textarea>
                   </div>
                   <button type="submit" class="btn-recommend">Submit Recommendation</button>
                 </form>
                 {% else %}
                 <div class="readonly-notice">
-                  This application has already been processed ({{ app.status | title }}) — no further action needed from officer.
+                  <span class="readonly-icon-sm"></span>
+                  This application has already been processed (<strong>{{ app.status | replace('_',' ') | title }}</strong>) — no further action needed from officer.
                 </div>
                 {% if app.officer_notes %}
-                <div style="margin-top:16px;">
+                <div class="prev-notes">
                   <div class="info-label">Your Previous Notes</div>
-                  <div style="margin-top:8px; font-size:13px; color:var(--gray-800); padding:12px; background:var(--gray-100); border-radius:8px;">{{ app.officer_notes }}</div>
+                  <div class="prev-notes-text">{{ app.officer_notes }}</div>
                 </div>
                 {% endif %}
                 {% endif %}
               </div>
             </div>
 
-            <!-- Risk Summary Card -->
+            <!-- Risk Summary -->
             <div class="card">
               <div class="card-header"><h3>Risk Summary</h3></div>
-              <div class="card-body" style="display:flex; flex-direction:column; gap:12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:13px; color:var(--gray-400);">Credit Score</span>
-                  <span style="font-weight:700; {% if app.credit_score >= 700 %}color:var(--success);{% elif app.credit_score >= 550 %}color:var(--warning);{% else %}color:var(--danger);{% endif %}">{{ app.credit_score }}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:13px; color:var(--gray-400);">Risk Level</span>
-                  {% set r = app.risk_level | lower %}
-                  {% if r == 'low' %}<span class="badge risk-low">Low</span>
-                  {% elif r == 'high' %}<span class="badge risk-high">High</span>
-                  {% else %}<span class="badge risk-medium">{{ app.risk_level }}</span>{% endif %}
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:13px; color:var(--gray-400);">Active Loans</span>
-                  <span style="font-weight:600; {% if app.active_loans > 1 %}color:var(--warning);{% else %}color:var(--gray-800);{% endif %}">{{ app.active_loans }}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:13px; color:var(--gray-400);">Total Loans</span>
-                  <span style="font-weight:600;">{{ app.total_loans }}</span>
+              <div class="card-body">
+                <div class="risk-rows">
+                  <div class="risk-row">
+                    <span class="risk-row-label">Credit Score</span>
+                    <span class="risk-row-val {% if app.credit_score >= 700 %}val-green{% elif app.credit_score >= 550 %}val-yellow{% else %}val-red{% endif %}">{{ app.credit_score }}</span>
+                  </div>
+                  <div class="risk-row">
+                    <span class="risk-row-label">Risk Level</span>
+                    <span>
+                      {% set r = app.risk_level | lower if app.risk_level else 'medium' %}
+                      {% if r == 'low' %}<span class="badge risk-low">Low</span>
+                      {% elif r == 'high' %}<span class="badge risk-high">High</span>
+                      {% else %}<span class="badge risk-medium">{{ app.risk_level or 'Medium' }}</span>{% endif %}
+                    </span>
+                  </div>
+                  <div class="risk-row">
+                    <span class="risk-row-label">Active Loans</span>
+                    <span class="risk-row-val {% if app.active_loans > 1 %}val-yellow{% else %}val-default{% endif %}">{{ app.active_loans }}</span>
+                  </div>
+                  <div class="risk-row">
+                    <span class="risk-row-label">Total Loans</span>
+                    <span class="risk-row-val val-default">{{ app.total_loans }}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
           </div>
-
         </div>
 
       </main>
@@ -398,7 +406,7 @@
   </div>
 </div>
 
-<script src="{{ url_for('officer.static', filename='dashboard_officer.js') }}"></script>
+<script src="{{ url_for('officer.static', filename='hiraya_officer_core.js') }}"></script>
 <script src="{{ url_for('officer.static', filename='O_application_detail.js') }}"></script>
 </body>
 </html>

@@ -3,12 +3,31 @@
    Extends dashboard_officer.css
    ================================================================ */
 
-/* Stats Strip */
+/* ── PAGE BACK BAR ──────────────────────────────────────────── */
+.page-back-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-back-name {
+  font-family: var(--font-h);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1.2;
+}
+
+.page-back-sub {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+/* ── STATS STRIP ────────────────────────────────────────────── */
 .stats-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
-  margin-bottom: 20px;
 }
 
 .stat-chip {
@@ -56,13 +75,14 @@
 .text-yellow { color: var(--warning); }
 .text-red    { color: var(--danger); }
 
-/* Header Count */
+/* ── HEADER COUNT ───────────────────────────────────────────── */
 .header-count {
   font-size: 12px;
-  color: var(--gray-400);
+  color: rgba(255,255,255,0.65);
+  white-space: nowrap;
 }
 
-/* Timeline */
+/* ── TIMELINE ───────────────────────────────────────────────── */
 .timeline {
   padding: 8px 20px 20px;
   display: flex;
@@ -162,49 +182,20 @@
   border-radius: 50%;
 }
 
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 48px 20px;
-}
-
+/* ── EMPTY STATE ────────────────────────────────────────────── */
 .empty-icon-wrap {
   font-size: 40px;
   margin-bottom: 12px;
   display: block;
 }
 
-.empty-state h4 {
-  font-family: var(--font-h);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--gray-800);
-  margin-bottom: 6px;
-}
-
-.empty-state p {
-  font-size: 13px;
-  color: var(--gray-400);
-}
-
-/* Responsive */
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .stats-strip {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .stats-strip { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 480px) {
-  .stats-strip {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .stat-chip {
-    padding: 12px 14px;
-  }
-
-  .stat-chip-val {
-    font-size: 18px;
-  }
+  .stats-strip { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-chip   { padding: 12px 14px; }
+  .stat-chip-val { font-size: 18px; }
 }

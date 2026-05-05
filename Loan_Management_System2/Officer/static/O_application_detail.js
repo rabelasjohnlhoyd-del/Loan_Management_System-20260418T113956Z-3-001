@@ -1,161 +1,49 @@
 /* ================================================================
-   O_APPLICATION_DETAIL.JS — Loan Officer Application Detail
-   Sidebar toggle, notifications, active nav
+   O_APPLICATION_DETAIL.JS — Application Detail Page
+   Core (sidebar/notif/dropdown) handled by hiraya_officer_core.js
    ================================================================ */
 
 (function () {
   'use strict';
 
-  /* ================================================================
-     SIDEBAR TOGGLE
-     ================================================================ */
-  const burgerBtn = document.getElementById('burgerBtn');
-  const sidebar = document.getElementById('sidebar');
-  const sidebarOverlay = document.getElementById('sidebarOverlay');
-  const SIDEBAR_KEY = 'hiraya_officer_sidebar_open';
-  const isMobile = () => window.innerWidth <= 768;
-
-function openSidebar() {
-  document.body.classList.add('sidebar-open');
-  if (isMobile()) {
-    sidebarOverlay?.classList.add('active');
-  }
-  if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '1');
-}
-
-function closeSidebar() {
-  document.body.classList.remove('sidebar-open');
-  if (isMobile()) {
-    sidebarOverlay?.classList.remove('active');
-  }
-  if (!isMobile()) localStorage.setItem(SIDEBAR_KEY, '0');
-}
-
-  function toggleSidebar() {
-    document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
-  }
-
-  if (!isMobile() && localStorage.getItem(SIDEBAR_KEY) !== '0') {
-    openSidebar();
-  }
-
-  burgerBtn?.addEventListener('click', toggleSidebar);
-  sidebarOverlay?.addEventListener('click', closeSidebar);
-
-  sidebar?.querySelectorAll('.nav-item, .user-dropdown a').forEach(link => {
-    link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
-  });
-
-  window.addEventListener('resize', () => {
-    if (!isMobile()) {
-      sidebarOverlay?.classList.remove('active');
-      if (localStorage.getItem(SIDEBAR_KEY) !== '0') openSidebar();
-    } else {
-      closeSidebar();
-    }
-  });
-
-  /* ================================================================
-     USER DROPDOWN
-     ================================================================ */
-  const userToggle = document.getElementById('userDropdownToggle');
-  const userDropdown = document.getElementById('userDropdown');
-
-  userToggle?.addEventListener('click', function (e) {
-    e.stopPropagation();
-    userDropdown?.classList.toggle('open');
-    userToggle?.classList.toggle('open');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!userToggle?.contains(e.target) && !userDropdown?.contains(e.target)) {
-      userDropdown?.classList.remove('open');
-      userToggle?.classList.remove('open');
-    }
-  });
-
-  /* ================================================================
-     NOTIFICATIONS - localStorage persistence
-     ================================================================ */
-  const NOTIF_READ_KEY = 'hiraya_officer_read_notifs';
-  const notifBtn = document.getElementById('notifBtn');
-  const notifDropdown = document.getElementById('notifDropdown');
-  const notifDot = document.getElementById('notifDot');
-  const notifMarkAll = document.getElementById('notifMarkAll');
-  const notifWrap = document.getElementById('notifWrap');
-  const notifList = document.getElementById('notifList');
-
-  function getReadSet() {
-    try { return new Set(JSON.parse(localStorage.getItem(NOTIF_READ_KEY) || '[]')); }
-    catch (e) { return new Set(); }
-  }
-
-  function saveReadSet(set) {
-    try { localStorage.setItem(NOTIF_READ_KEY, JSON.stringify([...set])); }
-    catch (e) { }
-  }
-
-  function markNotifItemRead(el) {
-    el.classList.remove('unread');
-    el.classList.add('read-local');
-    el.querySelectorAll('.notif-unread-dot').forEach(d => d.remove());
-  }
-
-  function refreshNotifDot() {
-    const stillUnread = notifList?.querySelectorAll('.notif-item.unread').length ?? 0;
-    stillUnread > 0 ? notifDot?.classList.remove('hidden') : notifDot?.classList.add('hidden');
-  }
-
-  const readSet = getReadSet();
-  notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
-    if (readSet.has(item.dataset.notifId)) markNotifItemRead(item);
-  });
-  refreshNotifDot();
-
-  notifBtn?.addEventListener('click', function (e) {
-    e.stopPropagation();
-    notifDropdown?.classList.toggle('open');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!notifWrap?.contains(e.target)) notifDropdown?.classList.remove('open');
-  });
-
-  notifList?.addEventListener('click', function (e) {
-    const item = e.target.closest('.notif-item[data-notif-id]');
-    if (!item || !item.classList.contains('unread')) return;
-    markNotifItemRead(item);
-    readSet.add(item.dataset.notifId);
-    saveReadSet(readSet);
-    refreshNotifDot();
-  });
-
-  notifMarkAll?.addEventListener('click', () => {
-    notifList?.querySelectorAll('.notif-item[data-notif-id]').forEach(item => {
-      markNotifItemRead(item);
-      readSet.add(item.dataset.notifId);
+  /* ── ANIMATE CREDIT SCORE BAR ON LOAD ──────────────────────── */
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.score-bar-fill').forEach(bar => {
+      const target = bar.style.width;
+      bar.style.width = '0';
+      requestAnimationFrame(() => {
+        bar.style.transition = 'width 0.7s cubic-bezier(0.4,0,0.2,1)';
+        bar.style.width = target;
+      });
     });
-    saveReadSet(readSet);
-    refreshNotifDot();
   });
 
-  /* ================================================================
-     ACTIVE NAV HIGHLIGHT
-     ================================================================ */
-  const currentPath = window.location.pathname;
-  document.querySelectorAll('.nav-item[href]').forEach((el) => {
-    const href = el.getAttribute('href');
-    if (href && href !== '#' && currentPath.startsWith(href) && href !== '/') {
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      el.classList.add('active');
+  /* ── RADIO OPTION HIGHLIGHT ──────────────────────────────────── */
+  document.querySelectorAll('.radio-option input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.radio-option').forEach(opt => {
+        opt.style.borderColor = '';
+        opt.style.background  = '';
+      });
+      if (radio.checked) {
+        const opt = radio.closest('.radio-option');
+        if (opt) {
+          opt.style.borderColor = 'var(--primary)';
+          opt.style.background  = 'var(--primary-light)';
+        }
+      }
+    });
+  });
+
+  /* ── CONFIRM BEFORE SUBMIT ──────────────────────────────────── */
+  const form = document.querySelector('.recommend-form');
+  form?.addEventListener('submit', (e) => {
+    const selected = form.querySelector('input[name="recommendation"]:checked');
+    if (!selected) return; // browser will show required validation
+    const label = selected.value === 'under_review' ? 'Mark for Review' : 'Flag for Attention';
+    if (!confirm(`Submit recommendation: "${label}"? This action will be logged.`)) {
+      e.preventDefault();
     }
   });
-
-  /* ================================================================
-     AUTO-DISMISS FLASH MESSAGES
-     ================================================================ */
-  setTimeout(() => {
-    document.querySelectorAll('.flash-msg').forEach(el => el.remove());
-  }, 5000);
 
 })();
